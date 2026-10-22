@@ -24,6 +24,7 @@ class Jugador {
     this.region,
     this.semanasComoSuplente = 0,
     this.semanasInactivo = 0,
+    this.semanasRepresentado = 0,
     this.temporadaUltimoTraspaso,
     this.partidasTemporada = 0,
     this.victoriasTemporada = 0,
@@ -103,6 +104,12 @@ class Jugador {
 
   /// true si el jugador no puede jugar esta semana por lesión o descanso.
   bool get estaInactivo => semanasInactivo > 0;
+
+  /// Semanas que llevas representando a este jugador. Se reinicia a 0 al
+  /// dejarlo o al volver a reclutarlo y sube cada semana en el motor. El
+  /// periodo mínimo para ofrecerlo a un equipo vive en `formulas.dart`
+  /// (corrección I1 de la auditoría).
+  int semanasRepresentado;
 
   /// Temporada en la que el jugador cambió de equipo por última vez. Sirve
   /// para que un fichaje reciente no pueda volver a venderse en la misma
@@ -187,6 +194,7 @@ class Jugador {
       'region': region,
       'semanasComoSuplente': semanasComoSuplente,
       'semanasInactivo': semanasInactivo,
+      'semanasRepresentado': semanasRepresentado,
       'temporadaUltimoTraspaso': temporadaUltimoTraspaso,
       'partidasTemporada': partidasTemporada,
       'victoriasTemporada': victoriasTemporada,
@@ -226,6 +234,8 @@ class Jugador {
       region: json['region'] as String?,
       semanasComoSuplente: (json['semanasComoSuplente'] as num?)?.toInt() ?? 0,
       semanasInactivo: (json['semanasInactivo'] as num?)?.toInt() ?? 0,
+      semanasRepresentado:
+          (json['semanasRepresentado'] as num?)?.toInt() ?? 0,
       temporadaUltimoTraspaso: (json['temporadaUltimoTraspaso'] as num?)
           ?.toInt(),
       partidasTemporada: (json['partidasTemporada'] as num?)?.toInt() ?? 0,

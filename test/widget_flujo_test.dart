@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:esport_agent/logica/formulas.dart';
 import 'package:esport_agent/logica/motor_juego.dart';
 import 'package:esport_agent/main.dart';
 import 'package:esport_agent/modelos/equipo.dart';
@@ -139,6 +140,10 @@ void main() {
     final equipo = motor.equiposDeJuego(jugador.juego).first;
     jugador.habilidad = equipo.prestigio.clamp(1, 99);
     jugador.potencial = 99;
+    // La auditoría I1 exige 8 semanas de representación antes de ofrecerlo.
+    jugador.semanasRepresentado = semanasMinimasRepresentacion;
+    motor.notifyListeners();
+    await tester.pumpAndSettle();
 
     await tester.scrollUntilVisible(
       find.text('Ofrecer a un equipo'),
@@ -254,9 +259,36 @@ void main() {
     expect(find.textContaining('Oferta por'), findsOneWidget);
     await tester.tap(find.widgetWithText(ElevatedButton, 'Aceptar'));
     await tester.pumpAndSettle();
+    // Vender exige confirmación desde la auditoría I12.
+    expect(find.textContaining('Vender a'), findsOneWidget);
+    await tester.tap(find.widgetWithText(ElevatedButton, 'Vender'));
+    await tester.pumpAndSettle();
 
     expect(motor.ofertasPendientes, isEmpty);
     expect(jugador.equipoId, equipo.id);
+  });
+
+  testWidgets('un doble toque en Avanzar semana avanza una sola vez', (
+    tester,
+  ) async {
+    final motor = await _partidaNueva();
+    final semanaInicial = motor.semana;
+
+    await tester.pumpWidget(
+      MaterialApp(home: PantallaPrincipal(motor: motor)),
+    );
+    await tester.pumpAndSettle();
+
+    // Dos pulsaciones seguidas sobre el mismo botón, sin esperar a que la
+    // primera termine (I5). La segunda debe ignorarse.
+    final fab = tester.widget<FloatingActionButton>(
+      find.byType(FloatingActionButton),
+    );
+    fab.onPressed!();
+    fab.onPressed!();
+    await tester.pumpAndSettle();
+
+    expect(motor.semana, semanaInicial + 1);
   });
 
   testWidgets('guardar y continuar conserva la partida', (tester) async {

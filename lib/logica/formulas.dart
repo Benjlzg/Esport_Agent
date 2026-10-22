@@ -15,6 +15,11 @@ const double comisionSalario = 0.05;
 /// Costo de representar a un jugador: 5% de su valor de mercado (una vez).
 const double costoRepresentacion = 0.05;
 
+/// Semanas mínimas que debes representar a un jugador antes de poder
+/// ofrecerlo a un equipo (corrección I1 de la auditoría). Evita reclutar y
+/// revender en la misma semana para cobrar la comisión sin aportar nada.
+const int semanasMinimasRepresentacion = 8;
+
 /// Gasto fijo de la oficina cada semana.
 const int gastoOficinaSemanal = 500;
 

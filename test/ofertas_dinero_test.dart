@@ -12,10 +12,12 @@ import 'package:esport_agent/logica/negociacion.dart';
 import 'package:esport_agent/modelos/agente.dart';
 import 'package:esport_agent/modelos/equipo.dart';
 import 'package:esport_agent/modelos/estado_partida.dart';
+import 'package:esport_agent/modelos/evento.dart';
 import 'package:esport_agent/modelos/juego.dart';
 import 'package:esport_agent/modelos/jugador.dart';
 import 'package:esport_agent/modelos/oferta.dart';
 import 'package:esport_agent/pantallas/pantalla_negociacion.dart';
+import 'package:esport_agent/pantallas/pantalla_ofertas.dart';
 import 'package:esport_agent/servicios/guardado.dart';
 
 Jugador _jugador(
@@ -23,6 +25,7 @@ Jugador _jugador(
   String? equipoId = 'e1',
   bool representadoPorMi = true,
   int semanasContrato = 100,
+  int semanasRepresentado = 8,
 }) => Jugador(
   id: id,
   nick: id.toUpperCase(),
@@ -35,6 +38,7 @@ Jugador _jugador(
   potencial: 85,
   equipoId: equipoId,
   representadoPorMi: representadoPorMi,
+  semanasRepresentado: semanasRepresentado,
   region: 'Test',
   salarioAnual: 100000,
   semanasContrato: semanasContrato,
@@ -347,6 +351,105 @@ void main() {
 
       expect(resultado.ok, isFalse);
       expect(resultado.mensaje, contains('ya no es válida'));
+      expect(motor.estado!.ofertas, isEmpty);
+    });
+  });
+
+  group('I6 — ofertas obsoletas', () {
+    test('dejar de representar elimina las ofertas del jugador', () async {
+      final motor = await _motorConEstado(_estado());
+      final jugador = motor.jugadorPorId('p1')!;
+      motor.estado!.ofertas.add(_ofertaTraspaso());
+
+      await motor.dejarDeRepresentar(jugador);
+
+      expect(jugador.representadoPorMi, isFalse);
+      expect(motor.estado!.ofertas, isEmpty);
+    });
+
+    test('un traspaso invalida las demás ofertas del mismo jugador', () async {
+      final motor = await _motorConEstado(
+        _estado(equipos: [_equipo('e1'), _equipo('e2'), _equipo('e3')]),
+      );
+      final jugador = motor.jugadorPorId('p1')!;
+      final ofertaA = _ofertaTraspaso(equipoId: 'e2');
+      final ofertaB = _ofertaTraspaso(equipoId: 'e3', monto: 90000);
+      motor.estado!.ofertas.addAll([ofertaA, ofertaB]);
+
+      final resultado = await motor.aceptarOferta(ofertaA);
+
+      expect(resultado.ok, isTrue);
+      expect(jugador.equipoId, 'e2');
+      expect(motor.estado!.ofertas, isEmpty);
+    });
+
+    test('cambiar de videojuego por un evento invalida la oferta', () async {
+      final motor = await _motorConEstado(_estado());
+      final jugador = motor.jugadorPorId('p1')!;
+      motor.estado!.ofertas.add(_ofertaTraspaso());
+      final evento = EventoPendiente(
+        id: 'ev_cambio',
+        definicionId: 'oferta_otro_juego',
+        jugadorId: jugador.id,
+        titulo: 'Oferta de otro videojuego',
+        descripcion: 'Cambia de juego.',
+        esDecision: true,
+        opcionA: 'Aceptar',
+        opcionB: 'Quedarse',
+        temporada: motor.temporada,
+        semana: motor.semana,
+      );
+      motor.estado!.eventosPendientes.add(evento);
+
+      final resultado = await motor.resolverEvento(evento, 0);
+
+      expect(resultado.ok, isTrue);
+      expect(jugador.juego, isNot(Juego.lol));
+      expect(motor.estado!.ofertas, isEmpty);
+    });
+
+    test('una oferta sin presupuesto se elimina al avanzar la semana', () async {
+      final motor = await _motorConEstado(
+        _estado(equipos: [_equipo('e1'), _equipo('e2', presupuesto: 50000)]),
+      );
+      final oferta = _ofertaTraspaso(monto: 100000);
+      motor.estado!.ofertas.add(oferta);
+
+      await motor.avanzarSemana();
+
+      expect(motor.estado!.ofertas, isEmpty);
+    });
+  });
+
+  group('I12 — confirmación al vender', () {
+    testWidgets('cancelar el diálogo no cambia al jugador ni la oferta', (
+      tester,
+    ) async {
+      final motor = await _motorConEstado(_estado());
+      final jugador = motor.jugadorPorId('p1')!;
+      final oferta = _ofertaTraspaso();
+      motor.estado!.ofertas.add(oferta);
+
+      await tester.pumpWidget(
+        MaterialApp(home: PantallaOfertas(motor: motor)),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.widgetWithText(ElevatedButton, 'Aceptar'));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('Vender a'), findsOneWidget);
+
+      await tester.tap(find.text('Cancelar'));
+      await tester.pumpAndSettle();
+      expect(jugador.equipoId, 'e1');
+      expect(motor.estado!.ofertas, contains(oferta));
+
+      // Al confirmar sí se cierra el traspaso.
+      await tester.tap(find.widgetWithText(ElevatedButton, 'Aceptar'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(ElevatedButton, 'Vender'));
+      await tester.pumpAndSettle();
+      expect(jugador.equipoId, 'e2');
       expect(motor.estado!.ofertas, isEmpty);
     });
   });

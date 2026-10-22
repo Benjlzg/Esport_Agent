@@ -6,6 +6,7 @@ import '../logica/formulas.dart';
 import '../logica/motor_juego.dart';
 import '../modelos/oferta.dart';
 import '../tema/tema_app.dart';
+import '../widgets/dialogo_confirmacion.dart';
 import '../widgets/escudo_equipo.dart';
 
 class PantallaOfertas extends StatelessWidget {
@@ -173,6 +174,22 @@ class PantallaOfertas extends StatelessWidget {
   }
 
   Future<void> _aceptar(BuildContext context, Oferta oferta) async {
+    // Vender a un jugador es una decisión irreversible: el PLAN exige
+    // confirmación (corrección I12). Las renovaciones no necesitan diálogo.
+    if (oferta.tipo == TipoOferta.traspaso) {
+      final jugador = motor.jugadorPorId(oferta.jugadorId);
+      final equipo = motor.equipoPorId(oferta.equipoId);
+      final confirmado = await mostrarConfirmacion(
+        context,
+        titulo: 'Vender a ${jugador?.nick ?? 'tu jugador'}',
+        mensaje:
+            '¿Aceptas la oferta de ${equipo?.nombre ?? 'el equipo'} por '
+            '${formatearDinero(oferta.monto)}? El jugador cambiará de club.',
+        textoConfirmar: 'Vender',
+        peligroso: true,
+      );
+      if (!confirmado || !context.mounted) return;
+    }
     final resultado = await motor.aceptarOferta(oferta);
     if (!context.mounted) return;
     ScaffoldMessenger.of(context)

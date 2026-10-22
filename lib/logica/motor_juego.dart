@@ -1,6 +1,7 @@
 // Motor del juego: guarda todo el estado y contiene las acciones
 // (reclutar, ofrecer, avanzar semana...). Extiende ChangeNotifier para
 // que las pantallas se actualicen solas cuando algo cambia.
+import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/foundation.dart';
@@ -83,6 +84,19 @@ class MotorJuego extends ChangeNotifier {
   /// Contadores en memoria para las pruebas de balance y el robot.
   /// No se guardan en la partida.
   final MetricasSimulacion metricas = MetricasSimulacion();
+
+  /// true mientras se está ejecutando un avance de semana. Evita que un doble
+  /// toque en "Avanzar semana" avance dos semanas (corrección I5).
+  bool _avanzando = false;
+
+  /// ¿Hay un avance de semana en curso?
+  bool get avanzando => _avanzando;
+
+  /// Cola de guardado: serializa las escrituras para que dos guardados
+  /// simultáneos no terminen fuera de orden en el disco (corrección I5).
+  final List<({EstadoPartida estado, Completer<void> completer})>
+  _guardadosPendientes = [];
+  bool _procesandoGuardado = false;
 
   /// Índices para buscar jugadores y equipos por id en O(1).
   final Map<String, Jugador> _indiceJugadores = {};
@@ -414,6 +428,8 @@ class MotorJuego extends ChangeNotifier {
     }
     ag.dinero -= costo;
     jugador.representadoPorMi = true;
+    // El periodo mínimo de representación empieza de cero (corrección I1).
+    jugador.semanasRepresentado = 0;
     _agregarNoticia(
       'Reclutaste a ${jugador.nick} por ${formatearDinero(costo)}.',
       TipoNoticia.fichaje,
@@ -425,6 +441,9 @@ class MotorJuego extends ChangeNotifier {
   /// Deja de representar a un jugador.
   Future<ResultadoAccion> dejarDeRepresentar(Jugador jugador) async {
     jugador.representadoPorMi = false;
+    jugador.semanasRepresentado = 0;
+    // Las ofertas pendientes por este jugador dejan de tener sentido (I6).
+    _invalidarOfertasObsoletas();
     _agregarNoticia(
       'Dejaste de representar a ${jugador.nick}.',
       TipoNoticia.evento,
@@ -472,6 +491,20 @@ class MotorJuego extends ChangeNotifier {
       return ResultadoOferta(
         respuesta: RespuestaEquipo.rechaza,
         mensaje: 'Solo puedes ofrecer jugadores de tu agencia.',
+      );
+    }
+    // Debes representarlo un tiempo mínimo antes de ofrecerlo (I1): así no
+    // se puede reclutar y revender en la misma semana para cobrar comisión.
+    if (jugador.semanasRepresentado < semanasMinimasRepresentacion) {
+      final faltan =
+          semanasMinimasRepresentacion - jugador.semanasRepresentado;
+      return ResultadoOferta(
+        respuesta: RespuestaEquipo.sinInteres,
+        mensaje:
+            'Aún no puedes ofrecer a ${jugador.nick}: llevas '
+            '${jugador.semanasRepresentado} de $semanasMinimasRepresentacion '
+            'semanas como su agente. Espera $faltan semana'
+            '${faltan == 1 ? '' : 's'}.',
       );
     }
     if (jugador.juego != equipo.juego) {
@@ -649,9 +682,34 @@ class MotorJuego extends ChangeNotifier {
   }
 
   /// Cierra la transferencia: paga la comisión, actualiza el equipo, etc.
-  Future<void> _cerrarTrato(Jugador jugador, Equipo equipo, int precio) async {
+  ///
+  /// [salarioAnual] es el salario que ofreció el comprador. Si no se indica,
+  /// se calcula a partir del valor de mercado (I7).
+  Future<void> _cerrarTrato(
+    Jugador jugador,
+    Equipo equipo,
+    int precio, {
+    int? salarioAnual,
+  }) async {
     final ag = agente;
     final origenId = jugador.equipoId;
+
+    // El club vendedor recibe el precio menos la comisión del agente (I2).
+    // La comisión que se descuenta es la bruta del 10 %: el inversor, si lo
+    // hay, se lleva su parte de MI comisión, no del club vendedor.
+    final comisionBruta = comisionPorTransferencia(precio);
+    var vendedor = origenId == null ? null : _indiceEquipos[origenId];
+    if (vendedor == null && origenId != null) {
+      for (final posible in estado!.equipos) {
+        if (posible.id == origenId) {
+          vendedor = posible;
+          break;
+        }
+      }
+    }
+    if (vendedor != null && vendedor.id != equipo.id) {
+      vendedor.presupuesto += precio - comisionBruta;
+    }
 
     // El jugador desplazado en ese rol baja a suplente (no queda libre).
     for (final otro in estado!.jugadores) {
@@ -683,6 +741,9 @@ class MotorJuego extends ChangeNotifier {
     jugador.suplente = false;
     jugador.semanasContrato = 52 + _rnd.nextInt(53);
     jugador.semanasComoSuplente = 0;
+    // El salario prometido en la oferta se aplica de verdad (I7).
+    jugador.salarioAnual =
+        salarioAnual ?? calcularSalarioAnual(jugador.valorMercado);
     // Queda bloqueado para otro traspaso hasta la próxima temporada.
     jugador.temporadaUltimoTraspaso = estado!.temporada;
 
@@ -708,7 +769,51 @@ class MotorJuego extends ChangeNotifier {
 
     final clave = EstadoPartida.clavePar(jugador.id, equipo.id);
     estado!.rondasNegociacion.remove(clave);
+    // Cualquier otra oferta por este jugador quedó obsoleta al cambiar de
+    // club (corrección I6).
+    _invalidarOfertasObsoletas();
     await _guardarYNotificar();
+  }
+
+  /// Quita las ofertas que ya no representan la situación actual del jugador.
+  ///
+  /// Se invalida una oferta si el jugador ya no existe, dejó de ser mío,
+  /// cambió de club o de videojuego, el comprador no puede pagar o (en las
+  /// renovaciones) el contrato ya no está vigente (corrección I6).
+  void _invalidarOfertasObsoletas() {
+    final est = estado!;
+    // Algunas pruebas (y partidas restauradas a mano) asignan `estado` sin
+    // pasar por `cargar`. Si los índices están vacíos, se reconstruyen para
+    // no borrar ofertas válidas por error.
+    if (_indiceJugadores.isEmpty && est.jugadores.isNotEmpty) {
+      _reconstruirIndices();
+    }
+    if (_indiceEquipos.isEmpty && est.equipos.isNotEmpty) {
+      for (final equipo in est.equipos) {
+        _indiceEquipos[equipo.id] = equipo;
+      }
+    }
+    est.ofertas.removeWhere((oferta) {
+      final jugador = _indiceJugadores[oferta.jugadorId];
+      if (jugador == null) return true;
+      if (!jugador.representadoPorMi) return true;
+      final equipo = _indiceEquipos[oferta.equipoId];
+      if (equipo == null) return true;
+
+      if (oferta.tipo == TipoOferta.renovacion) {
+        return jugador.equipoId != oferta.equipoId ||
+            jugador.semanasContrato <= 0;
+      }
+
+      if (equipo.id == jugador.equipoId) return true;
+      if (equipo.juego != jugador.juego) return true;
+      final origen = oferta.equipoOrigenId;
+      if (origen != null && jugador.equipoId != origen) return true;
+      if (equipo.presupuesto < oferta.monto) return true;
+      // Recién traspasado: la oferta nació antes de ese cambio o ya no vale.
+      if (jugador.bloqueadoTraspaso(est.temporada)) return true;
+      return false;
+    });
   }
 
   // ------------------- MERCADO, OFERTAS Y SUPLENTES -------------------
@@ -791,6 +896,9 @@ class MotorJuego extends ChangeNotifier {
     est.ofertas.removeWhere(
       (o) => vencidas.contains(o) || invalidas.contains(o),
     );
+    // Además, cualquier oferta que haya quedado obsoleta por un cambio de
+    // club, de videojuego, de agencia o de presupuesto se elimina (I6).
+    _invalidarOfertasObsoletas();
     for (final oferta in vencidas) {
       final jugador = _indiceJugadores[oferta.jugadorId];
       if (jugador != null) {
@@ -904,7 +1012,12 @@ class MotorJuego extends ChangeNotifier {
         await _guardarYNotificar();
         return ResultadoAccion(false, motivo);
       }
-      await _cerrarTrato(jugador, equipo, oferta.monto);
+      await _cerrarTrato(
+        jugador,
+        equipo,
+        oferta.monto,
+        salarioAnual: oferta.salarioAnual,
+      );
       est.ofertas.remove(oferta);
       await _guardarYNotificar();
       return ResultadoAccion(
@@ -1061,6 +1174,11 @@ class MotorJuego extends ChangeNotifier {
     int opcion,
   ) async {
     final est = estado!;
+    // Idempotencia (I4/I15): si el evento ya se resolvió (por un doble toque
+    // o porque expiró), no se vuelve a aplicar su efecto ni su dinero.
+    if (!est.eventosPendientes.contains(evento)) {
+      return ResultadoAccion(false, 'El evento ya no está disponible.');
+    }
     final resultado = eventos.resolverEvento(
       estado: est,
       indiceJugadores: _indiceJugadores,
@@ -1075,6 +1193,9 @@ class MotorJuego extends ChangeNotifier {
       _reconstruirIndices();
       _recalcularValores();
     }
+    // Un evento puede liberar al jugador, cambiarle el videojuego o hacerle
+    // perder la representación: las ofertas anteriores dejan de valer (I6).
+    _invalidarOfertasObsoletas();
     await _guardarYNotificar();
     return ResultadoAccion(true, resultado.noticia);
   }
@@ -1123,6 +1244,16 @@ class MotorJuego extends ChangeNotifier {
     }
     est.eventosPendientes.addAll(resultado.eventos);
 
+    // Los eventos con decisión no pueden acumularse sin límite (I15). Si la
+    // lista supera el máximo, los más antiguos expiran y quedan como noticia.
+    final expirados = eventos.limitarEventosPendientes(est);
+    for (final evento in expirados) {
+      _agregarNoticia(
+        'El evento "${evento.titulo}" expiró sin resolverse.',
+        TipoNoticia.alerta,
+      );
+    }
+
     // Un evento del mundo puede retirar jugadores o reponer titulares.
     if (resultado.noticias.isNotEmpty) {
       _reconstruirIndices();
@@ -1133,6 +1264,20 @@ class MotorJuego extends ChangeNotifier {
   /// Avanza una semana: cobra comisiones, gasta oficina, progresa jugadores,
   /// baja contratos y controla la bancarrota.
   Future<void> avanzarSemana() async {
+    if (estado == null || _avanzando) return;
+    _avanzando = true;
+    // Avisa antes de empezar para que la interfaz desactive el botón (I5).
+    notifyListeners();
+    try {
+      await _avanzarSemanaInterna();
+    } finally {
+      _avanzando = false;
+      notifyListeners();
+    }
+  }
+
+  /// Cuerpo real del avance de semana, sin el bloqueo de doble toque.
+  Future<void> _avanzarSemanaInterna() async {
     final est = estado!;
     final ag = est.agente;
     var ingresos = 0;
@@ -1175,6 +1320,9 @@ class MotorJuego extends ChangeNotifier {
     gastos += gastoOficinaSemanal;
     final huecosPorContrato = <({String equipoId, String rol})>[];
     for (final j in est.jugadores) {
+      // 4.0) Suma una semana de representación (corrección I1).
+      if (j.representadoPorMi) j.semanasRepresentado++;
+
       // 4.1) Comisión por el salario de mis jugadores con equipo.
       if (j.representadoPorMi && j.equipoId != null) {
         final semanal = calcularSalarioSemanal(j.salarioAnual);
@@ -1273,12 +1421,20 @@ class MotorJuego extends ChangeNotifier {
 
   /// Avanza varias semanas seguidas (atajo de depuración).
   Future<void> avanzarSemanas(int cantidad) async {
-    for (var i = 0; i < cantidad; i++) {
-      if (estado == null || estado!.finDelJuego) break;
-      await avanzarSemana();
-      // Al avanzar varias semanas, los eventos informativos no se muestran:
-      // se resuelven solos y quedan como noticia. Las decisiones sí esperan.
-      await resolverEventosInformativos();
+    if (estado == null || _avanzando) return;
+    _avanzando = true;
+    notifyListeners();
+    try {
+      for (var i = 0; i < cantidad; i++) {
+        if (estado == null || estado!.finDelJuego) break;
+        await _avanzarSemanaInterna();
+        // Al avanzar varias semanas, los eventos informativos no se muestran:
+        // se resuelven solos y quedan como noticia. Las decisiones sí esperan.
+        await resolverEventosInformativos();
+      }
+    } finally {
+      _avanzando = false;
+      notifyListeners();
     }
   }
 
@@ -1721,10 +1877,34 @@ class MotorJuego extends ChangeNotifier {
   }
 
   /// Guarda la partida y avisa a las pantallas que se actualicen.
+  ///
+  /// Los guardados se encadenan en una cola para que dos acciones seguidas no
+  /// terminen escribiendo fuera de orden (corrección I5). La interfaz se avisa
+  /// antes de esperar al disco, así los botones se bloquean sin tirones.
   Future<void> _guardarYNotificar() async {
-    if (estado != null) {
-      await guardarPartida(estado!);
-    }
     notifyListeners();
+    final est = estado;
+    if (est == null) return;
+
+    final solicitud = Completer<void>();
+    _guardadosPendientes.add((estado: est, completer: solicitud));
+    if (_procesandoGuardado) return solicitud.future;
+
+    _procesandoGuardado = true;
+    try {
+      while (_guardadosPendientes.isNotEmpty) {
+        final pendiente = _guardadosPendientes.removeAt(0);
+        try {
+          await guardarPartida(pendiente.estado);
+          pendiente.completer.complete();
+        } catch (error, pila) {
+          // La cola sigue con el siguiente guardado aunque uno falle.
+          pendiente.completer.completeError(error, pila);
+        }
+      }
+    } finally {
+      _procesandoGuardado = false;
+    }
+    return solicitud.future;
   }
 }

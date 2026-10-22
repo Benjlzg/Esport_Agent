@@ -466,6 +466,8 @@ class RobotJugador {
       if (_vendidosEnVentana.contains(jugador.id)) continue;
       // Recién fichado: no se puede vender hasta la próxima temporada.
       if (jugador.bloqueadoTraspaso(motor.temporada)) continue;
+      // Periodo mínimo de representación antes de ofrecerlo (I1).
+      if (jugador.semanasRepresentado < semanasMinimasRepresentacion) continue;
       if (_equipoInteresadoPara(jugador) != null) return jugador;
     }
     return null;

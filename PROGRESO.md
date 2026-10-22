@@ -430,10 +430,90 @@ Se corrigieron solo los cuatro problemas críticos restantes de `AUDITORIA.md` (
 - No se ejecutaron `test/balance_test.dart` ni `test/robot_test.dart` (lentos), por la misma indicación de las correcciones anteriores.
 - `versionFormato` sigue en **7**; los campos nuevos de `Oferta` tienen valores por defecto y las partidas viejas cargan sin cambios.
 
+### Pendiente (de aquella corrección)
+
+- **I2 e I7:** quedaron pendientes entonces; se resolvieron en la sección «Auditoría — economía e idempotencia» de abajo.
+- Regenerar `INFORME_BALANCE.md` y ejecutar las pruebas lentas para medir el efecto de C3–C6 en el robot y en el mercado.
+
+## Auditoría — economía e idempotencia (I1–I15, terminada, 2026-10-22)
+
+Se corrigieron los problemas importantes **I2, I4, I5, I6, I7, I8, I12 e I15**, y se aplicó la alternativa pedida para **I1**. Los problemas menores y el resto de la auditoría siguen pendientes.
+
+### I1 — Periodo mínimo de representación (sin tocar la comisión)
+
+- **La comisión de traspaso sigue siendo el 10 %** (`comisionTransferencia`).
+- Nuevo campo `Jugador.semanasRepresentado`: empieza en **0**, sube una semana por cada `avanzarSemana` mientras el jugador sea tuyo y se reinicia a 0 al dejarlo o volver a reclutarlo.
+- Nueva constante `semanasMinimasRepresentacion = 8` en `formulas.dart`.
+- `MotorJuego.ofrecer` rechaza la oferta antes de las 8 semanas y no consume rondas de negociación.
+- La ficha del jugador muestra **"Tiempo como representado: X semanas"**, el aviso de cuántas faltan y el botón "Ofrecer a un equipo" deshabilitado. La pantalla de negociación también bloquea el envío.
+- El robot de pruebas respeta el periodo mínimo antes de vender.
+
+### I2 — El club vendedor recibe el dinero
+
+- `_cerrarTrato` acredita al club de origen **precio − comisión bruta del 10 %**. La parte del inversor sale de mi comisión, no del vendedor.
+- Los traspasos automáticos de la IA y las cláusulas anti-dinastía acreditan al vendedor; en esos casos no hay agente mío y recibe el precio completo.
+- Prueba de conservación: comprador −100.000, vendedor +90.000 y agente +10.000 (suma 0).
+
+### I4 — Doble aceptación y doble resolución
+
+- `aceptarOferta`, `rechazarOferta` y `pedirMasOferta` ya comprobaban que la oferta siguiera en la lista; se mantiene.
+- `resolverEvento` comprueba la lista **en el motor y en `eventos.dart`**: si el evento ya no está pendiente devuelve "ya no está disponible" y no aplica dinero, moral ni habilidad por segunda vez.
+
+### I5 — Doble toque en "Avanzar semana" y guardados en orden
+
+- Nuevo `MotorJuego.avanzando`: si ya hay un avance en curso, la segunda llamada se ignora.
+- El FAB "Avanzar semana" y el atajo de 10 semanas se deshabilitan mientras se procesa.
+- `_guardarYNotificar` usa una **cola de guardado**: las escrituras se hacen una detrás de otra y la UI se avisa antes de esperar al disco.
+- Prueba de widget con dos pulsaciones seguidas: la semana avanza exactamente 1.
+
+### I6 — Ofertas obsoletas
+
+- Nuevo `_invalidarOfertasObsoletas`: elimina ofertas si el jugador ya no existe, dejó de ser mío, cambió de club o de videojuego, el comprador no puede pagar, el contrato de renovación no está vigente o el jugador está bloqueado por un traspaso reciente.
+- Se ejecuta al avanzar la semana, al dejar de representar, al cerrar un traspaso y al resolver un evento (libertad, cambio de juego o pérdida de representación).
+- Pruebas: dejar de representar, traspaso con dos ofertas, cambio de videojuego por evento y presupuesto insuficiente.
+
+### I7 — Salario de la oferta aplicado
+
+- `_cerrarTrato` acepta `salarioAnual` y lo asigna al jugador. `aceptarOferta` pasa el salario de la oferta; las ofertas directas usan el salario de mercado.
+- Los fichajes de la IA y las cláusulas anti-dinastía también actualizan el salario.
+- Prueba: aceptar una oferta con salario 123.456 deja exactamente ese salario en la ficha.
+
+### I8 — Reemplazos del anti-dinastía en el índice
+
+- `_fichajesDeCampeones` recibe `indiceJugadores` y `porJuegoRol`, y registra al reemplazo generado en ambos.
+- Prueba: tras el anti-dinastía, todos los jugadores del estado (incluido el reemplazo) se encuentran con `jugadorPorId`.
+
+### I12 — Confirmación al vender
+
+- `PantallaOfertas` pide confirmación antes de aceptar un traspaso, con jugador, club y precio.
+- `PantallaNegociacion` pide confirmación antes de aceptar una contraoferta.
+- Prueba de widget: cancelar no cambia al jugador ni elimina la oferta; confirmar sí cierra el traspaso.
+
+### I15 — Límite de eventos pendientes
+
+- Nueva constante `maxEventosPendientes = 8` y función `limitarEventosPendientes`.
+- Al generar eventos, si la lista supera 8, expiran los más antiguos y queda una noticia.
+- `resolverEvento` es idempotente en motor y lógica.
+- Pruebas: doble resolución con un ingreso de 25.000 (solo cobra una vez), recorte de 10 a 8 y avance semanal con pendientes acumulados.
+
+### Guardado y compatibilidad
+
+- `versionFormato` sube a **8** por `semanasRepresentado`; `versionMinimaCompatible` sigue en **3**.
+- Las partidas v3–v7 cargan con el campo nuevo a 0 y el contador de ids reconstruido.
+- `test/guardado_test.dart` actualizado para cargar también v7 y comprobar la versión 8.
+
+### Verificación
+
+- `flutter analyze` → **No issues found!**
+- `flutter test` → **149 pasan, 2 saltan** (las pruebas `@Tags(['lento'])`).
+- Capturas de `capturas/` regeneradas con `flutter test test/golden_test.dart --update-goldens` porque cambian la simulación y la ficha del jugador.
+- No se ejecutaron `test/balance_test.dart` ni `test/robot_test.dart` (lentos); `INFORME_BALANCE.md` no se regeneró.
+
 ### Pendiente
 
-- **I2 e I7:** acreditar al club vendedor y aplicar el salario de la oferta siguen sin tocarse porque no forman parte de C3–C6.
-- Regenerar `INFORME_BALANCE.md` y ejecutar las pruebas lentas para medir el efecto de C3–C6 en el robot y en el mercado.
+- Regenerar `INFORME_BALANCE.md` y ejecutar las pruebas lentas para medir el efecto de I1–I15 en el robot, el mercado y los presupuestos.
+- **B4 — Fase 4:** el presupuesto de los equipos se sigue reiniciando cada temporada; esta corrección solo acredita al vendedor durante la temporada.
+- El resto de problemas menores de `AUDITORIA.md` (M1–M19) sigue pendiente.
 
 
 

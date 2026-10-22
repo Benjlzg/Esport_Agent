@@ -8,6 +8,7 @@ import '../logica/negociacion.dart';
 import '../modelos/equipo.dart';
 import '../modelos/jugador.dart';
 import '../tema/tema_app.dart';
+import '../widgets/dialogo_confirmacion.dart';
 import '../widgets/escudo_equipo.dart';
 
 class PantallaNegociacion extends StatefulWidget {
@@ -58,6 +59,19 @@ class _PantallaNegociacionState extends State<PantallaNegociacion> {
   Future<void> _enviar() async {
     final jugador = widget.motor.jugadorPorId(widget.jugadorId)!;
     final equipo = _equipo!;
+    if (jugador.semanasRepresentado < semanasMinimasRepresentacion) {
+      final faltan =
+          semanasMinimasRepresentacion - jugador.semanasRepresentado;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Debes representar a ${jugador.nick} $semanasMinimasRepresentacion '
+            'semanas antes de ofrecerlo. Te faltan $faltan.',
+          ),
+        ),
+      );
+      return;
+    }
     if (jugador.equipoId == equipo.id) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -105,6 +119,17 @@ class _PantallaNegociacionState extends State<PantallaNegociacion> {
 
   Future<void> _aceptarContraoferta() async {
     final jugador = widget.motor.jugadorPorId(widget.jugadorId)!;
+    // Aceptar la contraoferta también vende al jugador: confirmación (I12).
+    final confirmado = await mostrarConfirmacion(
+      context,
+      titulo: 'Vender a ${jugador.nick}',
+      mensaje:
+          '¿Aceptas ${formatearDinero(_resultado!.contraoferta)} de '
+          '${_equipo!.nombre}? ${jugador.nick} cambiará de club.',
+      textoConfirmar: 'Vender',
+      peligroso: true,
+    );
+    if (!confirmado || !mounted) return;
     final resultado = await widget.motor.aceptarContraoferta(
       jugador: jugador,
       equipo: _equipo!,
@@ -144,6 +169,8 @@ class _PantallaNegociacionState extends State<PantallaNegociacion> {
     final mercadoCerrado =
         !enVentanaFichajes(motor.semana) && jugador.equipoId != null;
     final recienFichado = jugador.bloqueadoTraspaso(motor.temporada);
+    final semanasFaltantes =
+        semanasMinimasRepresentacion - jugador.semanasRepresentado;
 
     return Scaffold(
       appBar: AppBar(title: Text('Ofrecer a ${jugador.nick}')),
@@ -189,6 +216,34 @@ class _PantallaNegociacionState extends State<PantallaNegociacion> {
                       child: Text(
                         'Recién fichado: podrá cambiar de equipo la próxima '
                         'temporada.',
+                        style: const TextStyle(
+                          color: AppColores.dorado,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
+          if (semanasFaltantes > 0) ...[
+            Card(
+              color: AppColores.superficie,
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Row(
+                  children: [
+                    const Icon(Icons.hourglass_bottom,
+                        color: AppColores.dorado),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        'Llevas ${jugador.semanasRepresentado} de '
+                        '$semanasMinimasRepresentacion semanas como su agente. '
+                        'Podrás ofrecerlo dentro de $semanasFaltantes '
+                        'semana${semanasFaltantes == 1 ? '' : 's'}.',
                         style: const TextStyle(
                           color: AppColores.dorado,
                           fontSize: 13,
@@ -274,7 +329,10 @@ class _PantallaNegociacionState extends State<PantallaNegociacion> {
           ElevatedButton.icon(
             icon: const Icon(Icons.send),
             label: const Text('Enviar oferta'),
-            onPressed: (_equipo == null || mercadoCerrado || recienFichado)
+            onPressed: (_equipo == null ||
+                    mercadoCerrado ||
+                    recienFichado ||
+                    semanasFaltantes > 0)
                 ? null
                 : _enviar,
           ),

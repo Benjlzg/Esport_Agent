@@ -3,8 +3,10 @@
 import 'dart:math';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:esport_agent/logica/eventos.dart';
+import 'package:esport_agent/logica/motor_juego.dart';
 import 'package:esport_agent/logica/simulador_partidos.dart';
 import 'package:esport_agent/modelos/agente.dart';
 import 'package:esport_agent/modelos/equipo.dart';
@@ -12,6 +14,7 @@ import 'package:esport_agent/modelos/estado_partida.dart';
 import 'package:esport_agent/modelos/evento.dart';
 import 'package:esport_agent/modelos/juego.dart';
 import 'package:esport_agent/modelos/jugador.dart';
+import 'package:esport_agent/servicios/guardado.dart';
 
 Jugador _jugador(
   String id, {
@@ -66,7 +69,20 @@ EstadoPartida _estado({
   temporada: 1,
 );
 
+/// Guarda el estado y lo carga para que el motor reconstruya sus índices.
+Future<MotorJuego> _motorConEstado(EstadoPartida estado) async {
+  await guardarPartida(estado);
+  final motor = MotorJuego(semilla: 10);
+  expect(await motor.cargar(), ResultadoCarga.ok);
+  return motor;
+}
+
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  setUp(() {
+    SharedPreferences.setMockInitialValues({});
+  });
   group('limitarCostoEvento', () {
     test('nunca cobra más del 30 % del dinero actual', () {
       expect(limitarCostoEvento(100000, 10000), 3000);
@@ -351,7 +367,7 @@ void main() {
         expect(estado.semana, 7);
         expect(estado.temporada, 2);
         expect(estado.toJson()['version'], versionFormato);
-        expect(versionFormato, 7);
+        expect(versionFormato, 8);
         expect(versionMinimaCompatible, 3);
       },
     );
@@ -566,6 +582,99 @@ void main() {
 
       expect(jugador.moral, 15);
       expect(estado.eventosPendientes, isEmpty);
+    });
+  });
+
+  group('I4/I15 — idempotencia y límite de eventos', () {
+    test('resolver dos veces el mismo evento aplica dinero una sola vez', () async {
+      final jugador = _jugador('p1');
+      final motor = await _motorConEstado(
+        _estado(jugadores: [jugador], dinero: 1000),
+      );
+      final evento = EventoPendiente(
+        id: 'ev_doble',
+        definicionId: 'marca_perifericos',
+        jugadorId: 'p1',
+        titulo: 'Marca de periféricos',
+        descripcion: 'P1 firmó con una marca.',
+        esDecision: true,
+        opcionA: 'Aceptar el patrocinio',
+        opcionB: 'Rechazar',
+        ingresoBaseA: 25000,
+        temporada: 1,
+        semana: 1,
+      );
+      motor.estado!.eventosPendientes.add(evento);
+      final dineroInicial = motor.agente.dinero;
+
+      final primera = await motor.resolverEvento(evento, 0);
+      final dineroTrasPrimera = motor.agente.dinero;
+      final segunda = await motor.resolverEvento(evento, 0);
+
+      expect(primera.ok, isTrue);
+      expect(segunda.ok, isFalse);
+      expect(segunda.mensaje, contains('ya no está disponible'));
+      expect(dineroTrasPrimera - dineroInicial, 25000);
+      expect(motor.agente.dinero, dineroTrasPrimera);
+      expect(motor.eventosPendientes, isEmpty);
+    });
+
+    test('los pendientes se limitan a 8 y expiran los más antiguos', () {
+      final estado = _estado();
+      for (var i = 0; i < 10; i++) {
+        estado.eventosPendientes.add(
+          EventoPendiente(
+            id: 'ev$i',
+            definicionId: 'prensa_favorable',
+            titulo: 'Evento $i',
+            descripcion: 'Prueba',
+            esDecision: false,
+            opcionA: 'Entendido',
+            temporada: 1,
+            semana: 1,
+          ),
+        );
+      }
+
+      final expirados = limitarEventosPendientes(estado);
+
+      expect(estado.eventosPendientes.length, maxEventosPendientes);
+      expect(expirados.map((e) => e.id), ['ev0', 'ev1']);
+      expect(estado.eventosPendientes.first.id, 'ev2');
+    });
+
+    test('avanzar semana recorta los pendientes acumulados', () async {
+      final jugadores = [
+        for (var i = 0; i < 20; i++) _jugador('p$i', equipoId: 'e1'),
+      ];
+      final estado = _estado(
+        jugadores: jugadores,
+        equipos: [_equipo('e1')],
+        dinero: 1000000,
+      );
+      estado.frecuenciaEventos = 'alta';
+      for (var i = 0; i < maxEventosPendientes; i++) {
+        estado.eventosPendientes.add(
+          EventoPendiente(
+            id: 'ev_viejo_$i',
+            definicionId: 'prensa_favorable',
+            titulo: 'Evento viejo $i',
+            descripcion: 'Prueba',
+            esDecision: false,
+            opcionA: 'Entendido',
+            temporada: 1,
+            semana: 1,
+          ),
+        );
+      }
+      final motor = await _motorConEstado(estado);
+
+      await motor.avanzarSemana();
+
+      expect(
+        motor.eventosPendientes.length,
+        lessThanOrEqualTo(maxEventosPendientes),
+      );
     });
   });
 }

@@ -31,6 +31,10 @@ const double probEventoMundo = 0.10;
 /// Máximo de eventos nuevos por semana (incluye los del mundo).
 const int maxEventosSemana = 3;
 
+/// Máximo de eventos pendientes de resolver. Si se supera, los más antiguos
+/// expiran para que la lista no crezca sin control (corrección I15).
+const int maxEventosPendientes = 8;
+
 /// Máximo de eventos de agencia por semana.
 const int maxEventosAgenciaSemana = 1;
 
@@ -1100,6 +1104,22 @@ List<DefinicionEvento> _crearCatalogo() {
 
 // ------------------- GENERACIÓN SEMANAL -------------------
 
+/// Limita cuántos eventos quedan pendientes. Elimina los más antiguos (los
+/// primeros de la lista) y los devuelve para que el motor deje una noticia.
+///
+/// Así las decisiones que el jugador ignora no se acumulan durante toda la
+/// partida (corrección I15).
+List<EventoPendiente> limitarEventosPendientes(
+  EstadoPartida estado, {
+  int maximo = maxEventosPendientes,
+}) {
+  if (estado.eventosPendientes.length <= maximo) return const [];
+  final sobrantes = estado.eventosPendientes.length - maximo;
+  final expirados = estado.eventosPendientes.take(sobrantes).toList();
+  estado.eventosPendientes.removeRange(0, sobrantes);
+  return expirados;
+}
+
 /// Genera los eventos de la semana actual.
 ///
 /// Los eventos de jugador y agencia se devuelven como pendientes (se aplican
@@ -1300,6 +1320,16 @@ ResultadoEvento resolverEvento({
   required EventoPendiente evento,
   int opcion = 0,
 }) {
+  // Idempotencia: un evento que ya no está pendiente no se aplica otra vez.
+  // El motor también lo comprueba antes de llamar (correcciones I4/I15).
+  if (!estado.eventosPendientes.contains(evento)) {
+    return ResultadoEvento(
+      noticia: 'El evento "${evento.titulo}" ya no está disponible.',
+      tipoNoticia: TipoNoticia.alerta,
+      reconstruirIndices: false,
+    );
+  }
+
   final contexto = ContextoEventos(
     estado: estado,
     indiceJugadores: indiceJugadores,

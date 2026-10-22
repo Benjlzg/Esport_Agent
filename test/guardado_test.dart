@@ -1,5 +1,5 @@
 // Pruebas de guardado de la auditoría (C1): los ids de jugador generados
-// después de cargar una partida deben ser únicos, y las partidas v3–v6 sin
+// después de cargar una partida deben ser únicos, y las partidas v3–v7 sin
 // el contador guardado deben seguir cargando.
 import 'dart:convert';
 
@@ -92,13 +92,13 @@ void main() {
     },
   );
 
-  test('las partidas v3–v6 sin contador cargan y lo reconstruyen', () async {
+  test('las partidas v3–v7 sin contador cargan y lo reconstruyen', () async {
     final motor = await _partidaNueva();
     final estado = motor.estado!;
     _anadirGenerados(estado);
     final mapaBase = estado.toJson();
 
-    for (final version in [3, 4, 5, 6]) {
+    for (final version in [3, 4, 5, 6, 7]) {
       final mapa = Map<String, dynamic>.from(mapaBase);
       mapa['version'] = version;
       // Una partida vieja no tiene el contador ni los campos de las fases
@@ -124,6 +124,14 @@ void main() {
       ]) {
         mapa.remove(campo);
       }
+      // El campo de semanas de representación también es nuevo (I1).
+      mapa['jugadores'] = (mapa['jugadores'] as List)
+          .map((j) {
+            final jugador = Map<String, dynamic>.from(j as Map);
+            jugador.remove('semanasRepresentado');
+            return jugador;
+          })
+          .toList();
       SharedPreferences.setMockInitialValues({clavePartida: jsonEncode(mapa)});
 
       final cargado = MotorJuego(semilla: _semilla);
@@ -141,7 +149,7 @@ void main() {
       expect(cargado.estado!.toJson()['version'], versionFormato);
     }
 
-    expect(versionFormato, 7);
+    expect(versionFormato, 8);
     expect(versionMinimaCompatible, 3);
   });
 }

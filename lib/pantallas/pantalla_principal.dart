@@ -110,7 +110,9 @@ class _PantallaPrincipalState extends State<PantallaPrincipal> {
             ],
           ),
           floatingActionButton: FloatingActionButton.extended(
-            onPressed: _avanzarSemana,
+            // Mientras se procesa un avance, el botón queda deshabilitado
+            // para que un doble toque no avance dos semanas (I5).
+            onPressed: widget.motor.avanzando ? null : _avanzarSemana,
             icon: const Icon(Icons.play_arrow),
             label: const Text('Avanzar semana'),
           ),
@@ -242,7 +244,7 @@ class _BarraSuperior extends StatelessWidget {
             IconButton(
               tooltip: 'Avanzar 10 semanas',
               icon: const Icon(Icons.fast_forward),
-              onPressed: onAvanzarDiez,
+              onPressed: motor.avanzando ? null : onAvanzarDiez,
             ),
           IconButton(
             tooltip: 'Ofertas pendientes',

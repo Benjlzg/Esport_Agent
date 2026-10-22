@@ -22,6 +22,7 @@ Jugador _jugador(
   String? equipoId,
   bool representadoPorMi = true,
   int semanasContrato = 100,
+  int semanasRepresentado = 8,
   List<double>? ultimasNotas,
 }) => Jugador(
   id: id,
@@ -35,6 +36,7 @@ Jugador _jugador(
   potencial: potencial,
   equipoId: equipoId,
   representadoPorMi: representadoPorMi,
+  semanasRepresentado: semanasRepresentado,
   salarioAnual: 100000,
   semanasContrato: semanasContrato,
   ultimasNotas: ultimasNotas,

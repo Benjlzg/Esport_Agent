@@ -168,6 +168,17 @@ class PantallaDetalleJugador extends StatelessWidget {
                         '${formatearDinero(jugador.salarioAnual)} al año',
                         AppColores.textoPrincipal,
                       ),
+                      if (jugador.representadoPorMi) ...[
+                        const SizedBox(height: 8),
+                        _fila(
+                          'Tiempo como representado',
+                          '${jugador.semanasRepresentado} semanas',
+                          jugador.semanasRepresentado >=
+                                  semanasMinimasRepresentacion
+                              ? AppColores.exito
+                              : AppColores.dorado,
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -322,6 +333,8 @@ class PantallaDetalleJugador extends StatelessWidget {
     final mercadoCerrado =
         !enVentanaFichajes(motor.semana) && jugador.equipoId != null;
     final recienFichado = jugador.bloqueadoTraspaso(motor.temporada);
+    final semanasFaltantes =
+        semanasMinimasRepresentacion - jugador.semanasRepresentado;
     if (!jugador.representadoPorMi) {
       final costo = costoRepresentar(jugador.valorMercado);
       return [
@@ -337,7 +350,7 @@ class PantallaDetalleJugador extends StatelessWidget {
       ElevatedButton.icon(
         icon: const Icon(Icons.send),
         label: const Text('Ofrecer a un equipo'),
-        onPressed: (mercadoCerrado || recienFichado)
+        onPressed: (mercadoCerrado || recienFichado || semanasFaltantes > 0)
             ? null
             : () {
                 Navigator.of(context).push(
@@ -350,6 +363,15 @@ class PantallaDetalleJugador extends StatelessWidget {
                 );
               },
       ),
+      if (semanasFaltantes > 0) ...[
+        const SizedBox(height: 8),
+        Text(
+          'Debes representarlo al menos $semanasMinimasRepresentacion semanas '
+          'antes de ofrecerlo. Te faltan $semanasFaltantes '
+          'semana${semanasFaltantes == 1 ? '' : 's'}.',
+          style: const TextStyle(color: AppColores.dorado, fontSize: 12),
+        ),
+      ],
       if (recienFichado) ...[
         const SizedBox(height: 8),
         const Text(

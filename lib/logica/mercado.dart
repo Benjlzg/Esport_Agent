@@ -241,7 +241,9 @@ ResultadoMercadoIA procesarMercadoIA({
     fichajesCerrados += _fichajesDeCampeones(
       estado: estado,
       indiceEquipos: indiceEquipos,
+      indiceJugadores: indiceJugadores,
       porEquipo: porEquipo,
+      porJuegoRol: porJuegoRol,
       rnd: rnd,
       nuevoIdJugador: nuevoIdJugador,
       noticias: noticias,
@@ -326,10 +328,18 @@ ResultadoMercadoIA procesarMercadoIA({
 
     // Se cierra el traspaso. El candidato ya se filtró por presupuesto.
     equipo.presupuesto -= elegido.valorMercado;
+    // El club vendedor recibe el precio. En un traspaso entre equipos de la
+    // IA no hay agente mío, así que no se descuenta comisión (I2).
+    final clubVendedor = origenId == null ? null : indiceEquipos[origenId];
+    if (clubVendedor != null && clubVendedor.id != equipo.id) {
+      clubVendedor.presupuesto += elegido.valorMercado;
+    }
     elegido.equipoId = equipo.id;
     elegido.suplente = false;
     elegido.semanasContrato = 52 + rnd.nextInt(53);
     elegido.semanasComoSuplente = 0;
+    // El salario del nuevo contrato se aplica también en la IA (I7).
+    elegido.salarioAnual = calcularSalarioAnual(elegido.valorMercado);
     // Queda bloqueado para otro traspaso hasta la próxima temporada (A2).
     elegido.temporadaUltimoTraspaso = estado.temporada;
     estado.fichajesVentana[equipo.id] = usados + 1;
@@ -422,7 +432,9 @@ void _garantizarTitulares({
 int _fichajesDeCampeones({
   required EstadoPartida estado,
   required Map<String, Equipo> indiceEquipos,
+  required Map<String, Jugador> indiceJugadores,
   required Map<String, List<Jugador>> porEquipo,
+  required Map<String, List<Jugador>> porJuegoRol,
   required Random rnd,
   required String Function() nuevoIdJugador,
   required List<String> noticias,
@@ -564,10 +576,15 @@ int _fichajesDeCampeones({
         }
 
         comprador.presupuesto -= precioClausula;
+        // La dinastía vendedora recibe el importe de la cláusula. Si el
+        // jugador no es mío no hay comisión de agente que descontar (I2).
+        campeon.presupuesto += precioClausula;
         jugador.equipoId = comprador.id;
         jugador.suplente = false;
         jugador.semanasContrato = 52 + rnd.nextInt(53);
         jugador.semanasComoSuplente = 0;
+        // También en las cláusulas se aplica el salario del nuevo contrato.
+        jugador.salarioAnual = calcularSalarioAnual(jugador.valorMercado);
         jugador.temporadaUltimoTraspaso = estado.temporada;
         estado.fichajesVentana[comprador.id] =
             (estado.fichajesVentana[comprador.id] ?? 0) + 1;
@@ -592,6 +609,15 @@ int _fichajesDeCampeones({
         );
         if (reemplazo != null) {
           porEquipo.putIfAbsent(campeon.id, () => <Jugador>[]).add(reemplazo);
+          // El reemplazo también debe entrar en los índices que usa el resto
+          // del mercado y el motor (corrección I8).
+          indiceJugadores[reemplazo.id] = reemplazo;
+          porJuegoRol
+              .putIfAbsent(
+                '${reemplazo.juego.name}|${reemplazo.rol}',
+                () => <Jugador>[],
+              )
+              .add(reemplazo);
         }
 
         rolesVendidos.add(jugador.rol);

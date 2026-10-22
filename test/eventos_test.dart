@@ -159,6 +159,36 @@ void main() {
       expect(eventoEnEspera(estado: estado, definicion: definicion), isFalse);
     });
 
+    test('el tiempo de espera también cruza el cambio de temporada', () {
+      final jugador = _jugador('p1');
+      final estado = _estado(jugadores: [jugador]);
+      final definicion = catalogoEventos.firstWhere(
+        (d) => d.id == 'tendinitis',
+      );
+      estado.ultimaSemanaEvento[claveEsperaEvento(definicion, jugador)] =
+          semanaAbsoluta(1, 40);
+
+      estado.temporada = 2;
+      estado.semana = 13; // 25 semanas después: sigue en espera.
+      expect(
+        eventoEnEspera(
+          estado: estado,
+          definicion: definicion,
+          jugador: jugador,
+        ),
+        isTrue,
+      );
+      estado.semana = 14; // 26 semanas después: ya puede repetirse.
+      expect(
+        eventoEnEspera(
+          estado: estado,
+          definicion: definicion,
+          jugador: jugador,
+        ),
+        isFalse,
+      );
+    });
+
     test('el tiempo de espera es por jugador', () {
       final p1 = _jugador('p1');
       final p2 = _jugador('p2');

@@ -232,7 +232,9 @@ Se implementó solo la sección **B (balance)** de `CORRECCIONES_2_5.md`.
 
 - `flutter analyze` → **No issues found!**
 - `flutter build linux --debug` → compila.
-- `flutter test` → **62 pasan, 14 fallan y 2 saltan**. Los 14 fallos son solo las comparaciones de `test/golden_test.dart`: las capturas siguen mostrando la interfaz anterior desde la sección C y no se regeneraron (D). Las 62 pruebas de lógica y widgets pasan, incluidas las nuevas de B2 y `test/dominio_liga_test.dart` (B3).
+- `flutter test` → **75 pasan, 14 fallan y 2 saltan**. Los 14 fallos son solo las comparaciones de `test/golden_test.dart`: las capturas siguen mostrando la interfaz anterior desde la sección C y no se regeneraron (D). De las 18 capturas, 4 coinciden; las **71 pruebas de lógica y widgets pasan**, incluidas las nuevas de B2, `test/dominio_liga_test.dart` (B3) y `test/robot_metricas_test.dart` (B1).
+- Prueba nueva de B2: el tiempo de espera de 26 semanas también se comprueba cruzando el cambio de temporada.
+- Prueba nueva de B1: si el robot quiebra, el saldo de esa semana se registra como el mínimo de la partida.
 - No se ejecutaron `test/balance_test.dart` ni `test/robot_test.dart` (lentos), por indicación del usuario.
 - `versionFormato` sigue en **6**; `ultimaSemanaEvento` tiene valor por defecto y las partidas viejas cargan sin cambios.
 
@@ -241,3 +243,4 @@ Se implementó solo la sección **B (balance)** de `CORRECCIONES_2_5.md`.
 - Ejecutar las pruebas lentas y regenerar `INFORME_BALANCE.md` para comprobar el robot con $50.000, el dominio por liga y el efecto de B2.
 - Si el robot quiebra o termina la T3 con más de $5.000.000, ajustar constantes (máximo 3 rondas, anotando antes y después).
 - Regenerar las capturas (sección D): `flutter test test/golden_test.dart --update-goldens`.
+- **B4 — pendiente de la Fase 4 (economía):** el presupuesto de los equipos se reinicia en cada `_nuevaTemporada` (`equipo.presupuesto = prestigio * 20000`), así que los premios y las ventas no se acumulan. **No se cambia en la Fase 2.5.**

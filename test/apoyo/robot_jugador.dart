@@ -221,6 +221,9 @@ class RobotJugador {
         }
 
         if (motor.finDelJuego) {
+          // La quiebra también cuenta para el mínimo: el saldo negativo de
+          // esta semana es el más bajo de la partida (B1).
+          _registrarDinero(temporadaInicio, semana);
           reloj.stop();
           filas.add(
             FilaRobot(

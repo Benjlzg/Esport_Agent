@@ -375,9 +375,10 @@ String _escribirInforme({
 
   buffer
     ..writeln(
-      'En esta ejecución se hicieron **3 rondas** de ajuste. Los cambios se '
-      'probaron con la misma semilla y el informe se regeneró después de cada '
-      'ronda.',
+      'Las rondas **1–3** son las del ajuste de dominio y economía de la '
+      'Fase 2.5. La **ronda 4** corresponde a la revisión actual de comisiones '
+      'y cuadratura. Los cambios se probaron con la misma semilla y el informe '
+      'se regeneró después de cada ronda.',
     )
     ..writeln()
     ..writeln(
@@ -508,13 +509,17 @@ String _escribirInforme({
             'El salto máximo de habilidad entre temporadas baja a 2,86 '
                 '(límite 3).',
           ],
+          [
+            '4',
+            'reemplazos',
+            'ajusteHabilidadReemplazo = −4',
+            'ajusteHabilidadReemplazo = −5',
+            'El salto T1→T2 había vuelto a 3,40 con los cambios posteriores '
+                'de plantillas. Con −5 queda por debajo del límite de 3 sin '
+                'tocar la progresión juvenil.',
+          ],
         ],
       ),
-    )
-    ..writeln()
-    ..writeln(
-      '- **Dominio por liga:** ninguna liga supera el criterio de 6 de 10 '
-      'temporadas con el mismo campeón. El máximo observado es **6 de 10**.',
     )
     ..writeln()
     ..writeln('### Correcciones de lógica')

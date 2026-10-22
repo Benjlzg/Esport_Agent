@@ -162,6 +162,11 @@ class TemporadaService {
     // El resumen suma lo de esta semana (salarios y oficina) con lo que el
     // agente movió desde el avance anterior: traspasos, renovaciones y
     // eventos (M4). Después se vacía el acumulador de la semana en curso.
+    //
+    // `ingresos` solo contiene las comisiones de salario. Se guarda aparte en
+    // las métricas para que el informe del robot no atribuya los traspasos y
+    // eventos de la semana anterior a las comisiones de salario.
+    motor.metricas.comisionesSalarioUltimaSemana = ingresos;
     est.ingresosUltimaSemana = ingresos + est.ingresosSemanaEnCurso;
     est.gastosUltimaSemana = gastos + est.gastosSemanaEnCurso;
     est.ingresosSemanaEnCurso = 0;

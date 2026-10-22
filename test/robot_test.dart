@@ -35,5 +35,12 @@ void main() {
           '(preocupante desde $rachaPreocupante).',
     );
     expect(resultado.filas, hasLength(temporadasRobot));
+    expect(
+      resultado.cuadra,
+      isTrue,
+      reason:
+          'El dinero final no cuadra con ingresos y gastos '
+          '(descuadre ${resultado.descuadre}).',
+    );
   }, timeout: const Timeout(Duration(minutes: 10)));
 }

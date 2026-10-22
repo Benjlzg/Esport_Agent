@@ -36,6 +36,7 @@ ResultadoRobot _resultado({
   int? temporadaMenosDinero = 1,
   int? semanaMenosDinero = 1,
   Map<String, int>? ingresos,
+  Map<String, int>? gastos,
 }) => ResultadoRobot(
   filas: filas ?? [_fila()],
   rachaMaxima: 0,
@@ -47,6 +48,8 @@ ResultadoRobot _resultado({
   semanaMenosDinero: semanaMenosDinero,
   ingresosPorFuente:
       ingresos ?? {for (final fuente in robotFuentesIngreso) fuente: 0},
+  gastosPorFuente:
+      gastos ?? {for (final fuente in robotFuentesGasto) fuente: 0},
 );
 
 void main() {
@@ -121,6 +124,34 @@ void main() {
       expect(texto, contains('Principal fuente de ingresos: Traspasos'));
       expect(texto, contains('Criterio B1'));
       expect(texto, contains('**cumple**'));
+    });
+
+    test('ingresos y gastos cuadran con el dinero final', () {
+      final resultado = _resultado(
+        filas: [_fila(dineroFin: 55000)],
+        ingresos: {
+          ingresoSalarios: 8000,
+          ingresoTraspasos: 2000,
+          ingresoRenovaciones: 0,
+          ingresoEventos: 0,
+        },
+        gastos: {
+          gastoOficina: 3000,
+          gastoReclutamientos: 1500,
+          gastoEventos: 500,
+        },
+      );
+
+      expect(resultado.ingresosTotales, 10000);
+      expect(resultado.gastosTotales, 5000);
+      expect(resultado.cuadra, isTrue);
+      expect(resultado.descuadre, 0);
+
+      final texto = seccionRobotMarkdown(resultado);
+      expect(texto, contains('### Gastos'));
+      expect(texto, contains('Reclutamientos'));
+      expect(texto, contains('### Cuadre del dinero'));
+      expect(texto, contains('0 (cuadra)'));
     });
   });
 }

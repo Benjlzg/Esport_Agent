@@ -25,6 +25,12 @@ class MetricasSimulacion {
   /// Ofertas de la IA en la ventana en curso.
   int ofertasVentana = 0;
 
+  /// Comisiones de salario cobradas en la última semana, sin contar traspasos,
+  /// renovaciones ni eventos. El resumen semanal las mezcla con el resto de
+  /// movimientos (`ingresosUltimaSemana`), pero los informes de balance
+  /// necesitan separarlas para no contarlas dos veces.
+  int comisionesSalarioUltimaSemana = 0;
+
   /// Si cambió la temporada, reinicia los contadores de temporada y ventana.
   void asegurarTemporada(int nuevaTemporada) {
     if (nuevaTemporada == temporada) return;

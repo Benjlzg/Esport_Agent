@@ -637,5 +637,35 @@ Se corrigieron **I13, I14, todos los problemas menores M1–M19** y los duplicad
   - Observación: el mayor salto de habilidad entre temporadas quedó en **3,40** (criterio orientativo ≤ 3). Se anota para la Fase 4; no se cambió el balance en esta corrección para no mezclar alcance.
 - Capturas de `capturas/` regeneradas con `flutter test test/golden_test.dart --update-goldens` porque cambian la simulación y algunas pantallas.
 
+## Balance — comisiones y cuadratura (terminada, 2026-10-22)
+
+### 1. Comisiones de salario y suma de ingresos
+
+- **Diagnóstico:** el cálculo de la comisión era correcto (`5 %` del salario semanal, `comisionSalario`) y **I7** también: `_cerrarTrato` aplica el `salarioAnual` de la oferta. El error estaba en el informe del robot: usaba `ingresosUltimaSemana`, que por M4 incluye **salarios + traspasos + renovaciones + eventos** de la semana anterior, y luego volvía a sumar traspasos y eventos por separado.
+- **Prueba aritmética:** la fila «Comisiones de salario» mostraba `445.312`, pero el salario real era `18.998`; `18.998 + 2 × 279.710 + 2 × 146.604 = 871.626`, justo el total duplicado del informe anterior.
+- **Corrección:** nueva métrica en memoria `MetricasSimulacion.comisionesSalarioUltimaSemana`, escrita por `TemporadaService` con la parte de salarios únicamente. El robot lee esa métrica y ya no usa `ingresosUltimaSemana`. No cambia el guardado (`versionFormato` sigue en **9**).
+- **Prueba nueva:** `test/salario_test.dart` fija un salario anual de **520.000** (10.000 semanales), comprueba que la comisión es **500** y que el dinero sube 500 y baja 500 de oficina esa semana.
+
+### 2. Tabla de gastos y cuadre
+
+- El robot acumula ahora gastos por fuente: **Oficina**, **Reclutamientos** y **Eventos**. Los gastos de eventos se separan de los ingresos por el signo del movimiento; los reclutamientos, por la diferencia de dinero al fichar.
+- `INFORME_BALANCE.md` incluye una tabla de gastos, una tabla de ingresos con total y una tabla de **cuadre**: dinero inicial + ingresos − gastos = dinero final.
+- Resultado del robot (T1–T3): ingresos **494.346** (salarios 15.588 · traspasos 291.290 · renovaciones 5.018 · eventos 182.450), gastos **169.350** (oficina 78.000 · reclutamientos 65.600 · eventos 25.750), dinero final **374.996** y **descuadre 0**.
+- `test/robot_test.dart` falla si el descuadre no es 0; `test/robot_metricas_test.dart` cubre la tabla y el cuadre sin simular.
+
+### 3. Salto de habilidad entre temporadas
+
+- Al corregir el punto 1 el salto seguía en **3,40** (límite 3), porque las comisiones no afectan a la habilidad.
+- **Ajuste pequeño (1 ronda de las 2 permitidas):** `ajusteHabilidadReemplazo` de **−4 a −5**. No se tocó la progresión juvenil.
+- Resultado: salto máximo **2,76** (≤ 3) y progresión de 16–21 años con equipo **4,5** puntos/temporada (objetivo 4–8).
+- Efecto colateral anotado: el dominio por liga subió a **8 de 10** (3 ligas por encima del criterio ≤ 6). No se ajusta aquí; queda para la Fase 4 (economía), junto con B4.
+
+### Verificación
+
+- `flutter test --tags lento --run-skipped` → **2 pasan** (`balance_test.dart` y `robot_test.dart`); informe regenerado el **2026-10-22 11:22:43** con semilla **20251019**.
+- `flutter analyze` → **No issues found!**
+- `flutter test` → **174 pasan, 2 saltan** (las `@Tags(['lento'])`).
+- Capturas de `capturas/` regeneradas con `flutter test test/golden_test.dart --update-goldens` porque el ajuste de reemplazos cambia el fixture determinista.
+
 
 

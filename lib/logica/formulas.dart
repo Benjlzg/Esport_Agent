@@ -47,8 +47,9 @@ const double multiplicadorValorMaximo = 3.0;
 /// Un valor negativo evita que las plantillas suban de nivel solo por las
 /// bajas y mantiene estable la media de habilidad entre temporadas.
 /// Se bajó de -2 a -3 y luego a -4 para suavizar el salto de habilidad entre
-/// temporadas que introdujo el mayor movimiento de plantillas.
-const int ajusteHabilidadReemplazo = -4;
+/// temporadas que introdujo el mayor movimiento de plantillas. En la revisión
+/// de comisiones se bajó a -5: el salto T1→T2 seguía en 3,40 (límite 3).
+const int ajusteHabilidadReemplazo = -5;
 
 /// Multiplicador del valor según la edad del jugador.
 double multiplicadorEdad(int edad) {

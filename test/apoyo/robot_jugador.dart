@@ -58,6 +58,18 @@ const List<String> robotFuentesIngreso = [
   ingresoEventos,
 ];
 
+/// Fuentes de gasto que se miden en el informe.
+const String gastoOficina = 'Oficina';
+const String gastoReclutamientos = 'Reclutamientos';
+const String gastoEventos = 'Eventos';
+
+/// Orden fijo de las fuentes de gasto en el informe.
+const List<String> robotFuentesGasto = [
+  gastoOficina,
+  gastoReclutamientos,
+  gastoEventos,
+];
+
 /// Marcadores de la sección que el robot escribe en el informe.
 const String marcadorRobotInicio = '<!-- ROBOT:INICIO -->';
 const String marcadorRobotFin = '<!-- ROBOT:FIN -->';
@@ -107,6 +119,7 @@ class ResultadoRobot {
     required this.temporadaMenosDinero,
     required this.semanaMenosDinero,
     required this.ingresosPorFuente,
+    required this.gastosPorFuente,
   });
 
   final List<FilaRobot> filas;
@@ -125,6 +138,22 @@ class ResultadoRobot {
 
   /// Ingresos acumulados por fuente durante las 3 temporadas.
   final Map<String, int> ingresosPorFuente;
+
+  /// Gastos acumulados por fuente durante las 3 temporadas.
+  final Map<String, int> gastosPorFuente;
+
+  int get ingresosTotales =>
+      ingresosPorFuente.values.fold(0, (suma, monto) => suma + monto);
+
+  int get gastosTotales =>
+      gastosPorFuente.values.fold(0, (suma, monto) => suma + monto);
+
+  /// Diferencia entre el saldo teórico y el real. Debe ser 0: si no, hay un
+  /// movimiento de dinero que el informe no está clasificando.
+  int get descuadre =>
+      robotDineroInicial + ingresosTotales - gastosTotales - dineroFinal;
+
+  bool get cuadra => descuadre == 0;
 
   bool get rachaPreocupanteDetectada => rachaMaxima >= rachaPreocupante;
 
@@ -172,6 +201,11 @@ class RobotJugador {
     for (final fuente in robotFuentesIngreso) fuente: 0,
   };
 
+  /// Gastos acumulados por fuente (oficina, reclutamientos y eventos).
+  final Map<String, int> _gastosPorFuente = {
+    for (final fuente in robotFuentesGasto) fuente: 0,
+  };
+
   /// Juega [temporadas] temporadas completas.
   Future<ResultadoRobot> jugar({int temporadas = temporadasRobot}) async {
     final filas = <FilaRobot>[];
@@ -181,6 +215,9 @@ class RobotJugador {
     _semanaMenosDinero = null;
     for (final fuente in robotFuentesIngreso) {
       _ingresosPorFuente[fuente] = 0;
+    }
+    for (final fuente in robotFuentesGasto) {
+      _gastosPorFuente[fuente] = 0;
     }
 
     for (var t = 1; t <= temporadas; t++) {
@@ -252,6 +289,7 @@ class RobotJugador {
             temporadaMenosDinero: _temporadaMenosDinero,
             semanaMenosDinero: _semanaMenosDinero,
             ingresosPorFuente: Map<String, int>.of(_ingresosPorFuente),
+            gastosPorFuente: Map<String, int>.of(_gastosPorFuente),
           );
         }
       }
@@ -286,6 +324,7 @@ class RobotJugador {
       temporadaMenosDinero: _temporadaMenosDinero,
       semanaMenosDinero: _semanaMenosDinero,
       ingresosPorFuente: Map<String, int>.of(_ingresosPorFuente),
+      gastosPorFuente: Map<String, int>.of(_gastosPorFuente),
     );
   }
 
@@ -304,7 +343,14 @@ class RobotJugador {
 
     await motor.avanzarSemana();
     // Comisión de los salarios de esta semana (ya viene neta del inversor).
-    _sumarIngreso(ingresoSalarios, motor.estado!.ingresosUltimaSemana);
+    // Se lee la métrica específica: `ingresosUltimaSemana` incluye además los
+    // traspasos y eventos de la semana anterior y duplicaría esas fuentes.
+    _sumarIngreso(
+      ingresoSalarios,
+      motor.metricas.comisionesSalarioUltimaSemana,
+    );
+    // La oficina se cobra siempre al avanzar, aunque no haya otras acciones.
+    _sumarGasto(gastoOficina, gastoOficinaSemanal);
     _actualizarVentana();
 
     final enVentana = enVentanaFichajes(motor.semana);
@@ -337,6 +383,12 @@ class RobotJugador {
   void _sumarIngreso(String fuente, int monto) {
     if (monto <= 0) return;
     _ingresosPorFuente[fuente] = (_ingresosPorFuente[fuente] ?? 0) + monto;
+  }
+
+  /// Suma un gasto a su fuente (solo cantidades positivas).
+  void _sumarGasto(String fuente, int monto) {
+    if (monto <= 0) return;
+    _gastosPorFuente[fuente] = (_gastosPorFuente[fuente] ?? 0) + monto;
   }
 
   /// Guarda la semana con menos dinero de toda la partida (B1).
@@ -382,8 +434,13 @@ class RobotJugador {
       final dineroAntes = motor.agente.dinero;
       await motor.resolverEvento(evento, opcion);
       // Los eventos pueden dar dinero (patrocinios, inversores) o cobrarlo.
-      // Solo se mide el saldo positivo como fuente de ingresos.
-      _sumarIngreso(ingresoEventos, motor.agente.dinero - dineroAntes);
+      // Cada dirección se anota en su propia fuente.
+      final delta = motor.agente.dinero - dineroAntes;
+      if (delta >= 0) {
+        _sumarIngreso(ingresoEventos, delta);
+      } else {
+        _sumarGasto(gastoEventos, -delta);
+      }
     }
   }
 
@@ -428,7 +485,11 @@ class RobotJugador {
     if (motor.misJugadores.length >= robotMaxRepresentados) return false;
     final candidato = _candidatoReclutamiento();
     if (candidato == null) return false;
+    final dineroAntes = motor.agente.dinero;
     final resultado = await motor.reclutar(candidato);
+    if (resultado.ok) {
+      _sumarGasto(gastoReclutamientos, dineroAntes - motor.agente.dinero);
+    }
     return resultado.ok;
   }
 
@@ -596,9 +657,11 @@ String seccionRobotMarkdown(ResultadoRobot resultado) {
   );
 
   final principal = resultado.fuentePrincipalIngresos;
+  final ingresosTotales = resultado.ingresosTotales;
+  final gastosTotales = resultado.gastosTotales;
   buffer
     ..writeln()
-    ..writeln('### Dinero e ingresos')
+    ..writeln('### Dinero, ingresos y gastos')
     ..writeln()
     ..writeln(
       '- Semana con menos dinero: '
@@ -622,6 +685,38 @@ String seccionRobotMarkdown(ResultadoRobot resultado) {
         [
           for (final fuente in robotFuentesIngreso)
             [fuente, miles(resultado.ingresosPorFuente[fuente] ?? 0)],
+          ['**Total**', '**${miles(ingresosTotales)}**'],
+        ],
+      ),
+    )
+    ..writeln()
+    ..writeln('### Gastos')
+    ..writeln()
+    ..writeln(
+      tablaMarkdown(
+        ['Fuente de gasto', 'Total'],
+        [
+          for (final fuente in robotFuentesGasto)
+            [fuente, miles(resultado.gastosPorFuente[fuente] ?? 0)],
+          ['**Total**', '**${miles(gastosTotales)}**'],
+        ],
+      ),
+    )
+    ..writeln()
+    ..writeln('### Cuadre del dinero')
+    ..writeln()
+    ..writeln(
+      tablaMarkdown(
+        ['Concepto', 'Importe'],
+        [
+          ['Dinero inicial', miles(robotDineroInicial)],
+          ['Ingresos', miles(ingresosTotales)],
+          ['Gastos', '−${miles(gastosTotales)}'],
+          ['Dinero final', miles(resultado.dineroFinal)],
+          [
+            'Descuadre',
+            resultado.cuadra ? '0 (cuadra)' : miles(resultado.descuadre),
+          ],
         ],
       ),
     );

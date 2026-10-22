@@ -283,6 +283,9 @@ class MotorJuego extends ChangeNotifier {
 
   /// Reconstruye los índices de jugadores y equipos por id.
   void _reconstruirIndices() {
+    // Además corrige nicks repetidos de partidas viejas o de datos iniciales:
+    // el primero conserva el nombre y los demás reciben un número.
+    asegurarNicksUnicos(estado!.jugadores);
     _indiceJugadores.clear();
     _indiceEquipos.clear();
     for (final j in estado!.jugadores) {
@@ -1436,6 +1439,7 @@ class MotorJuego extends ChangeNotifier {
     }
 
     // Se generan 3 jóvenes por región de cada videojuego (potencial 60–95).
+    final nicksUsados = est.jugadores.map((j) => j.nick).toSet();
     for (final juego in Juego.values) {
       for (final region in regionesDeJuego(juego)) {
         for (var i = 0; i < 3; i++) {
@@ -1445,6 +1449,7 @@ class MotorJuego extends ChangeNotifier {
               id: _nuevoId(),
               juego: juego,
               region: region,
+              nicksUsados: nicksUsados,
             ),
           );
         }

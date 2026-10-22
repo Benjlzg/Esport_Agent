@@ -211,7 +211,7 @@ class _BarraSuperior extends StatelessWidget {
                     ),
                     const SizedBox(width: 10),
                     Text(
-                      'T${motor.temporada} · Sem ${motor.semana}',
+                      'Temp. ${motor.temporada} · Sem ${motor.semana}',
                       style: const TextStyle(
                         color: AppColores.acento2,
                         fontSize: 12,

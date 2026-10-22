@@ -280,7 +280,7 @@ void main() {
     expect(cargado.agente.reputacion, original.agente.reputacion);
     expect(cargado.misJugadores.length, original.misJugadores.length);
     expect(
-      find.text('T${original.temporada} · Sem ${original.semana}'),
+      find.text('Temp. ${original.temporada} · Sem ${original.semana}'),
       findsOneWidget,
     );
     expect(find.text('Reputación 42'), findsOneWidget);

@@ -347,7 +347,7 @@ class PantallaDetalleEquipo extends StatelessWidget {
                         ),
                       ),
                       Text(
-                        'T${titulo.temporada}',
+                        'Temp. ${titulo.temporada}',
                         style: const TextStyle(
                           color: AppColores.dorado,
                           fontWeight: FontWeight.bold,

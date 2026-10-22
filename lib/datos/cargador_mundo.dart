@@ -52,12 +52,17 @@ class CargadorMundo {
   /// Contador para ids de equipos ficticios.
   int _contadorFicticios = 0;
 
+  /// Nicks ya usados al construir el mundo: evita que dos jugadores se llamen
+  /// igual, tanto los reales del JSON como los generados.
+  final Set<String> _nicksUsados = <String>{};
+
   String _nuevoId() => 'j${(_contador++).toString().padLeft(4, '0')}';
 
   /// Carga y devuelve el mundo completo de los 4 videojuegos.
   Future<MundoCargado> cargar() async {
     _contador = 0;
     _contadorFicticios = 0;
+    _nicksUsados.clear();
 
     final regiones = await _cargarRegiones();
     final equipos = <Equipo>[];
@@ -77,7 +82,9 @@ class CargadorMundo {
 
     // Agentes libres (se generan al empezar la partida).
     for (var i = 0; i < agentesLibresIniciales; i++) {
-      jugadores.add(generarJugadorLibre(_rnd, id: _nuevoId()));
+      jugadores.add(
+        generarJugadorLibre(_rnd, id: _nuevoId(), nicksUsados: _nicksUsados),
+      );
     }
 
     return MundoCargado(equipos: equipos, jugadores: jugadores);
@@ -276,6 +283,7 @@ class CargadorMundo {
             id: _nuevoId(),
             equipo: equipo,
             rol: rol,
+            nicksUsados: _nicksUsados,
           ),
         );
       }
@@ -292,7 +300,9 @@ class CargadorMundo {
 
     final jugador = Jugador(
       id: _nuevoId(),
-      nick: j['nick'] as String,
+      // Si el JSON repite un nick real, se conserva el primero y este pasa a
+      // llevar un número al final.
+      nick: reservarNickUnico(j['nick'] as String, _nicksUsados),
       nombreReal: (j['nombreReal'] as String?) ?? '',
       pais: (j['pais'] as String?) ?? '',
       edad: edad,

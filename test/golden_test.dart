@@ -48,7 +48,8 @@ void main() {
     _base = await _prepararBase();
     _conEvento = await _prepararEvento();
     _conOferta = await _prepararOferta();
-    _conCeremonia = await _prepararCeremonia();
+    // La ceremonia usa la misma partida avanzada: ya tiene premios reales.
+    _conCeremonia = _base;
   });
 
   setUp(() {
@@ -235,7 +236,10 @@ Future<void> _principal(
   );
 }
 
-/// Partida con 3 jugadores reclutados y 8 semanas avanzadas.
+/// Partida con 3 jugadores reclutados y avanzada hasta la semana 47.
+///
+/// La semana 47 es después del Mundial (43–46), así que las capturas de
+/// Torneos, Palmarés y Ceremonia ya muestran campeones y premios reales.
 Future<MotorJuego> _prepararBase() async {
   final motor = await crearPartidaSembrada(dinero: 50000000);
   motor.agente.reputacion = 100;
@@ -250,7 +254,7 @@ Future<MotorJuego> _prepararBase() async {
     if (resultado.ok) reclutados++;
   }
 
-  for (var i = 0; i < 8; i++) {
+  while (motor.semana < 47 && !motor.finDelJuego) {
     await resolverEventosAutomaticos(motor);
     await avanzarSemanaSimulada(motor);
   }
@@ -274,8 +278,8 @@ Future<MotorJuego> _prepararEvento() async {
       esDecision: true,
       opcionA: 'Aceptar el patrocinio',
       opcionB: 'Rechazarlo',
-      costoBaseA: 1000,
-      costoBaseB: 0,
+      // Un patrocinio PAGA al agente: nunca debe tener costo (A1).
+      ingresoBaseA: 25000,
       temporada: motor.temporada,
       semana: motor.semana,
     ),
@@ -306,16 +310,5 @@ Future<MotorJuego> _prepararOferta() async {
       semana: motor.semana,
     ),
   );
-  return motor;
-}
-
-/// Partida avanzada hasta la semana 47, con la ceremonia pendiente.
-Future<MotorJuego> _prepararCeremonia() async {
-  final motor = await crearPartidaSembrada(dinero: 50000000);
-  motor.agente.reputacion = 100;
-  while (motor.semana < 47 && !motor.finDelJuego) {
-    await avanzarSemanaSimulada(motor);
-  }
-  await resolverEventosAutomaticos(motor);
   return motor;
 }

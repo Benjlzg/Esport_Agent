@@ -37,6 +37,14 @@ class PantallaDetalleJugador extends StatelessWidget {
         final equipo = jugador.equipoId == null
             ? null
             : motor.equipoPorId(jugador.equipoId!);
+        // Sin partidos no hay promedio ni KDA: se muestra un guion en vez de
+        // "0.00" para no confundirlo con una mala actuación.
+        final sinPartidos = jugador.partidasTemporada == 0;
+        final sinEstadisticasCarrera =
+            jugador.eliminacionesCarrera +
+                jugador.muertesCarrera +
+                jugador.asistenciasCarrera ==
+            0;
 
         return Scaffold(
           appBar: AppBar(title: const Text('Detalle del jugador')),
@@ -191,7 +199,9 @@ class PantallaDetalleJugador extends StatelessWidget {
                       const SizedBox(height: 8),
                       _fila(
                         'Nota promedio',
-                        jugador.promedioNota.toStringAsFixed(2),
+                        sinPartidos
+                            ? '—'
+                            : jugador.promedioNota.toStringAsFixed(2),
                         AppColores.dorado,
                       ),
                       const SizedBox(height: 8),
@@ -215,7 +225,9 @@ class PantallaDetalleJugador extends StatelessWidget {
                       const SizedBox(height: 8),
                       _fila(
                         'KDA',
-                        jugador.kdaTemporada.toStringAsFixed(2),
+                        sinPartidos
+                            ? '—'
+                            : jugador.kdaTemporada.toStringAsFixed(2),
                         AppColores.textoPrincipal,
                       ),
                       const SizedBox(height: 8),
@@ -229,7 +241,7 @@ class PantallaDetalleJugador extends StatelessWidget {
                         'Carrera: ${jugador.eliminacionesCarrera} / '
                         '${jugador.muertesCarrera} / '
                         '${jugador.asistenciasCarrera} · '
-                        'KDA ${jugador.kdaCarrera.toStringAsFixed(2)} · '
+                        'KDA ${sinEstadisticasCarrera ? '—' : jugador.kdaCarrera.toStringAsFixed(2)} · '
                         '${jugador.mvpsCarrera} MVP',
                         style: const TextStyle(
                           color: AppColores.textoSecundario,
@@ -289,7 +301,7 @@ class PantallaDetalleJugador extends StatelessWidget {
                       Expanded(
                         child: Text(
                           '${nombreCategoriaPremio(premio.categoria)} '
-                          '(T${premio.temporada}) · ${premio.detalle}',
+                          '(Temp. ${premio.temporada}) · ${premio.detalle}',
                           style: const TextStyle(
                             color: AppColores.textoPrincipal,
                             fontSize: 13,

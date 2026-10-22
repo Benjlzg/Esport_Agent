@@ -40,7 +40,7 @@ class _PantallaCeremoniaPremiosState extends State<PantallaCeremoniaPremios> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Ceremonia · T${widget.motor.temporada}'),
+        title: Text('Ceremonia · Temp. ${widget.motor.temporada}'),
         actions: [TextButton(onPressed: _cerrar, child: const Text('Saltar'))],
       ),
       body: _premios.isEmpty

@@ -99,11 +99,12 @@ class _PestanaLigasState extends State<PestanaLigas> {
     );
   }
 
+  /// Fila de filtros con Wrap: si las regiones no caben en el ancho del
+  /// celular, bajan a otra línea en vez de quedar cortadas.
   Widget _filaChips(List<Widget> hijos) {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      child: Row(children: hijos),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 6, 12, 0),
+      child: Wrap(runSpacing: 4, children: hijos),
     );
   }
 

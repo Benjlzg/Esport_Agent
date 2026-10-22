@@ -132,12 +132,14 @@ Jugador? generarReemplazoSiFalta({
   final equipo = indiceEquipos[equipoId];
   if (equipo == null) return null;
 
+  final nicksUsados = estado.jugadores.map((j) => j.nick).toSet();
   final reemplazo = generarJugadorParaEquipo(
     rnd,
     id: nuevoIdJugador(),
     equipo: equipo,
     rol: rol,
     ajusteHabilidad: ajusteHabilidadReemplazo,
+    nicksUsados: nicksUsados,
   );
   estado.jugadores.add(reemplazo);
   return reemplazo;

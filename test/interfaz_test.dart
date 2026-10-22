@@ -14,8 +14,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:esport_agent/logica/motor_juego.dart';
 import 'package:esport_agent/modelos/equipo.dart';
+import 'package:esport_agent/modelos/evento.dart';
 import 'package:esport_agent/modelos/juego.dart';
 import 'package:esport_agent/pantallas/pantalla_competicion.dart';
+import 'package:esport_agent/pantallas/pantalla_detalle_jugador.dart';
+import 'package:esport_agent/pantallas/pantalla_eventos.dart';
 import 'package:esport_agent/pantallas/pantalla_negociacion.dart';
 import 'package:esport_agent/pantallas/pestana_calendario.dart';
 import 'package:esport_agent/pantallas/pestana_equipos.dart';
@@ -268,4 +271,118 @@ void main() {
       findsOneWidget,
     );
   });
+
+  testWidgets('2.5: los filtros de región de Ligas usan Wrap', (tester) async {
+    await _pintarPestana(
+      tester,
+      PestanaLigas(motor: motor),
+      tamano: _pantallaPequena,
+    );
+
+    final region = motor.regionesDeJuego(Juego.lol).first;
+    expect(
+      find.ancestor(
+        of: find.widgetWithText(ChoiceChip, region),
+        matching: find.byType(Wrap),
+      ),
+      findsWidgets,
+    );
+  });
+
+  testWidgets('2.5: jugador sin partidos muestra — en nota y KDA', (
+    tester,
+  ) async {
+    final jugador = motor.jugadores.firstWhere((j) => j.partidasTemporada == 0);
+    await _pintarPantalla(
+      tester,
+      PantallaDetalleJugador(motor: motor, jugadorId: jugador.id),
+    );
+
+    expect(find.text('—'), findsWidgets);
+    expect(find.text('0.00'), findsNothing);
+  });
+
+  testWidgets('2.5: un patrocinio se muestra como ingreso y sin aviso', (
+    tester,
+  ) async {
+    final jugador = motor.jugadores.firstWhere((j) => j.equipoId == null);
+    motor.estado!.eventosPendientes.add(
+      EventoPendiente(
+        id: 'ev_prueba_ingreso',
+        definicionId: 'marca_perifericos',
+        jugadorId: jugador.id,
+        titulo: 'Oferta de patrocinio',
+        descripcion: '${jugador.nick} recibió una oferta de patrocinio.',
+        esDecision: true,
+        opcionA: 'Aceptar el patrocinio',
+        opcionB: 'Rechazar',
+        ingresoBaseA: 25000,
+        temporada: motor.temporada,
+        semana: motor.semana,
+      ),
+    );
+
+    await _pintarPantalla(tester, _LanzadorEventos(motor: motor));
+    await tester.tap(find.text('Abrir eventos'));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining(r'+$25.000'), findsOneWidget);
+    expect(find.textContaining('30 %'), findsNothing);
+
+    final dineroAntes = motor.agente.dinero;
+    await tester.tap(find.textContaining('Aceptar el patrocinio'));
+    await tester.pumpAndSettle();
+
+    expect(motor.agente.dinero, dineroAntes + 25000);
+    expect(motor.eventosPendientes, isEmpty);
+  });
+
+  testWidgets('2.5: el aviso del 30 % solo aparece si hay un costo', (
+    tester,
+  ) async {
+    final jugador = motor.jugadores.firstWhere((j) => j.equipoId == null);
+    motor.estado!.eventosPendientes.add(
+      EventoPendiente(
+        id: 'ev_prueba_costo',
+        definicionId: 'torneo_exhibicion',
+        jugadorId: jugador.id,
+        titulo: 'Evento con costo',
+        descripcion: 'Este evento sí cuesta dinero.',
+        esDecision: true,
+        opcionA: 'Pagar',
+        opcionB: 'Rechazar',
+        costoBaseA: 1000,
+        temporada: motor.temporada,
+        semana: motor.semana,
+      ),
+    );
+
+    await _pintarPantalla(tester, _LanzadorEventos(motor: motor));
+    await tester.tap(find.text('Abrir eventos'));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining(r'−$1.000'), findsOneWidget);
+    expect(find.textContaining('30 %'), findsOneWidget);
+  });
+}
+
+/// Pinta un botón que abre la ventana de eventos pendientes.
+class _LanzadorEventos extends StatelessWidget {
+  const _LanzadorEventos({required this.motor});
+
+  final MotorJuego motor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Builder(
+        builder: (context) => Center(
+          child: ElevatedButton(
+            onPressed: () => mostrarEventosPendientes(context, motor),
+            child: const Text('Abrir eventos'),
+          ),
+        ),
+      ),
+    );
+  }
 }

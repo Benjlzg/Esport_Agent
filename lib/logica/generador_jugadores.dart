@@ -20,6 +20,45 @@ String generarNick(Random rnd) {
   return '$base${rnd.nextInt(99)}';
 }
 
+/// Devuelve un nick que todavía no esté en [usados] y lo anota en el conjunto.
+///
+/// Si el nick aleatorio ya existe, se agrega un número al final
+/// ("Drift", "Drift2", "Drift3"...). Así no cambia el orden de las tiradas
+/// aleatorias de la simulación.
+String generarNickUnico(Random rnd, Set<String> usados) {
+  final base = generarNick(rnd);
+  var candidato = base;
+  var numero = 2;
+  while (usados.contains(candidato)) {
+    candidato = '$base$numero';
+    numero++;
+  }
+  usados.add(candidato);
+  return candidato;
+}
+
+/// Reserva un nick que ya viene escrito (por ejemplo, de un JSON de equipos).
+/// Si está repetido, agrega un número igual que [generarNickUnico].
+String reservarNickUnico(String nick, Set<String> usados) {
+  var candidato = nick;
+  var numero = 2;
+  while (usados.contains(candidato)) {
+    candidato = '$nick$numero';
+    numero++;
+  }
+  usados.add(candidato);
+  return candidato;
+}
+
+/// Corrige una lista de jugadores que ya tenga nicks repetidos (partidas
+/// viejas o datos iniciales). Conserva el primero y renombra los siguientes.
+void asegurarNicksUnicos(Iterable<Jugador> jugadores) {
+  final usados = <String>{};
+  for (final jugador in jugadores) {
+    jugador.nick = reservarNickUnico(jugador.nick, usados);
+  }
+}
+
 /// Completa los datos de valor y salario de un jugador recién creado.
 void _calcularEconomia(Jugador jugador) {
   jugador.valorMercado = valorMercadoDe(jugador);
@@ -28,7 +67,12 @@ void _calcularEconomia(Jugador jugador) {
 
 /// Genera un agente libre joven (no pertenece a ningún equipo).
 /// Edad 16 a 24 · habilidad 35 a 70 · potencial habilidad + 5 a 30 (máx 99).
-Jugador generarJugadorLibre(Random rnd, {required String id, String? region}) {
+Jugador generarJugadorLibre(
+  Random rnd, {
+  required String id,
+  String? region,
+  required Set<String> nicksUsados,
+}) {
   final juego = _elegir(rnd, Juego.values);
   final edad = 16 + rnd.nextInt(9); // 16..24
   final habilidad = 35 + rnd.nextInt(36); // 35..70
@@ -36,7 +80,7 @@ Jugador generarJugadorLibre(Random rnd, {required String id, String? region}) {
 
   final jugador = Jugador(
     id: id,
-    nick: generarNick(rnd),
+    nick: generarNickUnico(rnd, nicksUsados),
     nombreReal: '${_elegir(rnd, nombres)} ${_elegir(rnd, apellidos)}',
     pais: _elegir(rnd, paises),
     edad: edad,
@@ -63,6 +107,7 @@ Jugador generarJovenDeRegion(
   required String id,
   required Juego juego,
   required String region,
+  required Set<String> nicksUsados,
 }) {
   final perfil = perfilDeRegion(region);
   final edad = 16 + rnd.nextInt(6); // 16..21
@@ -72,7 +117,7 @@ Jugador generarJovenDeRegion(
 
   final jugador = Jugador(
     id: id,
-    nick: generarNick(rnd),
+    nick: generarNickUnico(rnd, nicksUsados),
     nombreReal:
         '${_elegir(rnd, perfil.nombres)} ${_elegir(rnd, perfil.apellidos)}',
     pais: _elegir(rnd, perfil.paises),
@@ -102,6 +147,7 @@ Jugador generarJugadorParaEquipo(
   required Equipo equipo,
   required String rol,
   int ajusteHabilidad = 0,
+  required Set<String> nicksUsados,
 }) {
   final perfil = perfilDeRegion(equipo.region);
   final edad = 17 + rnd.nextInt(11); // 17..27
@@ -111,7 +157,7 @@ Jugador generarJugadorParaEquipo(
 
   final jugador = Jugador(
     id: id,
-    nick: generarNick(rnd),
+    nick: generarNickUnico(rnd, nicksUsados),
     nombreReal:
         '${_elegir(rnd, perfil.nombres)} ${_elegir(rnd, perfil.apellidos)}',
     pais: _elegir(rnd, perfil.paises),
@@ -137,10 +183,17 @@ List<Jugador> generarJovenes(
   Random rnd, {
   required int cantidad,
   required int idBase,
+  required Set<String> nicksUsados,
 }) {
   final lista = <Jugador>[];
   for (var i = 0; i < cantidad; i++) {
-    lista.add(generarJugadorLibre(rnd, id: 'gen_${idBase + i}'));
+    lista.add(
+      generarJugadorLibre(
+        rnd,
+        id: 'gen_${idBase + i}',
+        nicksUsados: nicksUsados,
+      ),
+    );
   }
   return lista;
 }

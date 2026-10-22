@@ -1,8 +1,8 @@
 // Calendario de la temporada: qué etapa se juega en cada semana.
 // Las semanas 1–4 son pretemporada, 5–18 el Split 1, 19–20 sus playoffs,
-// 21–22 el torneo internacional (Parte 2C), 23–26 la 2ª ventana de
-// fichajes, 27–40 el Split 2, 41–42 sus playoffs, 43–46 el Mundial
-// (Parte 2C) y 47–52 el cierre de temporada.
+// 21–22 el torneo internacional, 23–26 la 2ª ventana de fichajes, 27–40 el
+// Split 2, 41–42 sus playoffs, 43–46 el Mundial y 47–52 el cierre de
+// temporada.
 
 /// Tipo de etapa, útil para saber qué se simula en cada momento.
 enum TipoEtapa {
@@ -75,7 +75,7 @@ Etapa etapaDeSemana(int semana) {
   if (semana <= 22) {
     return const Etapa(
       nombre: 'Torneo Internacional',
-      detalle: 'Torneo de mitad de temporada (Parte 2C).',
+      detalle: 'Torneo de mitad de temporada.',
       semanaInicio: 21,
       semanaFin: 22,
       tipo: TipoEtapa.internacional,
@@ -112,7 +112,7 @@ Etapa etapaDeSemana(int semana) {
   if (semana <= 46) {
     return const Etapa(
       nombre: 'Mundial',
-      detalle: 'Torneo mundial de fin de temporada (Parte 2C).',
+      detalle: 'Torneo mundial de fin de temporada.',
       semanaInicio: 43,
       semanaFin: 46,
       tipo: TipoEtapa.mundial,
@@ -152,7 +152,7 @@ List<Etapa> listaEtapas() => const [
   ),
   Etapa(
     nombre: 'Torneo Internacional',
-    detalle: 'Torneo de mitad de temporada (Parte 2C).',
+    detalle: 'Torneo de mitad de temporada.',
     semanaInicio: 21,
     semanaFin: 22,
     tipo: TipoEtapa.internacional,
@@ -180,7 +180,7 @@ List<Etapa> listaEtapas() => const [
   ),
   Etapa(
     nombre: 'Mundial',
-    detalle: 'Torneo mundial de fin de temporada (Parte 2C).',
+    detalle: 'Torneo mundial de fin de temporada.',
     semanaInicio: 43,
     semanaFin: 46,
     tipo: TipoEtapa.mundial,

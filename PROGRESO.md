@@ -188,7 +188,7 @@ Se implementó solo la sección **C (interfaz)** de `CORRECCIONES_2_5.md`. La se
 
 ### Pendiente
 
-- Regenerar las capturas cuando se autorice: `flutter test test/golden_test.dart --update-goldens`.
+- Capturas regeneradas en las correcciones de detalles de interfaz (2026-10-21).
 - La sección **D (pruebas lentas e informe)** sigue pendiente.
 - Mantener el pendiente de la Fase 4: el presupuesto de los equipos se reinicia cada temporada (B4).
 
@@ -242,5 +242,28 @@ Se implementó solo la sección **B (balance)** de `CORRECCIONES_2_5.md`.
 
 - Ejecutar las pruebas lentas y regenerar `INFORME_BALANCE.md` para comprobar el robot con $50.000, el dominio por liga y el efecto de B2.
 - Si el robot quiebra o termina la T3 con más de $5.000.000, ajustar constantes (máximo 3 rondas, anotando antes y después).
-- Regenerar las capturas (sección D): `flutter test test/golden_test.dart --update-goldens`.
+- Capturas regeneradas en las correcciones de detalles de interfaz (2026-10-21).
 - **B4 — pendiente de la Fase 4 (economía):** el presupuesto de los equipos se reinicia en cada `_nuevaTemporada` (`equipo.presupuesto = prestigio * 20000`), así que los premios y las ventas no se acumulan. **No se cambia en la Fase 2.5.**
+
+## Fase 2.5 — Correcciones de detalles de interfaz (terminada)
+
+Se corrigieron los detalles encontrados en las capturas nuevas sin tocar la Fase 3.
+
+### Hecho
+
+- **Patrocinio (A1):** el evento falso de `test/golden_test.dart` tenía `costoBaseA: 1000`; la lógica real de `marca_perifericos` ya pagaba al agente. El fixture ahora usa `ingresoBaseA: 25000`, así que el botón muestra **"+$25.000"** y no aparece el aviso del 30 %. Se añadieron dos pruebas de interfaz: una comprueba el ingreso y el cobro real; otra comprueba que el aviso del 30 % solo aparece cuando hay una opción con costo.
+- **Temporadas:** la barra superior muestra **"Temp. 1 · Sem 9"** y la ceremonia **"Ceremonia · Temp. 1"**. También se cambió el detalle de premios del jugador y los títulos del equipo para no confundir "T1" con el equipo T1.
+- **Textos internos:** se quitaron las referencias "(Parte 2C)" de las descripciones del Calendario.
+- **Nicks únicos:** nuevo registro de nicks usados al cargar el mundo y al generar jugadores (libres, jóvenes y reemplazos). Si un nick se repite, se conserva el primero y los siguientes reciben un número ("Drift", "Drift2"...). `_reconstruirIndices` también corrige partidas viejas con duplicados. Pruebas nuevas en `test/nicks_test.dart`.
+- **Filtros de Ligas:** las regiones (y las divisiones) usan `Wrap`, igual que los videojuegos, y bajan a otra línea en pantallas estrechas.
+- **Jugadores sin partidos:** el detalle muestra **"—"** en nota promedio y KDA (también en el KDA de carrera) en vez de "0.00".
+- **Golden de temporada:** `test/golden_test.dart` avanza la partida hasta la **semana 47**, después del Mundial. Torneos, Palmarés y Ceremonia muestran campeones, títulos y premios reales; la ceremonia reutiliza esa misma partida.
+
+### Verificación
+
+- `flutter analyze` → **No issues found!**
+- `flutter test` → **97 pasan, 2 saltan** (las pruebas `@Tags(['lento'])`). Incluye las 4 pruebas nuevas de nicks y las 4 nuevas de interfaz.
+- Capturas de `capturas/` regeneradas con `flutter test test/golden_test.dart --update-goldens`.
+- No se ejecutaron `test/balance_test.dart` ni `test/robot_test.dart` (pruebas lentas), por indicación del usuario.
+- `versionFormato` sigue en **6**; esta corrección no añade campos al guardado.
+

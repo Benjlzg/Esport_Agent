@@ -1,0 +1,33 @@
+{
+  "lol": [
+    { "region": "Corea", "ligaPrimera": "Liga Coreana", "ligaSegunda": "Liga Coreana - Segunda" },
+    { "region": "China", "ligaPrimera": "Liga China", "ligaSegunda": "Liga China - Segunda" },
+    { "region": "Europa", "ligaPrimera": "Liga Europea", "ligaSegunda": "Liga Europea - Segunda" },
+    { "region": "Norteamérica", "ligaPrimera": "Liga Norteamericana", "ligaSegunda": "Liga Norteamericana - Segunda" },
+    { "region": "Brasil", "ligaPrimera": "Liga Brasileña", "ligaSegunda": "Liga Brasileña - Segunda" },
+    { "region": "Latinoamérica", "ligaPrimera": "Liga Latinoamericana", "ligaSegunda": "Liga Latinoamericana - Segunda" },
+    { "region": "Pacífico", "ligaPrimera": "Liga del Pacífico", "ligaSegunda": "Liga del Pacífico - Segunda" }
+  ],
+  "valorant": [
+    { "region": "Américas", "ligaPrimera": "Circuito de las Américas", "ligaSegunda": "Circuito de las Américas - Segunda" },
+    { "region": "EMEA", "ligaPrimera": "Circuito EMEA", "ligaSegunda": "Circuito EMEA - Segunda" },
+    { "region": "Pacífico", "ligaPrimera": "Circuito del Pacífico", "ligaSegunda": "Circuito del Pacífico - Segunda" },
+    { "region": "China", "ligaPrimera": "Circuito de China", "ligaSegunda": "Circuito de China - Segunda" },
+    { "region": "Latinoamérica Sur", "ligaPrimera": "Circuito Sudamericano", "ligaSegunda": "Circuito Sudamericano - Segunda" }
+  ],
+  "cs2": [
+    { "region": "Europa", "ligaPrimera": "Circuito Europeo", "ligaSegunda": "Circuito Europeo - Segunda" },
+    { "region": "Norteamérica", "ligaPrimera": "Circuito Norteamericano", "ligaSegunda": "Circuito Norteamericano - Segunda" },
+    { "region": "Sudamérica", "ligaPrimera": "Circuito Sudamericano", "ligaSegunda": "Circuito Sudamericano - Segunda" },
+    { "region": "Asia-Oceanía", "ligaPrimera": "Circuito de Asia y Oceanía", "ligaSegunda": "Circuito de Asia y Oceanía - Segunda" }
+  ],
+  "dota2": [
+    { "region": "Europa Occidental", "ligaPrimera": "Liga de Europa Occidental", "ligaSegunda": "Liga de Europa Occidental - Segunda" },
+    { "region": "Europa del Este", "ligaPrimera": "Liga de Europa del Este", "ligaSegunda": "Liga de Europa del Este - Segunda" },
+    { "region": "China", "ligaPrimera": "Liga China", "ligaSegunda": "Liga China - Segunda" },
+    { "region": "Sudeste Asiático", "ligaPrimera": "Liga del Sudeste Asiático", "ligaSegunda": "Liga del Sudeste Asiático - Segunda" },
+    { "region": "Norteamérica", "ligaPrimera": "Liga Norteamericana", "ligaSegunda": "Liga Norteamericana - Segunda" },
+    { "region": "Sudamérica", "ligaPrimera": "Liga Sudamericana", "ligaSegunda": "Liga Sudamericana - Segunda" },
+    { "region": "Medio Oriente", "ligaPrimera": "Liga de Medio Oriente", "ligaSegunda": "Liga de Medio Oriente - Segunda" }
+  ]
+}

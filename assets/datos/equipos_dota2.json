@@ -1,0 +1,288 @@
+{
+  "equipos": [
+    {
+      "id": "gaimin_gladiators_dota2",
+      "rivales": ["team_liquid_dota2"],
+      "nombre": "Gaimin Gladiators",
+      "escudo": "gaimin_gladiators.png",
+      "region": "Europa Occidental",
+      "prestigio": 88,
+      "colorPrincipal": "#FF6D00",
+      "esReal": true,
+      "verificar": true,
+      "jugadores": [
+        { "nick": "dyrachyo", "nombreReal": "Anton Shkredov", "pais": "Rusia", "edad": 23, "rol": "Carry", "habilidad": 86, "potencial": 96 },
+        { "nick": "Quinn", "nombreReal": "Quinn Callahan", "pais": "Estados Unidos", "edad": 28, "rol": "Mid", "habilidad": 85, "potencial": 88 },
+        { "nick": "Ace", "nombreReal": "Ivan Sokolov", "pais": "Bulgaria", "edad": 26, "rol": "Offlane", "habilidad": 84, "potencial": 87 },
+        { "nick": "tOfu", "nombreReal": "Nikolay Ryabov", "pais": "Rusia", "edad": 24, "rol": "Soporte 4", "habilidad": 80, "potencial": 83 },
+        { "nick": "Seleri", "nombreReal": "Rasmus Seleri", "pais": "Dinamarca", "edad": 26, "rol": "Soporte 5", "habilidad": 82, "potencial": 85 }
+      ]
+    },
+    {
+      "id": "team_liquid_dota2",
+      "rivales": ["gaimin_gladiators_dota2"],
+      "nombre": "Team Liquid",
+      "escudo": "team_liquid.png",
+      "region": "Europa Occidental",
+      "prestigio": 84,
+      "colorPrincipal": "#0A1E3C",
+      "esReal": true,
+      "verificar": true,
+      "jugadores": [
+        { "nick": "Micke", "nombreReal": "Michael Vu", "pais": "Suecia", "edad": 26, "rol": "Carry", "habilidad": 82, "potencial": 85 },
+        { "nick": "Nisha", "nombreReal": "Michał Jankowski", "pais": "Polonia", "edad": 25, "rol": "Mid", "habilidad": 88, "potencial": 91 },
+        { "nick": "zai", "nombreReal": "Ludwig Wåhlberg", "pais": "Suecia", "edad": 28, "rol": "Offlane", "habilidad": 84, "potencial": 87 },
+        { "nick": "Boxi", "nombreReal": "Samuel Svahn", "pais": "Suecia", "edad": 26, "rol": "Soporte 4", "habilidad": 82, "potencial": 85 },
+        { "nick": "iNSaNiA", "nombreReal": "Aydin Sarkohi", "pais": "Suecia", "edad": 30, "rol": "Soporte 5", "habilidad": 80, "potencial": 83 }
+      ]
+    },
+    {
+      "id": "tundra_esports_dota2",
+      "nombre": "Tundra Esports",
+      "escudo": "tundra_esports.png",
+      "region": "Europa Occidental",
+      "prestigio": 82,
+      "colorPrincipal": "#00B0FF",
+      "esReal": true,
+      "verificar": true,
+      "jugadores": [
+        { "nick": "Skiter", "nombreReal": "Oliver Lepko", "pais": "Eslovaquia", "edad": 27, "rol": "Carry", "habilidad": 84, "potencial": 87 },
+        { "nick": "Nine", "nombreReal": "Leon Kirilin", "pais": "Alemania", "edad": 25, "rol": "Mid", "habilidad": 80, "potencial": 83 },
+        { "nick": "33", "nombreReal": "Neta Shapira", "pais": "Israel", "edad": 28, "rol": "Offlane", "habilidad": 84, "potencial": 87 },
+        { "nick": "Sneyking", "nombreReal": "Jing-Jun Wu", "pais": "Estados Unidos", "edad": 28, "rol": "Soporte 4", "habilidad": 82, "potencial": 85 },
+        { "nick": "Whitemon", "nombreReal": "Matthew Filemon", "pais": "Filipinas", "edad": 27, "rol": "Soporte 5", "habilidad": 78, "potencial": 81 }
+      ]
+    },
+    {
+      "id": "og_dota2",
+      "rivales": ["team_secret_dota2"],
+      "nombre": "OG",
+      "escudo": "og.png",
+      "region": "Europa Occidental",
+      "prestigio": 78,
+      "colorPrincipal": "#16A085",
+      "esReal": true,
+      "verificar": true
+    },
+    {
+      "id": "team_secret_dota2",
+      "rivales": ["og_dota2"],
+      "nombre": "Team Secret",
+      "escudo": "team_secret.png",
+      "region": "Europa Occidental",
+      "prestigio": 74,
+      "colorPrincipal": "#1B2A4A",
+      "esReal": true,
+      "verificar": true
+    },
+
+    {
+      "id": "team_spirit_dota2",
+      "rivales": ["natus_vincere_dota2"],
+      "nombre": "Team Spirit",
+      "escudo": "team_spirit.png",
+      "region": "Europa del Este",
+      "prestigio": 95,
+      "colorPrincipal": "#7B1FA2",
+      "esReal": true,
+      "verificar": true,
+      "jugadores": [
+        { "nick": "Yatoro", "nombreReal": "Illya Mulyarchuk", "pais": "Ucrania", "edad": 23, "rol": "Carry", "habilidad": 93, "potencial": 99 },
+        { "nick": "Larl", "nombreReal": "Denis Sigitov", "pais": "Rusia", "edad": 23, "rol": "Mid", "habilidad": 87, "potencial": 97 },
+        { "nick": "Collapse", "nombreReal": "Magomed Khalilov", "pais": "Rusia", "edad": 23, "rol": "Offlane", "habilidad": 88, "potencial": 98 },
+        { "nick": "Mira", "nombreReal": "Miroslaw Kolpakov", "pais": "Rusia", "edad": 28, "rol": "Soporte 4", "habilidad": 84, "potencial": 87 },
+        { "nick": "Miposhka", "nombreReal": "Yaroslav Naidenov", "pais": "Rusia", "edad": 27, "rol": "Soporte 5", "habilidad": 82, "potencial": 85 }
+      ]
+    },
+    {
+      "id": "betboom_team_dota2",
+      "nombre": "BetBoom Team",
+      "escudo": "betboom_team.png",
+      "region": "Europa del Este",
+      "prestigio": 84,
+      "colorPrincipal": "#6A1B9A",
+      "esReal": true,
+      "verificar": true,
+      "jugadores": [
+        { "nick": "Nightfall", "nombreReal": "Egor Grigorenko", "pais": "Rusia", "edad": 25, "rol": "Carry", "habilidad": 83, "potencial": 86 },
+        { "nick": "gpk", "nombreReal": "Danil Skutin", "pais": "Rusia", "edad": 25, "rol": "Mid", "habilidad": 84, "potencial": 87 },
+        { "nick": "Pure", "nombreReal": "Ivan Moskalenko", "pais": "Rusia", "edad": 24, "rol": "Offlane", "habilidad": 82, "potencial": 85 },
+        { "nick": "Save-", "nombreReal": "Vitalie Melnic", "pais": "Moldavia", "edad": 27, "rol": "Soporte 4", "habilidad": 82, "potencial": 85 },
+        { "nick": "MieRo", "nombreReal": "Matvey Varentsov", "pais": "Rusia", "edad": 23, "rol": "Soporte 5", "habilidad": 80, "potencial": 90 }
+      ]
+    },
+    {
+      "id": "parivision_dota2",
+      "nombre": "PARIVISION",
+      "escudo": "parivision.png",
+      "region": "Europa del Este",
+      "prestigio": 80,
+      "colorPrincipal": "#00A9E0",
+      "esReal": true,
+      "verificar": true
+    },
+    {
+      "id": "natus_vincere_dota2",
+      "rivales": ["team_spirit_dota2"],
+      "nombre": "Natus Vincere",
+      "escudo": "natus_vincere.png",
+      "region": "Europa del Este",
+      "prestigio": 78,
+      "colorPrincipal": "#FFC400",
+      "esReal": true,
+      "verificar": true
+    },
+    {
+      "id": "aurora_dota2",
+      "nombre": "Aurora",
+      "escudo": "aurora.png",
+      "region": "Europa del Este",
+      "prestigio": 76,
+      "colorPrincipal": "#00A9E0",
+      "esReal": true,
+      "verificar": true
+    },
+    {
+      "id": "virtus_pro_dota2",
+      "nombre": "Virtus.pro",
+      "escudo": "virtus_pro.png",
+      "region": "Europa del Este",
+      "prestigio": 74,
+      "colorPrincipal": "#F5A623",
+      "esReal": true,
+      "verificar": true
+    },
+
+    {
+      "id": "xtreme_gaming_dota2",
+      "nombre": "Xtreme Gaming",
+      "escudo": "xtreme_gaming.png",
+      "region": "China",
+      "prestigio": 82,
+      "colorPrincipal": "#E4002B",
+      "esReal": true,
+      "verificar": true
+    },
+    {
+      "id": "azure_ray_dota2",
+      "nombre": "Azure Ray",
+      "escudo": "azure_ray.png",
+      "region": "China",
+      "prestigio": 74,
+      "colorPrincipal": "#00A9E0",
+      "esReal": true,
+      "verificar": true
+    },
+
+    {
+      "id": "talon_esports_dota2",
+      "nombre": "Talon Esports",
+      "escudo": "talon_esports.png",
+      "region": "Sudeste Asiático",
+      "prestigio": 76,
+      "colorPrincipal": "#0B5CAD",
+      "esReal": true,
+      "verificar": true
+    },
+    {
+      "id": "boom_esports_dota2",
+      "nombre": "BOOM Esports",
+      "escudo": "boom_esports.png",
+      "region": "Sudeste Asiático",
+      "prestigio": 72,
+      "colorPrincipal": "#F5A623",
+      "esReal": true,
+      "verificar": true
+    },
+    {
+      "id": "execration_dota2",
+      "nombre": "Execration",
+      "escudo": "execration.png",
+      "region": "Sudeste Asiático",
+      "prestigio": 68,
+      "colorPrincipal": "#1B2A4A",
+      "esReal": true,
+      "verificar": true
+    },
+
+    {
+      "id": "shopify_rebellion_dota2",
+      "nombre": "Shopify Rebellion",
+      "escudo": "shopify_rebellion.png",
+      "region": "Norteamérica",
+      "prestigio": 72,
+      "colorPrincipal": "#95BF47",
+      "esReal": true,
+      "verificar": true
+    },
+    {
+      "id": "nouns_dota2",
+      "nombre": "Nouns",
+      "escudo": "nouns.png",
+      "region": "Norteamérica",
+      "prestigio": 64,
+      "colorPrincipal": "#7B1FA2",
+      "esReal": true,
+      "verificar": true
+    },
+    {
+      "id": "wildcard_dota2",
+      "nombre": "Wildcard",
+      "escudo": "wildcard.png",
+      "region": "Norteamérica",
+      "prestigio": 60,
+      "colorPrincipal": "#7B1FA2",
+      "esReal": true,
+      "verificar": true
+    },
+
+    {
+      "id": "heroic_dota2",
+      "nombre": "HEROIC",
+      "escudo": "heroic.png",
+      "region": "Sudamérica",
+      "prestigio": 68,
+      "colorPrincipal": "#00A651",
+      "esReal": true,
+      "verificar": true
+    },
+    {
+      "id": "beastcoast_dota2",
+      "nombre": "beastcoast",
+      "escudo": "beastcoast.png",
+      "region": "Sudamérica",
+      "prestigio": 62,
+      "colorPrincipal": "#1B2A4A",
+      "esReal": true,
+      "verificar": true
+    },
+
+    {
+      "id": "team_falcons_dota2",
+      "nombre": "Team Falcons",
+      "escudo": "team_falcons.png",
+      "region": "Medio Oriente",
+      "prestigio": 86,
+      "colorPrincipal": "#00A651",
+      "esReal": true,
+      "verificar": true,
+      "jugadores": [
+        { "nick": "Malr1ne", "nombreReal": "Harun Nur", "pais": "Bosnia", "edad": 26, "rol": "Carry", "habilidad": 86, "potencial": 89 },
+        { "nick": "Cr1t-", "nombreReal": "Andreas Nielsen", "pais": "Dinamarca", "edad": 29, "rol": "Mid", "habilidad": 84, "potencial": 87 },
+        { "nick": "ATF", "nombreReal": "Adrian Trinks", "pais": "Alemania", "edad": 22, "rol": "Offlane", "habilidad": 80, "potencial": 90 },
+        { "nick": "Ammar", "nombreReal": "Ammar Al-Assaf", "pais": "Jordania", "edad": 23, "rol": "Soporte 4", "habilidad": 82, "potencial": 92 },
+        { "nick": "Sneyking", "nombreReal": "Jing-Jun Wu", "pais": "Estados Unidos", "edad": 28, "rol": "Soporte 5", "habilidad": 82, "potencial": 85 }
+      ]
+    },
+    {
+      "id": "nigma_galaxy_dota2",
+      "nombre": "Nigma Galaxy",
+      "escudo": "nigma_galaxy.png",
+      "region": "Medio Oriente",
+      "prestigio": 78,
+      "colorPrincipal": "#E4002B",
+      "esReal": true,
+      "verificar": true
+    }
+  ]
+}

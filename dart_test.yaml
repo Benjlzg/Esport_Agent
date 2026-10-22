@@ -1,0 +1,6 @@
+# Las pruebas de simulación larga no se ejecutan en la suite normal.
+# Para ejecutarlas: flutter test --tags lento --run-skipped
+tags:
+  lento:
+    skip: "Prueba lenta; ejecutar con: flutter test --tags lento --run-skipped"
+    timeout: 30x

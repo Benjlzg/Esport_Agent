@@ -1,0 +1,415 @@
+{
+  "equipos": [
+    {
+      "id": "team_spirit_cs2",
+      "rivales": ["natus_vincere_cs2"],
+      "nombre": "Team Spirit",
+      "escudo": "team_spirit.png",
+      "region": "Europa",
+      "prestigio": 94,
+      "colorPrincipal": "#7B1FA2",
+      "esReal": true,
+      "verificar": true,
+      "jugadores": [
+        { "nick": "chopper", "nombreReal": "Leonid Vishnyakov", "pais": "Rusia", "edad": 28, "rol": "IGL", "habilidad": 78, "potencial": 81 },
+        { "nick": "sh1ro", "nombreReal": "Dmitry Sokolov", "pais": "Rusia", "edad": 24, "rol": "AWPer", "habilidad": 88, "potencial": 91 },
+        { "nick": "donk", "nombreReal": "Danil Kryshkovets", "pais": "Rusia", "edad": 19, "rol": "Entry", "habilidad": 92, "potencial": 99 },
+        { "nick": "magixx", "nombreReal": "Boris Vorobiev", "pais": "Rusia", "edad": 23, "rol": "Rifler", "habilidad": 80, "potencial": 90 },
+        { "nick": "zont1x", "nombreReal": "Myroslav Plakhotia", "pais": "Ucrania", "edad": 21, "rol": "Support", "habilidad": 82, "potencial": 92 }
+      ]
+    },
+    {
+      "id": "team_vitality_cs2",
+      "rivales": ["astralis_cs2"],
+      "nombre": "Team Vitality",
+      "escudo": "team_vitality.png",
+      "region": "Europa",
+      "prestigio": 92,
+      "colorPrincipal": "#FFD200",
+      "esReal": true,
+      "verificar": true,
+      "jugadores": [
+        { "nick": "apEX", "nombreReal": "Dan Madesclaire", "pais": "Francia", "edad": 32, "rol": "IGL", "habilidad": 80, "potencial": 83 },
+        { "nick": "ZywOo", "nombreReal": "Mathieu Herbaut", "pais": "Francia", "edad": 26, "rol": "AWPer", "habilidad": 94, "potencial": 97 },
+        { "nick": "flameZ", "nombreReal": "Shahar Shushan", "pais": "Israel", "edad": 22, "rol": "Entry", "habilidad": 86, "potencial": 96 },
+        { "nick": "mezii", "nombreReal": "William Merriman", "pais": "Reino Unido", "edad": 27, "rol": "Rifler", "habilidad": 82, "potencial": 85 },
+        { "nick": "Spinx", "nombreReal": "Lotan Giladi", "pais": "Israel", "edad": 24, "rol": "Support", "habilidad": 85, "potencial": 88 }
+      ]
+    },
+    {
+      "id": "g2_cs2",
+      "rivales": ["faze_clan_cs2"],
+      "nombre": "G2 Esports",
+      "escudo": "g2.png",
+      "region": "Europa",
+      "prestigio": 88,
+      "colorPrincipal": "#333333",
+      "esReal": true,
+      "verificar": true
+    },
+    {
+      "id": "natus_vincere_cs2",
+      "rivales": ["team_spirit_cs2"],
+      "nombre": "Natus Vincere",
+      "escudo": "natus_vincere.png",
+      "region": "Europa",
+      "prestigio": 88,
+      "colorPrincipal": "#FFC400",
+      "esReal": true,
+      "verificar": true,
+      "jugadores": [
+        { "nick": "Aleksib", "nombreReal": "Aleksi Virolainen", "pais": "Finlandia", "edad": 29, "rol": "IGL", "habilidad": 80, "potencial": 83 },
+        { "nick": "w0nderful", "nombreReal": "Ihor Zhdanov", "pais": "Ucrania", "edad": 22, "rol": "AWPer", "habilidad": 85, "potencial": 95 },
+        { "nick": "b1t", "nombreReal": "Valerii Vakhovskyi", "pais": "Ucrania", "edad": 23, "rol": "Entry", "habilidad": 84, "potencial": 94 },
+        { "nick": "jL", "nombreReal": "Justinas Lekavicius", "pais": "Lituania", "edad": 25, "rol": "Rifler", "habilidad": 82, "potencial": 85 },
+        { "nick": "iM", "nombreReal": "Mihai Ivan", "pais": "Rumanía", "edad": 26, "rol": "Support", "habilidad": 80, "potencial": 83 }
+      ]
+    },
+    {
+      "id": "team_falcons_cs2",
+      "nombre": "Team Falcons",
+      "escudo": "team_falcons.png",
+      "region": "Europa",
+      "prestigio": 86,
+      "colorPrincipal": "#00A651",
+      "esReal": true,
+      "verificar": true
+    },
+    {
+      "id": "faze_clan_cs2",
+      "rivales": ["g2_cs2"],
+      "nombre": "FaZe Clan",
+      "escudo": "faze_clan.png",
+      "region": "Europa",
+      "prestigio": 85,
+      "colorPrincipal": "#E60026",
+      "esReal": true,
+      "verificar": true,
+      "jugadores": [
+        { "nick": "karrigan", "nombreReal": "Finn Andersen", "pais": "Dinamarca", "edad": 35, "rol": "IGL", "habilidad": 78, "potencial": 81 },
+        { "nick": "broky", "nombreReal": "Helvijs Saukants", "pais": "Letonia", "edad": 24, "rol": "AWPer", "habilidad": 86, "potencial": 89 },
+        { "nick": "rain", "nombreReal": "Håvard Nygaard", "pais": "Noruega", "edad": 31, "rol": "Entry", "habilidad": 82, "potencial": 85 },
+        { "nick": "frozen", "nombreReal": "David Čerňanský", "pais": "Eslovaquia", "edad": 23, "rol": "Rifler", "habilidad": 84, "potencial": 94 },
+        { "nick": "ropz", "nombreReal": "Robin Kool", "pais": "Estonia", "edad": 26, "rol": "Support", "habilidad": 86, "potencial": 89 }
+      ]
+    },
+    {
+      "id": "astralis_cs2",
+      "rivales": ["team_vitality_cs2"],
+      "nombre": "Astralis",
+      "escudo": "astralis.png",
+      "region": "Europa",
+      "prestigio": 84,
+      "colorPrincipal": "#E4002B",
+      "esReal": true,
+      "verificar": true
+    },
+    {
+      "id": "mouz_cs2",
+      "nombre": "MOUZ",
+      "escudo": "mouz.png",
+      "region": "Europa",
+      "prestigio": 83,
+      "colorPrincipal": "#D50000",
+      "esReal": true,
+      "verificar": true,
+      "jugadores": [
+        { "nick": "siuhy", "nombreReal": "Kamil Szkaradek", "pais": "Polonia", "edad": 23, "rol": "IGL", "habilidad": 80, "potencial": 90 },
+        { "nick": "torzsi", "nombreReal": "Ádám Torzsás", "pais": "Hungría", "edad": 23, "rol": "AWPer", "habilidad": 83, "potencial": 93 },
+        { "nick": "Jimpphat", "nombreReal": "Jimi Salo", "pais": "Finlandia", "edad": 19, "rol": "Entry", "habilidad": 84, "potencial": 99 },
+        { "nick": "Brollan", "nombreReal": "Ludvig Brolin", "pais": "Suecia", "edad": 23, "rol": "Rifler", "habilidad": 82, "potencial": 92 },
+        { "nick": "xertioN", "nombreReal": "Dorian Berman", "pais": "Israel", "edad": 22, "rol": "Support", "habilidad": 80, "potencial": 90 }
+      ]
+    },
+    {
+      "id": "heroic_cs2",
+      "nombre": "Heroic",
+      "escudo": "heroic.png",
+      "region": "Europa",
+      "prestigio": 78,
+      "colorPrincipal": "#00A651",
+      "esReal": true,
+      "verificar": true
+    },
+    {
+      "id": "virtus_pro_cs2",
+      "nombre": "Virtus.pro",
+      "escudo": "virtus_pro.png",
+      "region": "Europa",
+      "prestigio": 78,
+      "colorPrincipal": "#F5A623",
+      "esReal": true,
+      "verificar": true
+    },
+    {
+      "id": "ninjas_in_pyjamas_cs2",
+      "nombre": "Ninjas in Pyjamas",
+      "escudo": "ninjas_in_pyjamas.png",
+      "region": "Europa",
+      "prestigio": 76,
+      "colorPrincipal": "#1B1B1B",
+      "esReal": true,
+      "verificar": true
+    },
+    {
+      "id": "aurora_cs2",
+      "nombre": "Aurora",
+      "escudo": "aurora.png",
+      "region": "Europa",
+      "prestigio": 76,
+      "colorPrincipal": "#00A9E0",
+      "esReal": true,
+      "verificar": true
+    },
+    {
+      "id": "eternal_fire_cs2",
+      "nombre": "Eternal Fire",
+      "escudo": "eternal_fire.png",
+      "region": "Europa",
+      "prestigio": 76,
+      "colorPrincipal": "#E4002B",
+      "esReal": true,
+      "verificar": true
+    },
+    {
+      "id": "ence_cs2",
+      "nombre": "ENCE",
+      "escudo": "ence.png",
+      "region": "Europa",
+      "prestigio": 74,
+      "colorPrincipal": "#0B5CAD",
+      "esReal": true,
+      "verificar": true
+    },
+    {
+      "id": "fnatic_cs2",
+      "nombre": "Fnatic",
+      "escudo": "fnatic.png",
+      "region": "Europa",
+      "prestigio": 74,
+      "colorPrincipal": "#FF5900",
+      "esReal": true,
+      "verificar": true
+    },
+    {
+      "id": "3dmax_cs2",
+      "nombre": "3DMAX",
+      "escudo": "3dmax.png",
+      "region": "Europa",
+      "prestigio": 72,
+      "colorPrincipal": "#1B2A4A",
+      "esReal": true,
+      "verificar": true
+    },
+    {
+      "id": "gamerlegion_cs2",
+      "nombre": "GamerLegion",
+      "escudo": "gamerlegion.png",
+      "region": "Europa",
+      "prestigio": 72,
+      "colorPrincipal": "#16A085",
+      "esReal": true,
+      "verificar": true
+    },
+    {
+      "id": "big_cs2",
+      "nombre": "BIG",
+      "escudo": "big.png",
+      "region": "Europa",
+      "prestigio": 70,
+      "colorPrincipal": "#1B1B1B",
+      "esReal": true,
+      "verificar": true
+    },
+
+    {
+      "id": "team_liquid_cs2",
+      "nombre": "Team Liquid",
+      "escudo": "team_liquid.png",
+      "region": "Norteamérica",
+      "prestigio": 82,
+      "colorPrincipal": "#0A1E3C",
+      "esReal": true,
+      "verificar": true
+    },
+    {
+      "id": "nrg_cs2",
+      "nombre": "NRG",
+      "escudo": "nrg.png",
+      "region": "Norteamérica",
+      "prestigio": 72,
+      "colorPrincipal": "#1B2A4A",
+      "esReal": true,
+      "verificar": true
+    },
+    {
+      "id": "complexity_cs2",
+      "nombre": "Complexity",
+      "escudo": "complexity.png",
+      "region": "Norteamérica",
+      "prestigio": 72,
+      "colorPrincipal": "#0B5CAD",
+      "esReal": true,
+      "verificar": true
+    },
+    {
+      "id": "m80_cs2",
+      "nombre": "M80",
+      "escudo": "m80.png",
+      "region": "Norteamérica",
+      "prestigio": 68,
+      "colorPrincipal": "#E4002B",
+      "esReal": true,
+      "verificar": true
+    },
+    {
+      "id": "wildcard_cs2",
+      "nombre": "Wildcard",
+      "escudo": "wildcard.png",
+      "region": "Norteamérica",
+      "prestigio": 64,
+      "colorPrincipal": "#7B1FA2",
+      "esReal": true,
+      "verificar": true
+    },
+
+    {
+      "id": "furia_cs2",
+      "nombre": "FURIA",
+      "escudo": "furia.png",
+      "region": "Sudamérica",
+      "prestigio": 78,
+      "colorPrincipal": "#222222",
+      "esReal": true,
+      "verificar": true,
+      "jugadores": [
+        { "nick": "FalleN", "nombreReal": "Gabriel Toledo", "pais": "Brasil", "edad": 34, "rol": "IGL", "habilidad": 78, "potencial": 81 },
+        { "nick": "KSCERATO", "nombreReal": "Kaike Cerato", "pais": "Brasil", "edad": 26, "rol": "AWPer", "habilidad": 80, "potencial": 83 },
+        { "nick": "yuurih", "nombreReal": "Yuri Santos", "pais": "Brasil", "edad": 26, "rol": "Entry", "habilidad": 79, "potencial": 82 },
+        { "nick": "skullz", "nombreReal": "Felipe Medeiros", "pais": "Brasil", "edad": 23, "rol": "Rifler", "habilidad": 74, "potencial": 84 },
+        { "nick": "chelo", "nombreReal": "Marcelo Cespedes", "pais": "Brasil", "edad": 27, "rol": "Support", "habilidad": 75, "potencial": 78 }
+      ]
+    },
+    {
+      "id": "mibr_cs2",
+      "nombre": "MIBR",
+      "escudo": "mibr.png",
+      "region": "Sudamérica",
+      "prestigio": 76,
+      "colorPrincipal": "#1B2A4A",
+      "esReal": true,
+      "verificar": true
+    },
+    {
+      "id": "pain_gaming_cs2",
+      "nombre": "paiN Gaming",
+      "escudo": "pain_gaming.png",
+      "region": "Sudamérica",
+      "prestigio": 72,
+      "colorPrincipal": "#E4002B",
+      "esReal": true,
+      "verificar": true
+    },
+    {
+      "id": "imperial_cs2",
+      "nombre": "Imperial",
+      "escudo": "imperial.png",
+      "region": "Sudamérica",
+      "prestigio": 70,
+      "colorPrincipal": "#1B2A4A",
+      "esReal": true,
+      "verificar": true
+    },
+    {
+      "id": "legacy_cs2",
+      "nombre": "Legacy",
+      "escudo": "legacy.png",
+      "region": "Sudamérica",
+      "prestigio": 68,
+      "colorPrincipal": "#7B1FA2",
+      "esReal": true,
+      "verificar": true
+    },
+    {
+      "id": "9z_team_cs2",
+      "nombre": "9z Team",
+      "escudo": "9z_team.png",
+      "region": "Sudamérica",
+      "prestigio": 66,
+      "colorPrincipal": "#7B1FA2",
+      "esReal": true,
+      "verificar": true
+    },
+    {
+      "id": "fluxo_cs2",
+      "nombre": "Fluxo",
+      "escudo": "fluxo.png",
+      "region": "Sudamérica",
+      "prestigio": 66,
+      "colorPrincipal": "#FF8A00",
+      "esReal": true,
+      "verificar": true
+    },
+    {
+      "id": "oddik_cs2",
+      "nombre": "ODDIK",
+      "escudo": "oddik.png",
+      "region": "Sudamérica",
+      "prestigio": 62,
+      "colorPrincipal": "#1B2A4A",
+      "esReal": true,
+      "verificar": true
+    },
+
+    {
+      "id": "the_mongolz_cs2",
+      "nombre": "The MongolZ",
+      "escudo": "the_mongolz.png",
+      "region": "Asia-Oceanía",
+      "prestigio": 82,
+      "colorPrincipal": "#F5A623",
+      "esReal": true,
+      "verificar": true
+    },
+    {
+      "id": "tyloo_cs2",
+      "nombre": "TYLOO",
+      "escudo": "tyloo.png",
+      "region": "Asia-Oceanía",
+      "prestigio": 68,
+      "colorPrincipal": "#E60012",
+      "esReal": true,
+      "verificar": true
+    },
+    {
+      "id": "flyquest_cs2",
+      "nombre": "FlyQuest",
+      "escudo": "flyquest.png",
+      "region": "Asia-Oceanía",
+      "prestigio": 68,
+      "colorPrincipal": "#2FCB53",
+      "esReal": true,
+      "verificar": true
+    },
+    {
+      "id": "lynn_vision_cs2",
+      "nombre": "Lynn Vision",
+      "escudo": "lynn_vision.png",
+      "region": "Asia-Oceanía",
+      "prestigio": 64,
+      "colorPrincipal": "#00A9E0",
+      "esReal": true,
+      "verificar": true
+    },
+    {
+      "id": "rare_atom_cs2",
+      "nombre": "Rare Atom",
+      "escudo": "rare_atom.png",
+      "region": "Asia-Oceanía",
+      "prestigio": 62,
+      "colorPrincipal": "#E4002B",
+      "esReal": true,
+      "verificar": true
+    }
+  ]
+}

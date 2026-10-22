@@ -1,0 +1,496 @@
+{
+  "equipos": [
+    {
+      "id": "g2_valorant",
+      "nombre": "G2 Esports",
+      "escudo": "g2.png",
+      "region": "Américas",
+      "prestigio": 85,
+      "colorPrincipal": "#333333",
+      "esReal": true,
+      "verificar": true
+    },
+    {
+      "id": "sentinels_valorant",
+      "rivales": ["nrg_valorant"],
+      "nombre": "Sentinels",
+      "escudo": "sentinels.png",
+      "region": "Américas",
+      "prestigio": 84,
+      "colorPrincipal": "#E5122A",
+      "esReal": true,
+      "verificar": true,
+      "jugadores": [
+        { "nick": "zekken", "nombreReal": "Zachary Patrone", "pais": "Estados Unidos", "edad": 21, "rol": "Duelista", "habilidad": 85, "potencial": 95 },
+        { "nick": "Sacy", "nombreReal": "Gustavo Rossi", "pais": "Brasil", "edad": 29, "rol": "Iniciador", "habilidad": 80, "potencial": 83 },
+        { "nick": "TenZ", "nombreReal": "Tyson Ngo", "pais": "Canadá", "edad": 25, "rol": "Controlador", "habilidad": 86, "potencial": 89 },
+        { "nick": "johnqt", "nombreReal": "Marc Guzman", "pais": "Estados Unidos", "edad": 25, "rol": "Centinela", "habilidad": 78, "potencial": 81 },
+        { "nick": "Zellsis", "nombreReal": "Jordan Montemurro", "pais": "Estados Unidos", "edad": 27, "rol": "Flex", "habilidad": 79, "potencial": 82 }
+      ]
+    },
+    {
+      "id": "loud_valorant",
+      "rivales": ["mibr_valorant"],
+      "nombre": "LOUD",
+      "escudo": "loud.png",
+      "region": "Américas",
+      "prestigio": 80,
+      "colorPrincipal": "#00D05A",
+      "esReal": true,
+      "verificar": true,
+      "jugadores": [
+        { "nick": "aspas", "nombreReal": "Erick Santos", "pais": "Brasil", "edad": 23, "rol": "Duelista", "habilidad": 84, "potencial": 94 },
+        { "nick": "saadhak", "nombreReal": "Matias Delipetro", "pais": "Argentina", "edad": 29, "rol": "Iniciador", "habilidad": 80, "potencial": 83 },
+        { "nick": "tuyz", "nombreReal": "Arthur Vieira", "pais": "Brasil", "edad": 23, "rol": "Controlador", "habilidad": 77, "potencial": 87 },
+        { "nick": "Less", "nombreReal": "Felipe Basso", "pais": "Brasil", "edad": 21, "rol": "Centinela", "habilidad": 82, "potencial": 92 },
+        { "nick": "cauanzin", "nombreReal": "Cauã Pereira", "pais": "Brasil", "edad": 21, "rol": "Flex", "habilidad": 76, "potencial": 86 }
+      ]
+    },
+    {
+      "id": "leviatan_valorant",
+      "nombre": "Leviatán",
+      "escudo": "leviatan.png",
+      "region": "Américas",
+      "prestigio": 74,
+      "colorPrincipal": "#B0002D",
+      "esReal": true,
+      "verificar": true,
+      "jugadores": [
+        { "nick": "kiNgg", "nombreReal": "Roberto Navarro", "pais": "Chile", "edad": 27, "rol": "Duelista", "habilidad": 78, "potencial": 81 },
+        { "nick": "Mazino", "nombreReal": "Ignacio Urizar", "pais": "Chile", "edad": 23, "rol": "Iniciador", "habilidad": 76, "potencial": 86 },
+        { "nick": "Melser", "nombreReal": "Marco Machuca", "pais": "Chile", "edad": 23, "rol": "Controlador", "habilidad": 75, "potencial": 85 },
+        { "nick": "NagZ", "nombreReal": "Juan Pablo López", "pais": "Argentina", "edad": 23, "rol": "Centinela", "habilidad": 74, "potencial": 84 },
+        { "nick": "tex", "nombreReal": "Ian Botsch", "pais": "Estados Unidos", "edad": 23, "rol": "Flex", "habilidad": 73, "potencial": 83 }
+      ]
+    },
+    {
+      "id": "mibr_valorant",
+      "rivales": ["loud_valorant"],
+      "nombre": "MIBR",
+      "escudo": "mibr.png",
+      "region": "Américas",
+      "prestigio": 74,
+      "colorPrincipal": "#1B2A4A",
+      "esReal": true,
+      "verificar": true
+    },
+    {
+      "id": "100_thieves_valorant",
+      "nombre": "100 Thieves",
+      "escudo": "100_thieves.png",
+      "region": "Américas",
+      "prestigio": 72,
+      "colorPrincipal": "#E60026",
+      "esReal": true,
+      "verificar": true
+    },
+    {
+      "id": "furia_valorant",
+      "nombre": "FURIA",
+      "escudo": "furia.png",
+      "region": "Américas",
+      "prestigio": 72,
+      "colorPrincipal": "#222222",
+      "esReal": true,
+      "verificar": true
+    },
+    {
+      "id": "nrg_valorant",
+      "rivales": ["sentinels_valorant"],
+      "nombre": "NRG",
+      "escudo": "nrg.png",
+      "region": "Américas",
+      "prestigio": 72,
+      "colorPrincipal": "#1B2A4A",
+      "esReal": true,
+      "verificar": true
+    },
+    {
+      "id": "kru_esports_valorant",
+      "nombre": "KRÜ Esports",
+      "escudo": "kru_esports.png",
+      "region": "Américas",
+      "prestigio": 70,
+      "colorPrincipal": "#7B1FA2",
+      "esReal": true,
+      "verificar": true
+    },
+    {
+      "id": "cloud9_valorant",
+      "nombre": "Cloud9",
+      "escudo": "cloud9.png",
+      "region": "Américas",
+      "prestigio": 70,
+      "colorPrincipal": "#0B5CAD",
+      "esReal": true,
+      "verificar": true
+    },
+    {
+      "id": "evil_geniuses_valorant",
+      "nombre": "Evil Geniuses",
+      "escudo": "evil_geniuses.png",
+      "region": "Américas",
+      "prestigio": 68,
+      "colorPrincipal": "#0B3D91",
+      "esReal": true,
+      "verificar": true
+    },
+
+    {
+      "id": "fnatic_valorant",
+      "rivales": ["team_heretics_valorant"],
+      "nombre": "Fnatic",
+      "escudo": "fnatic.png",
+      "region": "EMEA",
+      "prestigio": 90,
+      "colorPrincipal": "#FF5900",
+      "esReal": true,
+      "verificar": true,
+      "jugadores": [
+        { "nick": "Derke", "nombreReal": "Nikita Sirmitev", "pais": "Finlandia", "edad": 23, "rol": "Duelista", "habilidad": 88, "potencial": 98 },
+        { "nick": "Leo", "nombreReal": "Leo Jannesson", "pais": "Suecia", "edad": 21, "rol": "Iniciador", "habilidad": 78, "potencial": 88 },
+        { "nick": "Boaster", "nombreReal": "Jake Howlett", "pais": "Reino Unido", "edad": 30, "rol": "Controlador", "habilidad": 82, "potencial": 85 },
+        { "nick": "Alfajer", "nombreReal": "Emir Ali Beder", "pais": "Turquía", "edad": 21, "rol": "Centinela", "habilidad": 85, "potencial": 95 },
+        { "nick": "Chronicle", "nombreReal": "Timofey Khromov", "pais": "Rusia", "edad": 27, "rol": "Flex", "habilidad": 80, "potencial": 83 }
+      ]
+    },
+    {
+      "id": "karmine_corp_valorant",
+      "nombre": "Karmine Corp",
+      "escudo": "karmine_corp.png",
+      "region": "EMEA",
+      "prestigio": 80,
+      "colorPrincipal": "#1B2A4A",
+      "esReal": true,
+      "verificar": true
+    },
+    {
+      "id": "team_vitality_valorant",
+      "nombre": "Team Vitality",
+      "escudo": "team_vitality.png",
+      "region": "EMEA",
+      "prestigio": 78,
+      "colorPrincipal": "#FFD200",
+      "esReal": true,
+      "verificar": true
+    },
+    {
+      "id": "team_liquid_valorant",
+      "nombre": "Team Liquid",
+      "escudo": "team_liquid.png",
+      "region": "EMEA",
+      "prestigio": 76,
+      "colorPrincipal": "#0A1E3C",
+      "esReal": true,
+      "verificar": true
+    },
+    {
+      "id": "team_heretics_valorant",
+      "rivales": ["fnatic_valorant"],
+      "nombre": "Team Heretics",
+      "escudo": "team_heretics.png",
+      "region": "EMEA",
+      "prestigio": 76,
+      "colorPrincipal": "#FFCC00",
+      "esReal": true,
+      "verificar": true,
+      "jugadores": [
+        { "nick": "Wo0t", "nombreReal": "Berkay Özden", "pais": "Turquía", "edad": 20, "rol": "Duelista", "habilidad": 80, "potencial": 95 },
+        { "nick": "RieNs", "nombreReal": "Doğan Gür", "pais": "Turquía", "edad": 23, "rol": "Iniciador", "habilidad": 75, "potencial": 85 },
+        { "nick": "Boo", "nombreReal": "Mert Alkan", "pais": "Turquía", "edad": 23, "rol": "Controlador", "habilidad": 76, "potencial": 86 },
+        { "nick": "paTiTek", "nombreReal": "Patryk Grabowski", "pais": "Polonia", "edad": 25, "rol": "Centinela", "habilidad": 75, "potencial": 78 },
+        { "nick": "benjyfishy", "nombreReal": "Benjy Fish", "pais": "Reino Unido", "edad": 23, "rol": "Flex", "habilidad": 78, "potencial": 88 }
+      ]
+    },
+    {
+      "id": "fut_esports_valorant",
+      "nombre": "FUT Esports",
+      "escudo": "fut_esports.png",
+      "region": "EMEA",
+      "prestigio": 74,
+      "colorPrincipal": "#E4002B",
+      "esReal": true,
+      "verificar": true
+    },
+    {
+      "id": "natus_vincere_valorant",
+      "nombre": "Natus Vincere",
+      "escudo": "natus_vincere.png",
+      "region": "EMEA",
+      "prestigio": 72,
+      "colorPrincipal": "#FFC400",
+      "esReal": true,
+      "verificar": true
+    },
+    {
+      "id": "movistar_koi_valorant",
+      "nombre": "Movistar KOI",
+      "escudo": "movistar_koi.png",
+      "region": "EMEA",
+      "prestigio": 72,
+      "colorPrincipal": "#00A0DF",
+      "esReal": true,
+      "verificar": true
+    },
+    {
+      "id": "bbl_esports_valorant",
+      "nombre": "BBL Esports",
+      "escudo": "bbl_esports.png",
+      "region": "EMEA",
+      "prestigio": 70,
+      "colorPrincipal": "#1B2A4A",
+      "esReal": true,
+      "verificar": true
+    },
+    {
+      "id": "giantx_valorant",
+      "nombre": "GIANTX",
+      "escudo": "giantx.png",
+      "region": "EMEA",
+      "prestigio": 68,
+      "colorPrincipal": "#00E0A1",
+      "esReal": true,
+      "verificar": true
+    },
+    {
+      "id": "gentle_mates_valorant",
+      "nombre": "Gentle Mates",
+      "escudo": "gentle_mates.png",
+      "region": "EMEA",
+      "prestigio": 66,
+      "colorPrincipal": "#16A085",
+      "esReal": true,
+      "verificar": true
+    },
+
+    {
+      "id": "paper_rex_valorant",
+      "nombre": "Paper Rex",
+      "escudo": "paper_rex.png",
+      "region": "Pacífico",
+      "prestigio": 82,
+      "colorPrincipal": "#00A5A5",
+      "esReal": true,
+      "verificar": true,
+      "jugadores": [
+        { "nick": "Jinggg", "nombreReal": "Wang Jing Jie", "pais": "Singapur", "edad": 23, "rol": "Duelista", "habilidad": 82, "potencial": 92 },
+        { "nick": "f0rsakeN", "nombreReal": "Jason Susanto", "pais": "Indonesia", "edad": 23, "rol": "Iniciador", "habilidad": 84, "potencial": 94 },
+        { "nick": "mindfreak", "nombreReal": "Aaron Leonhart", "pais": "Indonesia", "edad": 27, "rol": "Controlador", "habilidad": 77, "potencial": 80 },
+        { "nick": "d4v41", "nombreReal": "Khalish Rusyaidee", "pais": "Malasia", "edad": 25, "rol": "Centinela", "habilidad": 79, "potencial": 82 },
+        { "nick": "something", "nombreReal": "Ilya Petrov", "pais": "Rusia", "edad": 25, "rol": "Flex", "habilidad": 80, "potencial": 83 }
+      ]
+    },
+    {
+      "id": "drx_valorant",
+      "nombre": "DRX",
+      "escudo": "drx.png",
+      "region": "Pacífico",
+      "prestigio": 80,
+      "colorPrincipal": "#00A9E0",
+      "esReal": true,
+      "verificar": true
+    },
+    {
+      "id": "geng_valorant",
+      "nombre": "Gen.G",
+      "escudo": "geng.png",
+      "region": "Pacífico",
+      "prestigio": 80,
+      "colorPrincipal": "#C9A227",
+      "esReal": true,
+      "verificar": true
+    },
+    {
+      "id": "t1_valorant",
+      "nombre": "T1",
+      "escudo": "t1.png",
+      "region": "Pacífico",
+      "prestigio": 78,
+      "colorPrincipal": "#E2012D",
+      "esReal": true,
+      "verificar": true
+    },
+    {
+      "id": "talon_esports_valorant",
+      "nombre": "Talon Esports",
+      "escudo": "talon_esports.png",
+      "region": "Pacífico",
+      "prestigio": 74,
+      "colorPrincipal": "#0B5CAD",
+      "esReal": true,
+      "verificar": true
+    },
+    {
+      "id": "team_secret_valorant",
+      "nombre": "Team Secret",
+      "escudo": "team_secret.png",
+      "region": "Pacífico",
+      "prestigio": 72,
+      "colorPrincipal": "#1B2A4A",
+      "esReal": true,
+      "verificar": true
+    },
+    {
+      "id": "rex_regum_qeon_valorant",
+      "nombre": "Rex Regum Qeon",
+      "escudo": "rex_regum_qeon.png",
+      "region": "Pacífico",
+      "prestigio": 70,
+      "colorPrincipal": "#E4002B",
+      "esReal": true,
+      "verificar": true
+    },
+    {
+      "id": "zeta_division_valorant",
+      "nombre": "ZETA DIVISION",
+      "escudo": "zeta_division.png",
+      "region": "Pacífico",
+      "prestigio": 68,
+      "colorPrincipal": "#1B1B1B",
+      "esReal": true,
+      "verificar": true
+    },
+    {
+      "id": "global_esports_valorant",
+      "nombre": "Global Esports",
+      "escudo": "global_esports.png",
+      "region": "Pacífico",
+      "prestigio": 66,
+      "colorPrincipal": "#F5A623",
+      "esReal": true,
+      "verificar": true
+    },
+    {
+      "id": "detonation_focusme_valorant",
+      "nombre": "DetonatioN FocusMe",
+      "escudo": "detonation_focusme.png",
+      "region": "Pacífico",
+      "prestigio": 66,
+      "colorPrincipal": "#E4002B",
+      "esReal": true,
+      "verificar": true
+    },
+
+    {
+      "id": "edward_gaming_valorant",
+      "nombre": "EDward Gaming",
+      "escudo": "edward_gaming.png",
+      "region": "China",
+      "prestigio": 82,
+      "colorPrincipal": "#1B2A4A",
+      "esReal": true,
+      "verificar": true
+    },
+    {
+      "id": "bilibili_gaming_valorant",
+      "nombre": "Bilibili Gaming",
+      "escudo": "bilibili_gaming.png",
+      "region": "China",
+      "prestigio": 74,
+      "colorPrincipal": "#003D7C",
+      "esReal": true,
+      "verificar": true
+    },
+    {
+      "id": "funplus_phoenix_valorant",
+      "nombre": "FunPlus Phoenix",
+      "escudo": "funplus_phoenix.png",
+      "region": "China",
+      "prestigio": 72,
+      "colorPrincipal": "#E4002B",
+      "esReal": true,
+      "verificar": true
+    },
+    {
+      "id": "jd_gaming_valorant",
+      "nombre": "JD Gaming",
+      "escudo": "jd_gaming.png",
+      "region": "China",
+      "prestigio": 70,
+      "colorPrincipal": "#C8102E",
+      "esReal": true,
+      "verificar": true
+    },
+    {
+      "id": "trace_esports_valorant",
+      "nombre": "Trace Esports",
+      "escudo": "trace_esports.png",
+      "region": "China",
+      "prestigio": 70,
+      "colorPrincipal": "#16A085",
+      "esReal": true,
+      "verificar": true
+    },
+    {
+      "id": "wolves_esports_valorant",
+      "nombre": "Wolves Esports",
+      "escudo": "wolves_esports.png",
+      "region": "China",
+      "prestigio": 68,
+      "colorPrincipal": "#1B2A4A",
+      "esReal": true,
+      "verificar": true
+    },
+    {
+      "id": "titan_esports_club_valorant",
+      "nombre": "Titan Esports Club",
+      "escudo": "titan_esports_club.png",
+      "region": "China",
+      "prestigio": 66,
+      "colorPrincipal": "#F5A623",
+      "esReal": true,
+      "verificar": true
+    },
+    {
+      "id": "dragon_ranger_gaming_valorant",
+      "nombre": "Dragon Ranger Gaming",
+      "escudo": "dragon_ranger_gaming.png",
+      "region": "China",
+      "prestigio": 64,
+      "colorPrincipal": "#E4002B",
+      "esReal": true,
+      "verificar": true
+    },
+    {
+      "id": "tyloo_valorant",
+      "nombre": "TYLOO",
+      "escudo": "tyloo.png",
+      "region": "China",
+      "prestigio": 62,
+      "colorPrincipal": "#E60012",
+      "esReal": true,
+      "verificar": true
+    },
+
+    {
+      "id": "9z_team_valorant",
+      "nombre": "9z Team",
+      "escudo": "9z_team.png",
+      "region": "Latinoamérica Sur",
+      "prestigio": 62,
+      "colorPrincipal": "#7B1FA2",
+      "esReal": true,
+      "verificar": true
+    },
+    {
+      "id": "infinity_valorant",
+      "nombre": "Infinity",
+      "escudo": "infinity.png",
+      "region": "Latinoamérica Sur",
+      "prestigio": 58,
+      "colorPrincipal": "#E4002B",
+      "esReal": true,
+      "verificar": true
+    },
+    {
+      "id": "australs_valorant",
+      "nombre": "Australs",
+      "escudo": "australs.png",
+      "region": "Latinoamérica Sur",
+      "prestigio": 55,
+      "colorPrincipal": "#00A9E0",
+      "esReal": true,
+      "verificar": true
+    }
+  ]
+}

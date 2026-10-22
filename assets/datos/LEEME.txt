@@ -1,0 +1,115 @@
+DATOS DEL MUNDO (REGIONES Y EQUIPOS)
+====================================
+
+Esta carpeta contiene los datos editables del mundo del juego:
+regiones, ligas, equipos y sus jugadores reales. Todo está en archivos
+de texto JSON, así que puedes abrirlos con cualquier editor (Bloc de
+notas, VS Code, etc.) y modificarlos.
+
+IMPORTANTE: los cambios se aplican al empezar una PARTIDA NUEVA.
+Las partidas ya guardadas conservan los datos con los que se crearon.
+
+------------------------------------------------------------------
+ARCHIVOS
+------------------------------------------------------------------
+
+- regiones.json: por cada videojuego ("lol", "valorant", "cs2", "dota2"),
+  la lista de regiones y los nombres de sus ligas.
+    * "region": nombre de la región.
+    * "ligaPrimera": nombre de la liga de 1ª División.
+    * "ligaSegunda": nombre de la liga de 2ª División.
+  Puedes renombrar las ligas como quieras (son nombres inventados).
+
+- equipos_lol.json, equipos_valorant.json, equipos_cs2.json,
+  equipos_dota2.json: la lista de equipos de cada videojuego.
+
+------------------------------------------------------------------
+CÓMO AGREGAR O EDITAR UN EQUIPO
+------------------------------------------------------------------
+
+Cada equipo tiene estos campos:
+
+  "id":            Identificador único. Ej: "fnatic_lol", "fnatic_cs2".
+                   Un mismo club en varios juegos debe llevar ids distintos
+                   (pero puede compartir el mismo "escudo").
+  "nombre":        Nombre visible (ej: "Fnatic").
+  "escudo":        Archivo de imagen dentro de assets/escudos/ (ej: "fnatic.png").
+  "region":        Debe coincidir EXACTAMENTE con una región de regiones.json.
+  "division":      (Opcional) 1 o 2. Si lo omites, se calcula por prestigio:
+                   los 8 equipos de mayor prestigio de cada región van a 1ª.
+  "prestigio":     Nivel del equipo, de 1 a 100.
+  "colorPrincipal":"#RRGGBB", el color que se usa si falta el escudo.
+  "esReal":        true si es un club real; false si es ficticio.
+  "verificar":     (Opcional) true marca los datos que conviene revisar.
+  "rivales":       (Opcional) lista de "id" de equipos rivales (clásicos).
+                   Ej: "rivales": ["geng_lol"]. Debe ir en los dos equipos
+                   del clásico para que ambos se reconozcan como rivales.
+                   Un partido entre rivales mueve más la moral y se marca
+                   con un fuego 🔥 en la interfaz.
+  "jugadores":     (Opcional) lista de jugadores reales del equipo.
+
+Para agregar un equipo nuevo, copia un bloque completo, pégalo y cambia
+sus datos. No olvides la coma entre bloques. Cuando una división no llega
+a 8 equipos, el juego completa con equipos ficticios automáticamente.
+
+------------------------------------------------------------------
+CÓMO EDITAR LOS JUGADORES
+------------------------------------------------------------------
+
+Cada jugador tiene:
+  "nick":       Nombre en el juego (ej: "Faker").
+  "nombreReal": Nombre de la persona.
+  "pais":       País de origen.
+  "edad":       Edad (16 a 35).
+  "rol":        Debe ser uno de los roles del videojuego:
+                  - LoL: Top, Jungla, Mid, ADC, Support
+                  - Valorant: Duelista, Iniciador, Controlador, Centinela, Flex
+                  - CS2: IGL, AWPer, Entry, Rifler, Support
+                  - Dota 2: Carry, Mid, Offlane, Soporte 4, Soporte 5
+  "habilidad":  Nivel actual (1 a 100).
+  "potencial":  Nivel máximo posible (1 a 100).
+
+Si a un equipo le faltan jugadores para algún rol, el juego los genera
+solo con jugadores ficticios. Si un jugador real está mal ubicado,
+corrígelo o bórralo: se rellenará automáticamente.
+
+Los equipos reales traen la marca "verificar": true para recordar que
+las plantillas cambian seguido y conviene revisarlas.
+
+------------------------------------------------------------------
+PRESTIGIO Y PRESUPUESTO
+------------------------------------------------------------------
+
+  Élite mundial .................. 85–95
+  Fuerte de 1ª División .......... 70–84
+  Medio de 1ª División ........... 55–69
+  Segunda División ............... 35–54
+
+El presupuesto inicial de un equipo es prestigio × 20.000.
+
+------------------------------------------------------------------
+VENTANAS DE FICHAJES Y SUPLENTES
+------------------------------------------------------------------
+
+El mercado de traspasos no está siempre abierto. Solo se puede cerrar el
+traspaso de un jugador CON EQUIPO durante las ventanas de fichajes:
+  - Semanas 1–4 (pretemporada).
+  - Semanas 23–26 (mitad de temporada).
+  - Semanas 47–52 (cierre de temporada).
+Los agentes libres (sin equipo) se pueden fichar en cualquier momento.
+Fuera de ventana, la app avisa con la próxima ventana disponible.
+
+Cada equipo tiene 5 titulares (uno por rol) y hasta 2 suplentes. Los
+suplentes no juegan ni cuentan para el poder del equipo; si un equipo
+ficha a alguien del mismo rol, el desplazado baja al banquillo.
+
+------------------------------------------------------------------
+RECORDATORIOS
+------------------------------------------------------------------
+
+- No borres las comillas ni las comas: el archivo debe seguir siendo
+  JSON válido. Si algo queda mal escrito, la app podría no arrancar.
+- Después de editar, cierra y vuelve a abrir el juego para empezar una
+  partida nueva y ver los cambios.
+- Ningún archivo es obligatorio, pero si falta uno, esa parte del mundo
+  se generará de forma incompleta.

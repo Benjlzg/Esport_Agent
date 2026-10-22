@@ -1,0 +1,24 @@
+ESCUDOS DE EQUIPOS
+==================
+
+Aquí puedes poner las imágenes (PNG) de los escudos de los equipos.
+
+Cómo nombrarlos:
+- El nombre del archivo debe ser igual al campo "escudo" del equipo.
+- Ejemplos: t1.png, fnatic.png, g2.png, team_liquid.png
+- Usa minúsculas, sin espacios y sin tildes. Si el nombre lleva espacios,
+  reemplázalos por guion bajo "_" (ej: "Team Liquid" -> team_liquid.png).
+
+Cómo saber el nombre exacto:
+- Abre el archivo JSON del videojuego en assets/datos/ (por ejemplo
+  equipos_lol.json) y mira el campo "escudo" de cada equipo.
+- O mira la ficha del equipo dentro de la app.
+
+Qué pasa si falta una imagen:
+- No hay problema. La app mostrará un círculo del color del equipo con
+  sus iniciales (ej: "TL" para Team Liquid).
+
+Después de agregar o cambiar archivos:
+- Reinicia la app (flutter run -d linux) para que se carguen los cambios.
+
+Ningún archivo es obligatorio: la app funciona sin escudos.

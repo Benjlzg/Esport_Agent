@@ -1,0 +1,580 @@
+{
+  "equipos": [
+    {
+      "id": "t1_lol",
+      "rivales": ["geng_lol"],
+      "nombre": "T1",
+      "escudo": "t1.png",
+      "region": "Corea",
+      "prestigio": 95,
+      "colorPrincipal": "#E2012D",
+      "esReal": true,
+      "verificar": true,
+      "jugadores": [
+        { "nick": "Zeus", "nombreReal": "Choi Woo-je", "pais": "Corea del Sur", "edad": 21, "rol": "Top", "habilidad": 90, "potencial": 99 },
+        { "nick": "Oner", "nombreReal": "Moon Hyeon-jun", "pais": "Corea del Sur", "edad": 23, "rol": "Jungla", "habilidad": 88, "potencial": 98 },
+        { "nick": "Faker", "nombreReal": "Lee Sang-hyeok", "pais": "Corea del Sur", "edad": 29, "rol": "Mid", "habilidad": 94, "potencial": 97 },
+        { "nick": "Gumayusi", "nombreReal": "Lee Min-hyeong", "pais": "Corea del Sur", "edad": 23, "rol": "ADC", "habilidad": 88, "potencial": 98 },
+        { "nick": "Keria", "nombreReal": "Ryu Min-seok", "pais": "Corea del Sur", "edad": 23, "rol": "Support", "habilidad": 89, "potencial": 99 }
+      ]
+    },
+    {
+      "id": "geng_lol",
+      "rivales": ["t1_lol"],
+      "nombre": "Gen.G",
+      "escudo": "geng.png",
+      "region": "Corea",
+      "prestigio": 90,
+      "colorPrincipal": "#C9A227",
+      "esReal": true,
+      "verificar": true,
+      "jugadores": [
+        { "nick": "Kiin", "nombreReal": "Kim Gi-in", "pais": "Corea del Sur", "edad": 26, "rol": "Top", "habilidad": 88, "potencial": 91 },
+        { "nick": "Canyon", "nombreReal": "Kim Geon-bu", "pais": "Corea del Sur", "edad": 24, "rol": "Jungla", "habilidad": 92, "potencial": 95 },
+        { "nick": "Chovy", "nombreReal": "Jeong Ji-hoon", "pais": "Corea del Sur", "edad": 24, "rol": "Mid", "habilidad": 93, "potencial": 96 },
+        { "nick": "Peyz", "nombreReal": "Kim Su-hwan", "pais": "Corea del Sur", "edad": 20, "rol": "ADC", "habilidad": 87, "potencial": 99 },
+        { "nick": "Lehends", "nombreReal": "Son Si-woo", "pais": "Corea del Sur", "edad": 27, "rol": "Support", "habilidad": 85, "potencial": 88 }
+      ]
+    },
+    {
+      "id": "hanwha_life_lol",
+      "nombre": "Hanwha Life Esports",
+      "escudo": "hanwha_life.png",
+      "region": "Corea",
+      "prestigio": 82,
+      "colorPrincipal": "#F37321",
+      "esReal": true,
+      "verificar": true
+    },
+    {
+      "id": "kt_rolster_lol",
+      "nombre": "KT Rolster",
+      "escudo": "kt_rolster.png",
+      "region": "Corea",
+      "prestigio": 76,
+      "colorPrincipal": "#E60012",
+      "esReal": true,
+      "verificar": true
+    },
+    {
+      "id": "dplus_kia_lol",
+      "nombre": "Dplus KIA",
+      "escudo": "dplus_kia.png",
+      "region": "Corea",
+      "prestigio": 74,
+      "colorPrincipal": "#1A1A1A",
+      "esReal": true,
+      "verificar": true
+    },
+    {
+      "id": "drx_lol",
+      "nombre": "DRX",
+      "escudo": "drx.png",
+      "region": "Corea",
+      "prestigio": 68,
+      "colorPrincipal": "#00A9E0",
+      "esReal": true,
+      "verificar": true
+    },
+    {
+      "id": "nongshim_redforce_lol",
+      "nombre": "Nongshim RedForce",
+      "escudo": "nongshim_redforce.png",
+      "region": "Corea",
+      "prestigio": 60,
+      "colorPrincipal": "#E4002B",
+      "esReal": true,
+      "verificar": true
+    },
+    {
+      "id": "bnk_fearx_lol",
+      "nombre": "BNK FearX",
+      "escudo": "bnk_fearx.png",
+      "region": "Corea",
+      "prestigio": 58,
+      "colorPrincipal": "#1B2A4A",
+      "esReal": true,
+      "verificar": true
+    },
+    {
+      "id": "brion_lol",
+      "nombre": "OKSavingsBank BRION",
+      "escudo": "brion.png",
+      "region": "Corea",
+      "prestigio": 54,
+      "colorPrincipal": "#00B140",
+      "esReal": true,
+      "verificar": true
+    },
+    {
+      "id": "dn_freecs_lol",
+      "nombre": "DN Freecs",
+      "escudo": "dn_freecs.png",
+      "region": "Corea",
+      "prestigio": 50,
+      "colorPrincipal": "#F5A623",
+      "esReal": true,
+      "verificar": true
+    },
+
+    {
+      "id": "bilibili_gaming_lol",
+      "nombre": "Bilibili Gaming",
+      "escudo": "bilibili_gaming.png",
+      "region": "China",
+      "prestigio": 86,
+      "colorPrincipal": "#003D7C",
+      "esReal": true,
+      "verificar": true,
+      "jugadores": [
+        { "nick": "Bin", "nombreReal": "Chen Ze-Bin", "pais": "China", "edad": 23, "rol": "Top", "habilidad": 88, "potencial": 98 },
+        { "nick": "Xun", "nombreReal": "Peng Li-Xun", "pais": "China", "edad": 23, "rol": "Jungla", "habilidad": 84, "potencial": 94 },
+        { "nick": "Knight", "nombreReal": "Zhuo Ding", "pais": "China", "edad": 25, "rol": "Mid", "habilidad": 90, "potencial": 93 },
+        { "nick": "Elk", "nombreReal": "Zhao Jia-Hao", "pais": "China", "edad": 23, "rol": "ADC", "habilidad": 86, "potencial": 96 },
+        { "nick": "ON", "nombreReal": "Luo Wen-Jun", "pais": "China", "edad": 23, "rol": "Support", "habilidad": 82, "potencial": 92 }
+      ]
+    },
+    {
+      "id": "top_esports_lol",
+      "nombre": "Top Esports",
+      "escudo": "top_esports.png",
+      "region": "China",
+      "prestigio": 85,
+      "colorPrincipal": "#E2231A",
+      "esReal": true,
+      "verificar": true
+    },
+    {
+      "id": "jd_gaming_lol",
+      "nombre": "JD Gaming",
+      "escudo": "jd_gaming.png",
+      "region": "China",
+      "prestigio": 80,
+      "colorPrincipal": "#C8102E",
+      "esReal": true,
+      "verificar": true
+    },
+    {
+      "id": "weibo_gaming_lol",
+      "nombre": "Weibo Gaming",
+      "escudo": "weibo_gaming.png",
+      "region": "China",
+      "prestigio": 78,
+      "colorPrincipal": "#E6162D",
+      "esReal": true,
+      "verificar": true
+    },
+    {
+      "id": "lng_esports_lol",
+      "nombre": "LNG Esports",
+      "escudo": "lng_esports.png",
+      "region": "China",
+      "prestigio": 76,
+      "colorPrincipal": "#0B5FA5",
+      "esReal": true,
+      "verificar": true
+    },
+    {
+      "id": "anyones_legend_lol",
+      "nombre": "Anyone's Legend",
+      "escudo": "anyones_legend.png",
+      "region": "China",
+      "prestigio": 74,
+      "colorPrincipal": "#1E88E5",
+      "esReal": true,
+      "verificar": true
+    },
+    {
+      "id": "invictus_gaming_lol",
+      "nombre": "Invictus Gaming",
+      "escudo": "invictus_gaming.png",
+      "region": "China",
+      "prestigio": 72,
+      "colorPrincipal": "#1B1B1B",
+      "esReal": true,
+      "verificar": true
+    },
+    {
+      "id": "edward_gaming_lol",
+      "nombre": "EDward Gaming",
+      "escudo": "edward_gaming.png",
+      "region": "China",
+      "prestigio": 70,
+      "colorPrincipal": "#1B2A4A",
+      "esReal": true,
+      "verificar": true
+    },
+
+    {
+      "id": "g2_lol",
+      "rivales": ["fnatic_lol"],
+      "nombre": "G2 Esports",
+      "escudo": "g2.png",
+      "region": "Europa",
+      "prestigio": 88,
+      "colorPrincipal": "#333333",
+      "esReal": true,
+      "verificar": true,
+      "jugadores": [
+        { "nick": "BrokenBlade", "nombreReal": "Sergen Çelik", "pais": "Alemania", "edad": 27, "rol": "Top", "habilidad": 82, "potencial": 85 },
+        { "nick": "Yike", "nombreReal": "Martin Sundelin", "pais": "Suecia", "edad": 25, "rol": "Jungla", "habilidad": 80, "potencial": 83 },
+        { "nick": "Caps", "nombreReal": "Rasmus Winther", "pais": "Dinamarca", "edad": 25, "rol": "Mid", "habilidad": 89, "potencial": 92 },
+        { "nick": "Hans Sama", "nombreReal": "Steven Liv", "pais": "Francia", "edad": 26, "rol": "ADC", "habilidad": 82, "potencial": 85 },
+        { "nick": "Mikyx", "nombreReal": "Mihael Mehle", "pais": "Eslovenia", "edad": 26, "rol": "Support", "habilidad": 80, "potencial": 83 }
+      ]
+    },
+    {
+      "id": "fnatic_lol",
+      "rivales": ["g2_lol"],
+      "nombre": "Fnatic",
+      "escudo": "fnatic.png",
+      "region": "Europa",
+      "prestigio": 78,
+      "colorPrincipal": "#FF5900",
+      "esReal": true,
+      "verificar": true,
+      "jugadores": [
+        { "nick": "Oscarinin", "nombreReal": "Óscar Muñoz", "pais": "España", "edad": 23, "rol": "Top", "habilidad": 76, "potencial": 86 },
+        { "nick": "Razork", "nombreReal": "Iván Martín", "pais": "España", "edad": 25, "rol": "Jungla", "habilidad": 78, "potencial": 81 },
+        { "nick": "Humanoid", "nombreReal": "Marek Brázda", "pais": "República Checa", "edad": 25, "rol": "Mid", "habilidad": 80, "potencial": 83 },
+        { "nick": "Noah", "nombreReal": "Oh Hyeon-taek", "pais": "Corea del Sur", "edad": 23, "rol": "ADC", "habilidad": 75, "potencial": 85 },
+        { "nick": "Jun", "nombreReal": "Yoon Se-jun", "pais": "Corea del Sur", "edad": 23, "rol": "Support", "habilidad": 74, "potencial": 84 }
+      ]
+    },
+    {
+      "id": "karmine_corp_lol",
+      "nombre": "Karmine Corp",
+      "escudo": "karmine_corp.png",
+      "region": "Europa",
+      "prestigio": 76,
+      "colorPrincipal": "#1B2A4A",
+      "esReal": true,
+      "verificar": true
+    },
+    {
+      "id": "movistar_koi_lol",
+      "nombre": "Movistar KOI",
+      "escudo": "movistar_koi.png",
+      "region": "Europa",
+      "prestigio": 74,
+      "colorPrincipal": "#00A0DF",
+      "esReal": true,
+      "verificar": true
+    },
+    {
+      "id": "team_vitality_lol",
+      "nombre": "Team Vitality",
+      "escudo": "team_vitality.png",
+      "region": "Europa",
+      "prestigio": 72,
+      "colorPrincipal": "#FFD200",
+      "esReal": true,
+      "verificar": true
+    },
+    {
+      "id": "team_heretics_lol",
+      "nombre": "Team Heretics",
+      "escudo": "team_heretics.png",
+      "region": "Europa",
+      "prestigio": 70,
+      "colorPrincipal": "#FFCC00",
+      "esReal": true,
+      "verificar": true
+    },
+    {
+      "id": "natus_vincere_lol",
+      "nombre": "Natus Vincere",
+      "escudo": "natus_vincere.png",
+      "region": "Europa",
+      "prestigio": 66,
+      "colorPrincipal": "#FFC400",
+      "esReal": true,
+      "verificar": true
+    },
+    {
+      "id": "sk_gaming_lol",
+      "nombre": "SK Gaming",
+      "escudo": "sk_gaming.png",
+      "region": "Europa",
+      "prestigio": 64,
+      "colorPrincipal": "#B8B8B8",
+      "esReal": true,
+      "verificar": true
+    },
+    {
+      "id": "team_bds_lol",
+      "nombre": "Team BDS",
+      "escudo": "team_bds.png",
+      "region": "Europa",
+      "prestigio": 62,
+      "colorPrincipal": "#6C2BD9",
+      "esReal": true,
+      "verificar": true
+    },
+    {
+      "id": "giantx_lol",
+      "nombre": "GIANTX",
+      "escudo": "giantx.png",
+      "region": "Europa",
+      "prestigio": 60,
+      "colorPrincipal": "#00E0A1",
+      "esReal": true,
+      "verificar": true
+    },
+
+    {
+      "id": "cloud9_lol",
+      "rivales": ["team_liquid_lol"],
+      "nombre": "Cloud9",
+      "escudo": "cloud9.png",
+      "region": "Norteamérica",
+      "prestigio": 78,
+      "colorPrincipal": "#0B5CAD",
+      "esReal": true,
+      "verificar": true
+    },
+    {
+      "id": "team_liquid_lol",
+      "rivales": ["cloud9_lol"],
+      "nombre": "Team Liquid",
+      "escudo": "team_liquid.png",
+      "region": "Norteamérica",
+      "prestigio": 76,
+      "colorPrincipal": "#0A1E3C",
+      "esReal": true,
+      "verificar": true,
+      "jugadores": [
+        { "nick": "Impact", "nombreReal": "Jung Eon-young", "pais": "Corea del Sur", "edad": 30, "rol": "Top", "habilidad": 76, "potencial": 79 },
+        { "nick": "Umti", "nombreReal": "Um Tae-won", "pais": "Corea del Sur", "edad": 26, "rol": "Jungla", "habilidad": 74, "potencial": 77 },
+        { "nick": "APA", "nombreReal": "Eain Stearns", "pais": "Estados Unidos", "edad": 24, "rol": "Mid", "habilidad": 72, "potencial": 75 },
+        { "nick": "Yeon", "nombreReal": "Sean Sung", "pais": "Estados Unidos", "edad": 23, "rol": "ADC", "habilidad": 74, "potencial": 84 },
+        { "nick": "CoreJJ", "nombreReal": "Jo Yong-in", "pais": "Corea del Sur", "edad": 31, "rol": "Support", "habilidad": 78, "potencial": 81 }
+      ]
+    },
+    {
+      "id": "flyquest_lol",
+      "nombre": "FlyQuest",
+      "escudo": "flyquest.png",
+      "region": "Norteamérica",
+      "prestigio": 70,
+      "colorPrincipal": "#2FCB53",
+      "esReal": true,
+      "verificar": true
+    },
+    {
+      "id": "100_thieves_lol",
+      "nombre": "100 Thieves",
+      "escudo": "100_thieves.png",
+      "region": "Norteamérica",
+      "prestigio": 68,
+      "colorPrincipal": "#E60026",
+      "esReal": true,
+      "verificar": true
+    },
+    {
+      "id": "dignitas_lol",
+      "nombre": "Dignitas",
+      "escudo": "dignitas.png",
+      "region": "Norteamérica",
+      "prestigio": 60,
+      "colorPrincipal": "#FFC400",
+      "esReal": true,
+      "verificar": true
+    },
+    {
+      "id": "shopify_rebellion_lol",
+      "nombre": "Shopify Rebellion",
+      "escudo": "shopify_rebellion.png",
+      "region": "Norteamérica",
+      "prestigio": 58,
+      "colorPrincipal": "#95BF47",
+      "esReal": true,
+      "verificar": true
+    },
+    {
+      "id": "lyon_lol",
+      "nombre": "LYON",
+      "escudo": "lyon.png",
+      "region": "Norteamérica",
+      "prestigio": 56,
+      "colorPrincipal": "#E4002B",
+      "esReal": true,
+      "verificar": true
+    },
+    {
+      "id": "disguised_lol",
+      "nombre": "Disguised",
+      "escudo": "disguised.png",
+      "region": "Norteamérica",
+      "prestigio": 52,
+      "colorPrincipal": "#7B61FF",
+      "esReal": true,
+      "verificar": true
+    },
+
+    {
+      "id": "loud_lol",
+      "rivales": ["pain_gaming_lol"],
+      "nombre": "LOUD",
+      "escudo": "loud.png",
+      "region": "Brasil",
+      "prestigio": 76,
+      "colorPrincipal": "#00D05A",
+      "esReal": true,
+      "verificar": true
+    },
+    {
+      "id": "pain_gaming_lol",
+      "rivales": ["loud_lol"],
+      "nombre": "paiN Gaming",
+      "escudo": "pain_gaming.png",
+      "region": "Brasil",
+      "prestigio": 74,
+      "colorPrincipal": "#E4002B",
+      "esReal": true,
+      "verificar": true
+    },
+    {
+      "id": "furia_lol",
+      "nombre": "FURIA",
+      "escudo": "furia.png",
+      "region": "Brasil",
+      "prestigio": 72,
+      "colorPrincipal": "#222222",
+      "esReal": true,
+      "verificar": true
+    },
+    {
+      "id": "red_canids_lol",
+      "nombre": "RED Canids",
+      "escudo": "red_canids.png",
+      "region": "Brasil",
+      "prestigio": 66,
+      "colorPrincipal": "#E4002B",
+      "esReal": true,
+      "verificar": true
+    },
+    {
+      "id": "vivo_keyd_stars_lol",
+      "nombre": "Vivo Keyd Stars",
+      "escudo": "vivo_keyd_stars.png",
+      "region": "Brasil",
+      "prestigio": 62,
+      "colorPrincipal": "#6A1B9A",
+      "esReal": true,
+      "verificar": true
+    },
+    {
+      "id": "fluxo_w7m_lol",
+      "nombre": "Fluxo W7M",
+      "escudo": "fluxo_w7m.png",
+      "region": "Brasil",
+      "prestigio": 58,
+      "colorPrincipal": "#FF8A00",
+      "esReal": true,
+      "verificar": true
+    },
+
+    {
+      "id": "isurus_lol",
+      "nombre": "Isurus",
+      "escudo": "isurus.png",
+      "region": "Latinoamérica",
+      "prestigio": 66,
+      "colorPrincipal": "#00A9E0",
+      "esReal": true,
+      "verificar": true
+    },
+    {
+      "id": "estral_esports_lol",
+      "nombre": "Estral Esports",
+      "escudo": "estral_esports.png",
+      "region": "Latinoamérica",
+      "prestigio": 64,
+      "colorPrincipal": "#E4002B",
+      "esReal": true,
+      "verificar": true
+    },
+    {
+      "id": "movistar_r7_lol",
+      "nombre": "Movistar R7",
+      "escudo": "movistar_r7.png",
+      "region": "Latinoamérica",
+      "prestigio": 62,
+      "colorPrincipal": "#00A0DF",
+      "esReal": true,
+      "verificar": true
+    },
+    {
+      "id": "leviatan_lol",
+      "nombre": "Leviatán",
+      "escudo": "leviatan.png",
+      "region": "Latinoamérica",
+      "prestigio": 60,
+      "colorPrincipal": "#B0002D",
+      "esReal": true,
+      "verificar": true
+    },
+    {
+      "id": "six_karma_lol",
+      "nombre": "Six Karma",
+      "escudo": "six_karma.png",
+      "region": "Latinoamérica",
+      "prestigio": 58,
+      "colorPrincipal": "#16A085",
+      "esReal": true,
+      "verificar": true
+    },
+
+    {
+      "id": "psg_talon_lol",
+      "nombre": "PSG Talon",
+      "escudo": "psg_talon.png",
+      "region": "Pacífico",
+      "prestigio": 74,
+      "colorPrincipal": "#005AA3",
+      "esReal": true,
+      "verificar": true
+    },
+    {
+      "id": "ctbc_flying_oyster_lol",
+      "nombre": "CTBC Flying Oyster",
+      "escudo": "ctbc_flying_oyster.png",
+      "region": "Pacífico",
+      "prestigio": 70,
+      "colorPrincipal": "#1E88E5",
+      "esReal": true,
+      "verificar": true
+    },
+    {
+      "id": "gam_esports_lol",
+      "nombre": "GAM Esports",
+      "escudo": "gam_esports.png",
+      "region": "Pacífico",
+      "prestigio": 68,
+      "colorPrincipal": "#F5A623",
+      "esReal": true,
+      "verificar": true
+    },
+    {
+      "id": "team_secret_whales_lol",
+      "nombre": "Team Secret Whales",
+      "escudo": "team_secret_whales.png",
+      "region": "Pacífico",
+      "prestigio": 62,
+      "colorPrincipal": "#0B5CAD",
+      "esReal": true,
+      "verificar": true
+    },
+    {
+      "id": "detonation_focusme_lol",
+      "nombre": "DetonatioN FocusMe",
+      "escudo": "detonation_focusme.png",
+      "region": "Pacífico",
+      "prestigio": 60,
+      "colorPrincipal": "#E4002B",
+      "esReal": true,
+      "verificar": true
+    }
+  ]
+}

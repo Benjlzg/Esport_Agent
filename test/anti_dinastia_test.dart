@@ -227,6 +227,43 @@ void main() {
       expect(estado.ofertas.where((o) => o.jugadorId == 'p1'), hasLength(1));
       expect(objetivo.equipoId, 'dinastia');
     });
+
+    test('una dinastía no ficha por encima de su mejor titular (ronda 5)', () {
+      // La dinastía conserva un titular de 70 y acaba de vender figuras: el
+      // dinero de la cláusula no puede servir para fichar a una estrella de 90.
+      final titularDinastia = _jugador(
+        'p1',
+        equipoId: 'dinastia',
+        habilidad: 70,
+      )..valorMercado = 100000;
+      final titularRival = _jugador('p2', equipoId: 'rival', habilidad: 60)
+        ..valorMercado = 100000;
+      final estrellaLibre = _jugador('p3', habilidad: 90)
+        ..valorMercado = 100000;
+      final estado = _estado(
+        jugadores: [titularDinastia, titularRival, estrellaLibre],
+        equipos: [
+          _equipo('dinastia', prestigio: 90),
+          _equipo('rival', prestigio: 85),
+        ],
+        temporada: 7,
+        semana: 5,
+        palmares: _titulosDeDinastia('dinastia'),
+      );
+      var siguienteId = 0;
+
+      procesarMercadoIA(
+        estado: estado,
+        indiceEquipos: {for (final e in estado.equipos) e.id: e},
+        indiceJugadores: {for (final j in estado.jugadores) j.id: j},
+        rnd: _RandomCero(),
+        nuevoIdJugador: () => 'n${siguienteId++}',
+      );
+
+      // El rival (sin títulos recientes) sí puede fichar a la estrella.
+      expect(estrellaLibre.equipoId, 'rival');
+      expect(titularDinastia.equipoId, 'dinastia');
+    });
   });
 
   group('fichajes juveniles de 2ª División (C3)', () {
@@ -292,4 +329,17 @@ void main() {
       expect(joven.equipoId, isNull);
     });
   });
+}
+
+/// Generador determinista: siempre elige la primera opción y acepta cualquier
+/// intento de fichaje, para probar las restricciones sin depender del azar.
+class _RandomCero implements Random {
+  @override
+  int nextInt(int max) => 0;
+
+  @override
+  double nextDouble() => 0.0;
+
+  @override
+  bool nextBool() => false;
 }

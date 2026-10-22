@@ -617,9 +617,9 @@ List<DefinicionEvento> _crearCatalogo() {
             final j = jugador!;
             ctx.cambiarMoral(j, -10);
             ctx.multiplicarValor(j, 0.90);
-            ctx.cambiarReputacion(-2);
+            ctx.cambiarReputacion(-1);
             return 'La polémica de ${j.nick} sigue creciendo: −10 de moral, '
-                'su valor baja un 10 % y tu reputación −2.';
+                'su valor baja un 10 % y tu reputación −1.';
           },
         ),
       ],
@@ -863,8 +863,8 @@ List<DefinicionEvento> _crearCatalogo() {
         OpcionEvento(
           texto: 'Entendido',
           efecto: (ctx, evento, jugador) {
-            ctx.cambiarReputacion(-2);
-            return 'Un rumor dañó la imagen de tu agencia: −2 de reputación.';
+            ctx.cambiarReputacion(-1);
+            return 'Un rumor dañó la imagen de tu agencia: −1 de reputación.';
           },
         ),
       ],

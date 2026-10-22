@@ -669,3 +669,56 @@ Se corrigieron **I13, I14, todos los problemas menores M1–M19** y los duplicad
 
 
 
+
+## Balance — dinastías post-auditoría (terminada, 2026-10-22)
+
+### Diagnóstico del retroceso
+
+- Se comparó el último commit anterior a la auditoría (`597fd79`, «Balance: dominio, ingresos y reputación», dominio máximo **6/10** y **0** ligas por encima de 6) con los commits de la auditoría.
+- El cambio que explica el retroceso es **I2** (`4339b31`, «Auditoría: economía e idempotencia»): el club vendedor empezó a cobrar el traspaso.
+  - `_cerrarTrato`: `vendedor.presupuesto += precio − comisión`.
+  - `procesarMercadoIA`: `clubVendedor.presupuesto += valorMercado`.
+  - `_fichajesDeCampeones`: `campeon.presupuesto += precioClausula`.
+- Antes de la auditoría, la dinastía perdía figuras por la cláusula anti-dinastía y **no recibía nada**; después, con ese dinero volvía a fichar a los mejores en la misma ventana. El informe de `3846b72`/`5d9f214` ya reflejó el máximo de **8/10** (3 ligas por encima de 6).
+
+### Ronda 5 — límite de fichajes para dinastías
+
+- Nuevas constantes en `lib/logica/mercado.dart`: `titulosParaSerDinastia = 3` y `temporadasVentanaDinastia = 5`.
+- Nuevos helpers `titulosRecientesDePrimeraDivision()` y `equiposDinastia()`, reutilizados por el anti-dinastía.
+- En `procesarMercadoIA`, un equipo con **3+ títulos de split de 1ª División en 5 temporadas** solo puede fichar jugadores con **habilidad ≤ su mejor titular actual** en esa ventana, tanto en traspasos automáticos como en ofertas a representados. El tope se recalcula tras las ventas de la cláusula, así que el dinero recibido ya no sirve para recomprar figuras por encima del nivel que le queda.
+- Prueba nueva en `test/anti_dinastia_test.dart`: la dinastía con un titular de 70 no ficha a una estrella libre de 90; un rival sin títulos sí puede.
+- **Antes:** dominio máximo **8/10** y **3** ligas por encima de 6. **Después:** dominio máximo **6/10** y **0** ligas por encima de 6.
+
+### Ronda 6 — reputación del robot
+
+- Al aplicar la ronda 5, el robot terminó la T3 con **29** de reputación (meta 30–45) porque se acumularon eventos negativos (`polemica_redes`, `rumor_negativo`, −2 cada uno).
+- Ajuste: ambos eventos restan ahora **−1** de reputación (`lib/logica/eventos_catalogo.dart`). El tope de reputación por traspasos sigue en **40** y no se tocó ninguna otra constante.
+- Resultado: reputación final del robot **43** (30–45).
+
+### Informe
+
+- `INFORME_BALANCE.md` regenerado el **2026-10-22 11:42:53**, semilla **20251019**.
+- Tabla «Mercado y eventos»: la columna «Ofertas IA» pasa a llamarse **«Ofertas al agente (observador)»** y se añade la nota de que vale **0** porque la partida observadora no recluta y, sin representados, la IA no tiene a quién ofertar.
+- La tabla de ajustes incluye las rondas **5** y **6** con antes/después y el resultado medido.
+
+### Criterios comprobados
+
+- Violaciones duras: **0**.
+- Salto máximo de habilidad entre temporadas: **2,76** (≤ 3).
+- Progresión de 16–21 años con equipo: **4,6** puntos/temporada (4–8).
+- Dominio máximo: **6/10**; ligas por encima del criterio: **0**.
+- Robot: **sin quiebra**, dinero final **$474.063** (≤ $5.000.000) y reputación **43** (30–45).
+- Cuadre del dinero del robot: **descuadre 0**.
+- Tiempo T10/T1: **1,08×** (≤ 1,5×).
+- Guardado final: **3.634,7 KB**.
+
+### Guardado (solo informativo)
+
+- La partida ya usa **archivos con `path_provider`** (`getApplicationSupportDirectory`, escritura atómica y copia `.bak`); `shared_preferences` solo se lee para migrar la clave antigua. `versionFormato` sigue en **9** y esta corrección no añade campos.
+
+### Verificación
+
+- `flutter test --tags lento --run-skipped` → **2 pasan** (`balance_test.dart` y `robot_test.dart`).
+- `flutter analyze` → **No issues found!**
+- `flutter test` → **175 pasan, 2 saltan** (las `@Tags(['lento'])`).
+- Capturas de `capturas/` regeneradas con `flutter test test/golden_test.dart --update-goldens` porque el fixture determinista cambia con la nueva regla de mercado.

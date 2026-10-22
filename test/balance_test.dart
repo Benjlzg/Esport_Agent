@@ -351,6 +351,17 @@ String _escribirInforme({
   required int milisegundosTotal,
   required ResultadoRobot robot,
 }) {
+  // Dominio por liga (B3): se calcula antes de escribir la tabla de ajustes
+  // para poder anotar el resultado de la ronda 5.
+  final dominios = dominioPorLiga(estadoFinal);
+  final topDominios = dominios.take(5).toList();
+  final maxTemporadasDominio = dominios.isEmpty
+      ? 0
+      : dominios.first.temporadasGanadas;
+  final ligasExcedidas = dominios
+      .where((d) => d.temporadasGanadas > 6)
+      .toList();
+
   final buffer = StringBuffer()
     ..writeln('# INFORME DE BALANCE — FASE 2.5')
     ..writeln()
@@ -376,9 +387,13 @@ String _escribirInforme({
   buffer
     ..writeln(
       'Las rondas **1–3** son las del ajuste de dominio y economía de la '
-      'Fase 2.5. La **ronda 4** corresponde a la revisión actual de comisiones '
-      'y cuadratura. Los cambios se probaron con la misma semilla y el informe '
-      'se regeneró después de cada ronda.',
+      'Fase 2.5. La **ronda 4** corresponde a la revisión de comisiones y '
+      'cuadratura. La **ronda 5** corrige el retroceso de dominio detectado '
+      'tras la auditoría: el club vendedor cobraba la cláusula y la dinastía '
+      'volvía a fichar figuras con ese dinero. Los cambios se probaron con la '
+      'misma semilla y el informe se regeneró después de cada ronda. La '
+      '**ronda 6** suaviza el castigo de reputación de los eventos negativos '
+      'para que el robot no quede por debajo de la meta cuando se acumulan.',
     )
     ..writeln()
     ..writeln(
@@ -517,6 +532,27 @@ String _escribirInforme({
             'El salto T1→T2 había vuelto a 3,40 con los cambios posteriores '
                 'de plantillas. Con −5 queda por debajo del límite de 3 sin '
                 'tocar la progresión juvenil.',
+          ],
+          [
+            '5',
+            'fichajes de dinastías',
+            'Sin límite: la dinastía vendía figuras por la cláusula, cobraba '
+                'el dinero y volvía a fichar a los mejores. Dominio máximo '
+                '8/10 (3 ligas por encima de 6).',
+            'Con 3+ títulos de 1ª División en 5 temporadas solo puede fichar '
+                'jugadores con habilidad ≤ su mejor titular en esa ventana.',
+            'Dominio máximo $maxTemporadasDominio de 10; '
+                '${ligasExcedidas.length} ligas por encima de 6.',
+          ],
+          [
+            '6',
+            'reputación en eventos negativos',
+            '`polemica_redes` y `rumor_negativo` restaban 2 puntos cada uno.',
+            'Restan 1 punto cada uno; los traspasos mantienen su tope en 40.',
+            'Reputación final del robot: '
+                '${robot.filas.isEmpty ? 0 : robot.filas.last.reputacionFin} '
+                '(meta 30–45). No afecta al dominio: la reputación es solo '
+                'del agente.',
           ],
         ],
       ),
@@ -674,15 +710,6 @@ String _escribirInforme({
     );
 
   // Dominio por liga (B3): temporadas distintas ganadas por el mismo equipo.
-  final dominios = dominioPorLiga(estadoFinal);
-  final topDominios = dominios.take(5).toList();
-  final maxTemporadasDominio = dominios.isEmpty
-      ? 0
-      : dominios.first.temporadasGanadas;
-  final ligasExcedidas = dominios
-      .where((d) => d.temporadasGanadas > 6)
-      .toList();
-
   buffer
     ..writeln()
     ..writeln('## Dominio por liga (1ª División, 10 temporadas)')
@@ -743,7 +770,7 @@ String _escribirInforme({
           'Fichajes IA V2 (23–26)',
           'Fichajes IA V3 (47–52)',
           'Fichajes IA total',
-          'Ofertas IA',
+          'Ofertas al agente (observador)',
           'Eventos',
           'Eventos con decisión',
         ],
@@ -761,6 +788,14 @@ String _escribirInforme({
             ],
         ],
       ),
+    );
+
+  buffer
+    ..writeln()
+    ..writeln(
+      '- **Ofertas al agente (observador):** son 0 porque la partida '
+      'observadora no recluta jugadores. Sin representados, la IA no tiene a '
+      'quién enviar ofertas.',
     );
 
   buffer

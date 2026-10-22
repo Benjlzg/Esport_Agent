@@ -11,6 +11,11 @@ import '../modelos/oferta.dart';
 import 'formulas.dart';
 import 'generador_jugadores.dart';
 
+/// Títulos de split de 1ª División en las últimas [temporadasVentanaDinastia]
+/// que convierten a un equipo en dinastía.
+const int titulosParaSerDinastia = 3;
+const int temporadasVentanaDinastia = 5;
+
 /// Puntaje de un jugador como candidato a fichaje (más alto = mejor).
 /// `habilidad + (potencial − habilidad) × factorEdad + (forma − 3) × 3`.
 double puntajeFichaje(Jugador j) {
@@ -308,6 +313,7 @@ ResultadoMercadoIA procesarMercadoIA({
   // El índice de titulares se construye una sola vez después del anti-dinastía
   // y se actualiza con cada traspaso (corrección I9).
   final titulares = titularesPorEquipoRol(porEquipo);
+  final dinastias = equiposDinastia(estado);
   final equiposEnOrden = List<Equipo>.from(estado.equipos)..shuffle(rnd);
   for (final equipo in equiposEnOrden) {
     final usados = estado.fichajesVentana[equipo.id] ?? 0;
@@ -325,7 +331,7 @@ ResultadoMercadoIA procesarMercadoIA({
     if (debil == null) continue;
 
     final umbral = debil.habilidad + diferenciaMinimaFichaje;
-    final candidatos = candidatosPara(
+    var candidatos = candidatosPara(
       equipo: equipo,
       porJuegoRol: porJuegoRol,
       indiceEquipos: indiceEquipos,
@@ -333,6 +339,20 @@ ResultadoMercadoIA procesarMercadoIA({
       umbralHabilidad: umbral,
       temporadaActual: estado.temporada,
     );
+
+    // Una dinastía que vendió figuras por la cláusula anti-dinastía no puede
+    // usar ese dinero para fichar a alguien mejor que su mejor titular actual.
+    // Antes volvía a comprar el mejor agente libre y la liga seguía dominada.
+    if (dinastias.contains(equipo.id)) {
+      final titularesEquipo = titulares[equipo.id];
+      if (titularesEquipo == null || titularesEquipo.isEmpty) continue;
+      final mejorHabilidad = titularesEquipo.values
+          .map((j) => j.habilidad)
+          .reduce(max);
+      candidatos = candidatos
+          .where((j) => j.habilidad <= mejorHabilidad)
+          .toList();
+    }
     if (candidatos.isEmpty) continue;
 
     final elegido = candidatos.first;
@@ -515,6 +535,32 @@ bool tituloEsDePrimeraDivision(EstadoPartida estado, RegistroCampeon titulo) {
   return false;
 }
 
+/// Títulos de liga de 1ª División por equipo en la ventana móvil de dinastía.
+///
+/// Se usa tanto para el anti-dinastía como para limitar los fichajes de un
+/// equipo que ya domina: así el dinero de una venta no le permite volver a
+/// comprar figuras por encima de su propio nivel.
+Map<String, int> titulosRecientesDePrimeraDivision(EstadoPartida estado) {
+  final desde = estado.temporada - temporadasVentanaDinastia;
+  final titulos = <String, int>{};
+  for (final r in estado.palmares) {
+    if (r.tipo != TipoCampeon.liga) continue;
+    if (r.temporada < desde || r.temporada >= estado.temporada) continue;
+    if (!tituloEsDePrimeraDivision(estado, r)) continue;
+    titulos[r.ganadorId] = (titulos[r.ganadorId] ?? 0) + 1;
+  }
+  return titulos;
+}
+
+/// Equipos que son dinastía: 3+ títulos de split de 1ª División en 5 temporadas.
+Set<String> equiposDinastia(EstadoPartida estado) {
+  final titulos = titulosRecientesDePrimeraDivision(estado);
+  return {
+    for (final entrada in titulos.entries)
+      if (entrada.value >= titulosParaSerDinastia) entrada.key,
+  };
+}
+
 /// Intenta debilitar a las dinastías: equipos con 3 o más títulos de split
 /// en las últimas 5 temporadas pierden figuras a manos de equipos que no
 /// están en esa lista. Devuelve cuántos traspasos se cerraron.
@@ -537,16 +583,7 @@ int _fichajesDeCampeones({
 
   // Cuento los títulos de liga de las últimas 5 temporadas. Una dinastía
   // sigue perdiendo figuras aunque falle un año.
-  final desde = estado.temporada - 5;
-  final titulosRecientes = <String, int>{};
-  for (final r in estado.palmares) {
-    if (r.tipo != TipoCampeon.liga) continue;
-    if (r.temporada < desde || r.temporada >= estado.temporada) continue;
-    // Solo cuentan los títulos de 1ª División: ganar la 2ª no convierte a un
-    // equipo en dinastía de la élite (M14).
-    if (!tituloEsDePrimeraDivision(estado, r)) continue;
-    titulosRecientes[r.ganadorId] = (titulosRecientes[r.ganadorId] ?? 0) + 1;
-  }
+  final titulosRecientes = titulosRecientesDePrimeraDivision(estado);
   // Se debilita a los campeones de la temporada anterior y, sobre todo, a
   // las dinastías con 3 o más títulos de split en las últimas 5 temporadas.
   final campeones = <String>{
@@ -558,7 +595,9 @@ int _fichajesDeCampeones({
               tituloEsDePrimeraDivision(estado, r),
         )
         .map((r) => r.ganadorId),
-    ...titulosRecientes.entries.where((e) => e.value >= 3).map((e) => e.key),
+    ...titulosRecientes.entries
+        .where((e) => e.value >= titulosParaSerDinastia)
+        .map((e) => e.key),
   };
   // Solo los equipos de 1ª División pueden ser dinastías de la élite.
   campeones.removeWhere((id) => (indiceEquipos[id]?.division ?? 1) != 1);

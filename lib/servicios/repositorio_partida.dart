@@ -37,10 +37,14 @@ enum ResultadoCarga {
 
 /// Resultado de cargar: qué pasó y, si salió bien, el estado de la partida.
 class CargaPartida {
-  const CargaPartida(this.resultado, [this.estado]);
+  const CargaPartida(this.resultado, [this.estado, this.version]);
 
   final ResultadoCarga resultado;
   final EstadoPartida? estado;
+
+  /// Versión del formato que tenía el texto cargado (null si no se pudo
+  /// leer). El motor la usa para reparar solo las partidas antiguas (I14).
+  final int? version;
 }
 
 /// Guarda y carga la partida en archivos del disco.
@@ -148,6 +152,20 @@ class RepositorioPartida {
     await _borrarLegacy();
   }
 
+  /// Escribe un texto directamente en la copia `.bak`, sin tocar el archivo
+  /// principal. Se usa para conservar el original de una partida antigua
+  /// antes de migrarla (I14).
+  Future<void> _guardarRespaldoTexto(String texto) async {
+    if (_usarMemoria) {
+      _textoRespaldoMemoria = texto;
+      return;
+    }
+    final respaldo = await _archivo(nombreRespaldo);
+    final temporal = File('${respaldo.path}.tmp');
+    await temporal.writeAsString(texto, flush: true);
+    await temporal.rename(respaldo.path);
+  }
+
   /// Carga la partida desde el archivo principal, la copia `.bak` o, si no
   /// existen, desde la clave antigua de shared_preferences.
   Future<CargaPartida> cargar() async {
@@ -159,6 +177,10 @@ class RepositorioPartida {
       if (cargaLegacy.resultado == ResultadoCarga.ok) {
         try {
           await guardarTexto(textoLegacy);
+          // Guarda una copia del texto original antes de que el motor lo
+          // vuelva a escribir en el formato actual (I14). Así una migración
+          // incompleta todavía se puede recuperar.
+          await _guardarRespaldoTexto(textoLegacy);
         } catch (_) {
           // Si falla la escritura, al menos se puede jugar con lo cargado.
         }
@@ -246,13 +268,18 @@ class RepositorioPartida {
     try {
       final mapa = jsonDecode(texto) as Map<String, dynamic>;
       final version = (mapa['version'] as num?)?.toInt() ?? 1;
-      // Las partidas de las versiones 1 y 2 son incompatibles. Las v3–v7 se
-      // actualizan a la v8 al cargarlas: los campos nuevos quedan con su valor
-      // por defecto o se reconstruyen al reconstruir los índices.
+      // Las partidas de las versiones 1 y 2 son incompatibles. Las v3–v8 se
+      // actualizan a la v9 al cargarlas: los campos nuevos quedan con su
+      // valor por defecto, los índices se reconstruyen y el motor repara
+      // competiciones, plantillas y torneos que falten (I14).
       if (version < versionMinimaCompatible) {
-        return const CargaPartida(ResultadoCarga.incompatible);
+        return CargaPartida(ResultadoCarga.incompatible, null, version);
       }
-      return CargaPartida(ResultadoCarga.ok, EstadoPartida.fromJson(mapa));
+      return CargaPartida(
+        ResultadoCarga.ok,
+        EstadoPartida.fromJson(mapa),
+        version,
+      );
     } catch (_) {
       // Si el texto guardado está corrupto, se ignora para no romper la app.
       return const CargaPartida(ResultadoCarga.corrupta);

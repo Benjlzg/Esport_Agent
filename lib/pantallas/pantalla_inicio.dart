@@ -8,16 +8,33 @@ import '../widgets/dialogo_confirmacion.dart';
 import 'pantalla_crear_agente.dart';
 import 'pantalla_principal.dart';
 
-class PantallaInicio extends StatelessWidget {
+class PantallaInicio extends StatefulWidget {
   const PantallaInicio({super.key, required this.motor});
 
   final MotorJuego motor;
 
   @override
+  State<PantallaInicio> createState() => _PantallaInicioState();
+}
+
+class _PantallaInicioState extends State<PantallaInicio> {
+  /// Se recalcula cada vez que se vuelve a esta pantalla para que el botón
+  /// "Continuar" no quede desactualizado después de crear o borrar una
+  /// partida (M13).
+  late Future<bool> _hayGuardada = existePartida();
+
+  void _refrescarEstadoGuardado() {
+    if (!mounted) return;
+    setState(() {
+      _hayGuardada = existePartida();
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: FutureBuilder<bool>(
-        future: existePartida(),
+        future: _hayGuardada,
         builder: (context, snapshot) {
           final hayGuardada = snapshot.data ?? false;
           return Center(
@@ -78,32 +95,40 @@ class PantallaInicio extends StatelessWidget {
   }
 
   Future<void> _nuevaPartida(BuildContext context, bool hayGuardada) async {
-    // Si ya hay una partida guardada, pido confirmación antes de borrarla.
+    // Si ya hay una partida guardada, pido confirmación. No se borra ahora:
+    // la partida nueva la sobrescribe solo cuando se confirma su creación,
+    // así volver atrás no hace perder el progreso anterior (I13).
     if (hayGuardada) {
       final confirmado = await mostrarConfirmacion(
         context,
         titulo: 'Empezar de cero',
-        mensaje: 'Ya tienes una partida guardada. Si empiezas una nueva, perderás ese progreso.',
+        mensaje:
+            'Ya tienes una partida guardada. Si empiezas una nueva, perderás '
+            'ese progreso.',
         textoConfirmar: 'Empezar nueva',
         peligroso: true,
       );
-      if (!confirmado) return;
-      await motor.borrar();
+      if (!confirmado || !context.mounted) return;
     }
-    if (!context.mounted) return;
     await Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => PantallaCrearAgente(motor: motor)),
+      MaterialPageRoute(
+        builder: (_) => PantallaCrearAgente(motor: widget.motor),
+      ),
     );
+    _refrescarEstadoGuardado();
   }
 
   Future<void> _continuar(BuildContext context) async {
-    final carga = await motor.cargar();
+    final carga = await widget.motor.cargar();
     if (!context.mounted) return;
     switch (carga) {
       case ResultadoCarga.ok:
-        Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => PantallaPrincipal(motor: motor)),
+        await Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => PantallaPrincipal(motor: widget.motor),
+          ),
         );
+        _refrescarEstadoGuardado();
       case ResultadoCarga.incompatible:
         await _avisarIncompatible(context);
       case ResultadoCarga.sinPartida:
@@ -138,10 +163,15 @@ class PantallaInicio extends StatelessWidget {
       ),
     );
     if (empezar != true || !context.mounted) return;
-    await motor.borrar();
+    // Una partida incompatible no se puede continuar: aquí sí conviene
+    // borrarla antes de ofrecer empezar de cero.
+    await widget.motor.borrar();
     if (!context.mounted) return;
     await Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => PantallaCrearAgente(motor: motor)),
+      MaterialPageRoute(
+        builder: (_) => PantallaCrearAgente(motor: widget.motor),
+      ),
     );
+    _refrescarEstadoGuardado();
   }
 }

@@ -1,7 +1,6 @@
 // Pantalla de detalle de un jugador, con las acciones disponibles.
 import 'package:flutter/material.dart';
 
-import '../logica/calendario.dart';
 import '../logica/formulas.dart';
 import '../logica/motor_juego.dart';
 import '../modelos/historial.dart';
@@ -330,11 +329,6 @@ class PantallaDetalleJugador extends StatelessWidget {
   }
 
   List<Widget> _acciones(BuildContext context, Jugador jugador) {
-    final mercadoCerrado =
-        !enVentanaFichajes(motor.semana) && jugador.equipoId != null;
-    final recienFichado = jugador.bloqueadoTraspaso(motor.temporada);
-    final semanasFaltantes =
-        semanasMinimasRepresentacion - jugador.semanasRepresentado;
     if (!jugador.representadoPorMi) {
       final costo = costoRepresentar(jugador.valorMercado);
       return [
@@ -346,13 +340,15 @@ class PantallaDetalleJugador extends StatelessWidget {
       ];
     }
 
+    // Ventana, bloqueo y periodo mínimo se comprueban en un solo lugar de la
+    // lógica, compartido con la pantalla de negociación (sección 5).
+    final motivos = motor.motivosParaOfrecer(jugador);
     return [
       ElevatedButton.icon(
         icon: const Icon(Icons.send),
         label: const Text('Ofrecer a un equipo'),
-        onPressed: (mercadoCerrado || recienFichado || semanasFaltantes > 0)
-            ? null
-            : () {
+        onPressed: motivos.isEmpty
+            ? () {
                 Navigator.of(context).push(
                   MaterialPageRoute(
                     builder: (_) => PantallaNegociacion(
@@ -361,29 +357,14 @@ class PantallaDetalleJugador extends StatelessWidget {
                     ),
                   ),
                 );
-              },
+              }
+            : null,
       ),
-      if (semanasFaltantes > 0) ...[
+      for (final motivo in motivos) ...[
         const SizedBox(height: 8),
         Text(
-          'Debes representarlo al menos $semanasMinimasRepresentacion semanas '
-          'antes de ofrecerlo. Te faltan $semanasFaltantes '
-          'semana${semanasFaltantes == 1 ? '' : 's'}.',
+          motivo,
           style: const TextStyle(color: AppColores.dorado, fontSize: 12),
-        ),
-      ],
-      if (recienFichado) ...[
-        const SizedBox(height: 8),
-        const Text(
-          'Recién fichado: podrá cambiar de equipo la próxima temporada.',
-          style: TextStyle(color: AppColores.dorado, fontSize: 12),
-        ),
-      ],
-      if (mercadoCerrado) ...[
-        const SizedBox(height: 8),
-        Text(
-          'El mercado está cerrado. ${proximaVentanaTexto(motor.semana)}',
-          style: const TextStyle(color: AppColores.peligro, fontSize: 12),
         ),
       ],
       const SizedBox(height: 10),

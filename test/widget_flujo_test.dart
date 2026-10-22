@@ -46,22 +46,20 @@ Future<void> _avanzarYResolver(WidgetTester tester, MotorJuego motor) async {
       final usarA = evento.costoBaseA <= evento.costoBaseB;
       if (usarA) {
         await tester.tap(
-          find.descendant(
-            of: dialogo,
-            matching: find.byType(ElevatedButton),
-          ).last,
+          find
+              .descendant(of: dialogo, matching: find.byType(ElevatedButton))
+              .last,
         );
       } else {
         await tester.tap(
-          find.descendant(
-            of: dialogo,
-            matching: find.byType(TextButton),
-          ).last,
+          find.descendant(of: dialogo, matching: find.byType(TextButton)).last,
         );
       }
     } else {
       await tester.tap(
-        find.descendant(of: dialogo, matching: find.byType(ElevatedButton)).last,
+        find
+            .descendant(of: dialogo, matching: find.byType(ElevatedButton))
+            .last,
       );
     }
     await tester.pumpAndSettle();
@@ -213,9 +211,7 @@ void main() {
       ),
     );
 
-    await tester.pumpWidget(
-      MaterialApp(home: PantallaPrincipal(motor: motor)),
-    );
+    await tester.pumpWidget(MaterialApp(home: PantallaPrincipal(motor: motor)));
     await tester.pumpAndSettle();
 
     expect(find.text('Evento de prueba'), findsOneWidget);
@@ -251,9 +247,7 @@ void main() {
       ),
     );
 
-    await tester.pumpWidget(
-      MaterialApp(home: PantallaOfertas(motor: motor)),
-    );
+    await tester.pumpWidget(MaterialApp(home: PantallaOfertas(motor: motor)));
     await tester.pumpAndSettle();
 
     expect(find.textContaining('Oferta por'), findsOneWidget);
@@ -274,9 +268,7 @@ void main() {
     final motor = await _partidaNueva();
     final semanaInicial = motor.semana;
 
-    await tester.pumpWidget(
-      MaterialApp(home: PantallaPrincipal(motor: motor)),
-    );
+    await tester.pumpWidget(MaterialApp(home: PantallaPrincipal(motor: motor)));
     await tester.pumpAndSettle();
 
     // Dos pulsaciones seguidas sobre el mismo botón, sin esperar a que la
@@ -295,7 +287,9 @@ void main() {
     final original = await _partidaNueva();
     original.agente.dinero = 7654321;
     original.agente.reputacion = 42;
-    await original.reclutar(original.jugadores.firstWhere((j) => j.equipoId == null));
+    await original.reclutar(
+      original.jugadores.firstWhere((j) => j.equipoId == null),
+    );
     await original.avanzarSemanas(2);
 
     final cargado = MotorJuego(semilla: 123);

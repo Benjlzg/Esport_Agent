@@ -11,11 +11,12 @@ import 'torneo.dart';
 
 /// Versión del formato de guardado. Si algún día cambia el formato,
 /// se sube este número para poder actualizar partidas antiguas.
-const int versionFormato = 8;
+const int versionFormato = 9;
 
 /// Versión más antigua que todavía se puede cargar. Las partidas de las
-/// versiones 3 a 7 se actualizan a la 8: los campos nuevos quedan vacíos o
-/// con su valor por defecto y el contador de ids se reconstruye al cargar.
+/// versiones 3 a 8 se actualizan a la 9: los campos nuevos quedan vacíos o
+/// con su valor por defecto, el contador de ids se reconstruye al cargar y
+/// las competiciones/plantillas que falten se reparan.
 /// Las de la versión 1 o 2 siguen siendo incompatibles.
 const int versionMinimaCompatible = 3;
 
@@ -46,6 +47,8 @@ class EstadoPartida {
     List<String>? paresBloqueados,
     this.ingresosUltimaSemana = 0,
     this.gastosUltimaSemana = 0,
+    this.ingresosSemanaEnCurso = 0,
+    this.gastosSemanaEnCurso = 0,
     this.finDelJuego = false,
   }) : competiciones = competiciones ?? [],
        campeonesTemporada = campeonesTemporada ?? [],
@@ -137,6 +140,13 @@ class EstadoPartida {
   /// Cuánto dinero se gastó la última semana (para el resumen).
   int gastosUltimaSemana;
 
+  /// Movimientos (traspasos, renovaciones y eventos) ocurridos desde el
+  /// último avance de semana. Se suman a los de arriba para que el resumen
+  /// muestre todo lo ganado/gastado, no solo las comisiones de salario y la
+  /// oficina (M4 de la auditoría).
+  int ingresosSemanaEnCurso;
+  int gastosSemanaEnCurso;
+
   /// true cuando el juego terminó por bancarrota.
   bool finDelJuego;
 
@@ -172,6 +182,8 @@ class EstadoPartida {
       'paresBloqueados': paresBloqueados,
       'ingresosUltimaSemana': ingresosUltimaSemana,
       'gastosUltimaSemana': gastosUltimaSemana,
+      'ingresosSemanaEnCurso': ingresosSemanaEnCurso,
+      'gastosSemanaEnCurso': gastosSemanaEnCurso,
       'finDelJuego': finDelJuego,
     };
   }
@@ -242,6 +254,9 @@ class EstadoPartida {
           [],
       ingresosUltimaSemana: json['ingresosUltimaSemana'] as int? ?? 0,
       gastosUltimaSemana: json['gastosUltimaSemana'] as int? ?? 0,
+      ingresosSemanaEnCurso:
+          (json['ingresosSemanaEnCurso'] as num?)?.toInt() ?? 0,
+      gastosSemanaEnCurso: (json['gastosSemanaEnCurso'] as num?)?.toInt() ?? 0,
       finDelJuego: json['finDelJuego'] as bool? ?? false,
     );
   }

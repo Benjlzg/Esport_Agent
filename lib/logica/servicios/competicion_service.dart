@@ -1,5 +1,7 @@
 // Servicio de competición (corrección I11): ligas, playoffs, torneos,
 // palmarés y premios individuales. `MotorJuego` delega en él.
+import 'dart:math';
+
 import '../../modelos/competicion.dart';
 import '../../modelos/equipo.dart';
 import '../../modelos/historial.dart';
@@ -60,6 +62,62 @@ class CompeticionService {
     est.premios.addAll(premiosTemporada);
     aplicarEfectosPremios(est, premiosTemporada);
     est.ceremoniaPendiente = premiosTemporada.isNotEmpty;
+  }
+
+  /// Reconstruye los torneos de la temporada actual que falten (I14).
+  ///
+  /// Las partidas v3/v4 no guardaban `torneos`. Si al cargar ya se jugó la
+  /// semana del Torneo de Mitad (21–22) o del Mundial (43–46), se crea el
+  /// torneo y se simulan las semanas que correspondan. No se toca una
+  /// partida que ya tenga sus torneos.
+  void repararTorneosDeTemporada() {
+    final est = motor.estado!;
+    if (est.competiciones.isEmpty) return;
+
+    if (est.semana >= 21) {
+      for (final juego in Juego.values) {
+        if (motor.torneoDe(juego, TipoTorneo.mitad) != null) continue;
+        final torneo = crearTorneoMitad(est, juego, motor.indices.equipos);
+        est.torneos.add(torneo);
+        _simularTorneoHasta(torneo, 21, min(est.semana, 22));
+      }
+    }
+
+    if (est.semana >= 43) {
+      for (final juego in Juego.values) {
+        if (motor.torneoDe(juego, TipoTorneo.mundial) != null) continue;
+        final torneo = crearTorneoMundial(est, juego, motor.indices.equipos);
+        est.torneos.add(torneo);
+        _simularTorneoHasta(torneo, 43, min(est.semana, 46));
+      }
+    }
+  }
+
+  /// Simula un torneo recién reconstruido desde [desde] hasta [hasta].
+  void _simularTorneoHasta(Torneo torneo, int desde, int hasta) {
+    for (var semana = desde; semana <= hasta; semana++) {
+      final campeonAntes = torneo.campeonId;
+      if (torneo.tipo == TipoTorneo.mitad) {
+        avanzarTorneoMitad(
+          torneo,
+          equipos: motor.indices.equipos,
+          jugadores: motor.estado!.jugadores,
+          rnd: motor.rnd,
+          semana: semana,
+        );
+      } else {
+        avanzarTorneoMundial(
+          torneo,
+          equipos: motor.indices.equipos,
+          jugadores: motor.estado!.jugadores,
+          rnd: motor.rnd,
+          semana: semana,
+        );
+      }
+      if (campeonAntes == null && torneo.campeonId != null) {
+        _cerrarTorneo(torneo);
+      }
+    }
   }
 
   /// Puntos de títulos por jugador para el puntaje del Jugador del Año.

@@ -48,6 +48,7 @@ class PartidoProgramado {
     required this.fecha,
     required this.miEquipoId,
     required this.rivalId,
+    required this.esLocal,
     required this.misJugadores,
   });
 
@@ -55,7 +56,19 @@ class PartidoProgramado {
   final int fecha;
   final String miEquipoId;
   final String rivalId;
+
+  /// true si mi equipo es el local en ese partido. La previa debe abrirse
+  /// con el orden real del calendario, no asumir que mi equipo juega en casa
+  /// (M17 de la auditoría).
+  final bool esLocal;
+
   final List<Jugador> misJugadores;
+
+  /// Id del equipo local real del partido.
+  String get localId => esLocal ? miEquipoId : rivalId;
+
+  /// Id del equipo visitante real del partido.
+  String get visitanteId => esLocal ? rivalId : miEquipoId;
 }
 
 /// Nivel de interés de un equipo por un jugador.
@@ -183,6 +196,30 @@ class MotorJuego extends ChangeNotifier {
 
   /// ¿Hay una ceremonia de premios pendiente de mostrar?
   bool get ceremoniaPendiente => estado?.ceremoniaPendiente ?? false;
+
+  /// Dinero ganado en la semana actual, incluyendo traspasos, renovaciones
+  /// y eventos además de las comisiones de salario (M4).
+  int get ingresosSemanaActual =>
+      (estado?.ingresosUltimaSemana ?? 0) +
+      (estado?.ingresosSemanaEnCurso ?? 0);
+
+  /// Dinero gastado en la semana actual, incluyendo eventos y fichajes.
+  int get gastosSemanaActual =>
+      (estado?.gastosUltimaSemana ?? 0) + (estado?.gastosSemanaEnCurso ?? 0);
+
+  /// Registra un ingreso del agente para el resumen semanal.
+  void registrarIngreso(int monto) {
+    if (monto > 0 && estado != null) {
+      estado!.ingresosSemanaEnCurso += monto;
+    }
+  }
+
+  /// Registra un gasto del agente para el resumen semanal.
+  void registrarGasto(int monto) {
+    if (monto > 0 && estado != null) {
+      estado!.gastosSemanaEnCurso += monto;
+    }
+  }
 
   /// Frecuencia de eventos elegida en Ajustes (Parte 2E).
   FrecuenciaEventos get frecuenciaEventos =>
@@ -352,6 +389,7 @@ class MotorJuego extends ChangeNotifier {
             fecha: siguiente,
             miEquipoId: miEquipo,
             rivalId: rival,
+            esLocal: miEquipo == local,
             misJugadores: misJugadores,
           ),
         );
@@ -418,12 +456,62 @@ class MotorJuego extends ChangeNotifier {
     }
     estado = carga.estado;
     _reconstruirIndices();
+    // Las plantillas solo se reparan en partidas anteriores al formato
+    // actual: en una partida v9 válida no hace falta gastar RNG ni alterar
+    // plantillas que el jugador ya tenía.
+    _repararEstadoCargado(
+      repararPlantillas: (carga.version ?? versionFormato) < versionFormato,
+    );
     _recalcularValores();
     // Al cargar se guarda de nuevo: así una partida vieja se actualiza al
-    // formato actual (v7) con el contador de ids ya reconstruido.
+    // formato actual con el contador de ids reconstruido y el estado
+    // derivado reparado (I14). El repositorio conserva una copia `.bak` del
+    // guardado anterior antes de reemplazarlo.
     await guardarPartida(estado!);
     notifyListeners();
     return ResultadoCarga.ok;
+  }
+
+  /// Repara el estado derivado de las partidas antiguas (I14).
+  ///
+  /// Las versiones 3–5 podían no traer competiciones o torneos, o tener
+  /// plantillas incompletas. Aquí se regeneran las ligas que falten, se
+  /// reponen los titulares que no existan y se reconstruyen los torneos de
+  /// la temporada en curso si ya deberían haberse jugado.
+  void _repararEstadoCargado({required bool repararPlantillas}) {
+    final est = estado!;
+
+    // 1) Competiciones: la versión vieja podía guardar la lista vacía.
+    if (est.competiciones.isEmpty) {
+      est.competiciones = _competicion.crearCompeticiones(est.equipos);
+    } else {
+      final existentes = est.competiciones
+          .map((comp) => comp.identificador)
+          .toSet();
+      for (final esperada in _competicion.crearCompeticiones(est.equipos)) {
+        if (!existentes.contains(esperada.identificador)) {
+          est.competiciones.add(esperada);
+        }
+      }
+    }
+
+    // 2) Plantillas: cada equipo debe tener un titular en cada rol. Las
+    // partidas viejas podían haber perdido jugadores tras una retirada.
+    if (repararPlantillas) {
+      for (final equipo in est.equipos) {
+        for (final rol in equipo.juego.roles) {
+          final tieneTitular = est.jugadores.any(
+            (j) => j.equipoId == equipo.id && j.rol == rol && !j.suplente,
+          );
+          if (!tieneTitular) _reponerTitular(equipo.id, rol);
+        }
+      }
+      _reconstruirIndices();
+    }
+
+    // 3) Torneos de la temporada actual que la partida vieja no guardaba.
+    _competicion.repararTorneosDeTemporada();
+    _reconstruirIndices();
   }
 
   /// Borra la partida guardada.
@@ -459,6 +547,14 @@ class MotorJuego extends ChangeNotifier {
   /// ¿Está bloqueado el par jugador+equipo hasta la próxima temporada?
   bool bloqueado(Jugador jugador, Equipo equipo) =>
       _mercado.bloqueado(jugador, equipo);
+
+  /// Motivos por los que no se puede ofrecer a un jugador ahora mismo.
+  List<String> motivosParaOfrecer(Jugador jugador, {Equipo? equipo}) =>
+      _mercado.motivosParaOfrecer(jugador, equipo: equipo);
+
+  /// ¿Se puede ofrecer a este jugador (y equipo, si se indica)?
+  bool puedeOfrecer(Jugador jugador, {Equipo? equipo}) =>
+      _mercado.puedeOfrecer(jugador, equipo: equipo);
 
   /// Envía una oferta de un jugador a un equipo.
   Future<ResultadoOferta> ofrecer({

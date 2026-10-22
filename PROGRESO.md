@@ -577,5 +577,65 @@ Tamaños resultantes: `motor_juego.dart` pasó de **1.910 a 626 líneas**; `even
 - **B4 — Fase 4:** el presupuesto de los equipos se sigue reiniciando cada temporada.
 - El resto de problemas menores de `AUDITORIA.md` (M1–M19) sigue pendiente.
 
+## Auditoría — detalles y balance (terminada, 2026-10-22)
+
+Se corrigieron **I13, I14, todos los problemas menores M1–M19** y los duplicados de la sección 5 de `AUDITORIA.md`. No se tocó la Fase 3.
+
+### I13 — “Nueva partida” ya no borra el guardado antes de crear
+
+- `PantallaInicio` ya no llama a `motor.borrar()` tras la confirmación: la partida nueva sobrescribe la anterior solo cuando `nuevaPartida` termina de crearla. Si el jugador vuelve atrás desde “Crear agente”, conserva su partida.
+- La pantalla de inicio pasó a ser `StatefulWidget` y recalcula `existePartida()` al volver de crear/continuar, así “Continuar” no queda desactualizado (M13).
+- `PantallaCrearAgente` usa un flag `_creando` y deshabilita “Empezar carrera” mientras crea la partida (M12).
+
+### I14 — Migración y reparación del estado derivado
+
+- Al cargar una partida antigua se reparan:
+  - las **competiciones** que falten (se regeneran desde los equipos);
+  - las **plantillas** sin titular en algún rol (solo en versiones anteriores al formato actual, para no gastar RNG ni alterar partidas v9 válidas);
+  - los **torneos de la temporada** que ya deberían haberse jugado (Mitad en semanas 21–22 y Mundial en 43–46), simulándolos hasta la semana actual.
+- El repositorio guarda una **copia `.bak` del texto original** antes de migrar desde `shared_preferences`. En archivos, el respaldo ya se creaba al reemplazar el principal.
+- `versionFormato` sube a **9** por `ingresosSemanaEnCurso`, `gastosSemanaEnCurso` y `PremioIndividual.nombreJugador`; `versionMinimaCompatible` sigue en **3**. Las v3–v8 cargan y se reparan.
+- Pruebas nuevas: carga de una v4 sin competiciones/torneos, reparación de plantillas, torneos de la temporada y copia `.bak` con la versión original.
+
+### Problemas menores M1–M19
+
+- **M1/M2 — Región:** los jugadores reales heredan `region` de su equipo y el filtro de mercado usa `jugador.region` cuando está libre.
+- **M3 — Historial:** la previa orienta los marcadores con `localId`/`visitanteId`, sin asumir que mi equipo fue local.
+- **M4 — Resumen semanal:** `ingresosSemanaEnCurso`/`gastosSemanaEnCurso` acumulan traspasos, renovaciones, fichajes y eventos; el resumen los suma a salarios y oficina y se vacían al avanzar.
+- **M5 — Ceremonia:** `_nuevaTemporada` ya no borra `ceremoniaPendiente`; la pantalla principal la muestra también al entrar con una partida cargada.
+- **M6/M7 — Comentarios y constantes:** comentarios de ficticios actualizados (1ª: 70–80) y `presupuestoPorPrestigio` usado en todos los equipos.
+- **M8 — Campeón de torneo:** nueva `Torneo.finalJugada`; una semifinal de una sola serie ya no se confunde con la final.
+- **M9 — Juego desconocido:** `Juego.porNombre` avisa con `debugPrint` y guarda `ultimoNombreInvalido` en vez de fallar en silencio.
+- **M10 — Palmarés:** agrupación por temporada en un `Map` (O(n)) y `PremioIndividual.nombreJugador` conserva el nick de los retirados.
+- **M11/M15 — Ya resueltos:** los fichajes juveniles de 2ª División respetan edad/suplentes/traspaso y las ofertas de agentes libres siguen permitidas fuera de ventana.
+- **M12/M13 — Doble toque y estado:** flag `_creando` y recálculo de `hayGuardada`.
+- **M14 — Anti-dinastía:** solo cuentan títulos de 1ª División, el comprador debe ser de la misma división y se excluyen jugadores recién traspasados.
+- **M16 — Eventos:** contenido del diálogo dentro de `SingleChildScrollView`.
+- **M17 — Próximo partido:** `PartidoProgramado.esLocal` y la previa reciben el local/visitante reales.
+- **M18 — Ligas:** el split se recalcula al cambiar de temporada.
+- **M19 — `test/failures/`:** añadido a `.gitignore` y eliminado del repositorio (~5 MB).
+
+### Duplicados de la sección 5
+
+- `calendario.dart`: una sola lista constante de etapas; `etapaDeSemana` y `listaEtapas` se derivan de ella. La próxima fecha y la última jugada pasaron a funciones probables (`proximaFechaDeLiga`, `resultadosUltimaFecha`).
+- `torneos.dart`: nueva `tablaGrupo()` compartida por la clasificación y la pantalla de Torneos.
+- `MercadoService.motivosParaOfrecer()`/`puedeOfrecer()`: ventana, bloqueo, periodo mínimo y club actual en un solo lugar; la ficha y la negociación lo usan.
+- `previa_partido.dart`: modelo `PreviaPartido` con poder, probabilidad, forma, historial orientado y duelo clave.
+- `filtros_mercado.dart`: filtros/ordenaciones puros de Mercado y Equipos, con pruebas para M1.
+
+### Verificación
+
+- `flutter analyze` → **No issues found!**
+- `flutter test` → **172 pasan, 2 saltan** (las `@Tags(['lento'])`).
+- `flutter test --tags lento --run-skipped` → **2 pasan** (`balance_test.dart` y `robot_test.dart`).
+- `INFORME_BALANCE.md` regenerado el **2026-10-22 02:08:36**, semilla **20251019**:
+  - 0 violaciones duras.
+  - Progresión juvenil con equipo: **4,5** puntos/temporada (objetivo 4–8).
+  - Dominio máximo: **6 de 10**; 0 ligas por encima del criterio ≤ 6.
+  - Robot: no quiebra, termina la T3 con **$333.660**; principal ingreso, comisiones de salario.
+  - Tiempo T10/T1: **1,11×**; guardado final **3.597,9 KB**; **7.279** fichajes IA.
+  - Observación: el mayor salto de habilidad entre temporadas quedó en **3,40** (criterio orientativo ≤ 3). Se anota para la Fase 4; no se cambió el balance en esta corrección para no mezclar alcance.
+- Capturas de `capturas/` regeneradas con `flutter test test/golden_test.dart --update-goldens` porque cambian la simulación y algunas pantallas.
+
 
 

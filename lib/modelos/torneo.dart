@@ -60,21 +60,27 @@ class Torneo {
       .where((r) => r.isNotEmpty && r.first.etapa.startsWith('Grupo'))
       .toList();
 
+  /// ¿La última ronda registrada es la final?
+  ///
+  /// No basta con que tenga una sola serie: con 3 participantes, la
+  /// semifinal también puede quedar como una única serie. Se exige que la
+  /// etapa se llame "Final" (M8 de la auditoría).
+  bool get finalJugada {
+    if (rondas.isEmpty) return false;
+    final ultima = rondas.last;
+    return ultima.length == 1 && ultima.last.etapa == 'Final';
+  }
+
   /// Campeón del torneo (solo cuando la final ya se jugó).
   String? get campeonId {
-    if (rondas.isEmpty) return null;
-    final ultima = rondas.last;
-    // La final es una ronda con una única serie.
-    if (ultima.length != 1) return null;
-    return ultima.last.ganadorId;
+    if (!finalJugada) return null;
+    return rondas.last.last.ganadorId;
   }
 
   /// Subcampeón del torneo (finalista perdedor).
   String? get subcampeonId {
-    if (rondas.isEmpty) return null;
-    final ultima = rondas.last;
-    if (ultima.length != 1) return null;
-    return ultima.last.perdedorId;
+    if (!finalJugada) return null;
+    return rondas.last.last.perdedorId;
   }
 
   /// Número de rondas jugadas.

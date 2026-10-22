@@ -47,6 +47,8 @@ class MercadoService {
       );
     }
     ag.dinero -= costo;
+    // El gasto cuenta en el resumen de la semana (M4).
+    motor.registrarGasto(costo);
     jugador.representadoPorMi = true;
     // El periodo mínimo de representación empieza de cero (corrección I1).
     jugador.semanasRepresentado = 0;
@@ -100,6 +102,60 @@ class MercadoService {
     final clave = EstadoPartida.clavePar(jugador.id, equipo.id);
     return motor.estado!.paresBloqueados.contains(clave);
   }
+
+  /// Motivos por los que ahora mismo no se puede ofrecer a [jugador].
+  ///
+  /// Centraliza las reglas que antes repetían el detalle del jugador y la
+  /// pantalla de negociación (sección 5 de la auditoría). Si [equipo] es
+  /// null solo se comprueban las condiciones generales.
+  List<String> motivosParaOfrecer(Jugador jugador, {Equipo? equipo}) {
+    final est = motor.estado!;
+    final motivos = <String>[];
+
+    if (!jugador.representadoPorMi) {
+      motivos.add('Solo puedes ofrecer jugadores de tu agencia.');
+    }
+    if (jugador.semanasRepresentado < semanasMinimasRepresentacion) {
+      final faltan = semanasMinimasRepresentacion - jugador.semanasRepresentado;
+      motivos.add(
+        'Debes representarlo al menos $semanasMinimasRepresentacion semanas '
+        'antes de ofrecerlo. Te faltan $faltan '
+        'semana${faltan == 1 ? '' : 's'}.',
+      );
+    }
+    if (equipo != null && jugador.juego != equipo.juego) {
+      motivos.add('El jugador y el equipo deben ser del mismo videojuego.');
+    }
+    if (equipo != null && jugador.equipoId == equipo.id) {
+      motivos.add('No puedes ofrecer un jugador a su propio club.');
+    }
+    if (jugador.bloqueadoTraspaso(est.temporada)) {
+      motivos.add(
+        'Recién fichado: podrá cambiar de equipo la próxima temporada.',
+      );
+    }
+    if (jugador.equipoId != null && !enVentanaFichajes(est.semana)) {
+      motivos.add(
+        'El mercado está cerrado. ${proximaVentanaTexto(est.semana)}',
+      );
+    }
+    if (equipo != null) {
+      final clave = EstadoPartida.clavePar(jugador.id, equipo.id);
+      if (est.paresBloqueados.contains(clave)) {
+        motivos.add(
+          '${equipo.nombre} ya no quiere negociar hasta la próxima temporada.',
+        );
+      } else if (rondasRestantes(jugador, equipo) <= 0) {
+        motivos.add('Se acabaron las rondas con ${equipo.nombre}.');
+      }
+    }
+    return motivos;
+  }
+
+  /// true si no hay ningún motivo general (ni del equipo) que bloquee la
+  /// oferta.
+  bool puedeOfrecer(Jugador jugador, {Equipo? equipo}) =>
+      motivosParaOfrecer(jugador, equipo: equipo).isEmpty;
 
   /// Envía una oferta de un jugador a un equipo.
   Future<ResultadoOferta> ofrecer({
@@ -345,6 +401,8 @@ class MercadoService {
 
     final comision = motor.comisionNeta(comisionPorTransferencia(precio));
     ag.dinero += comision;
+    // La comisión entra en el resumen de la semana (M4).
+    motor.registrarIngreso(comision);
     // La validación previa garantiza que el comprador tiene este dinero.
     equipo.presupuesto -= precio;
 
@@ -566,6 +624,7 @@ class MercadoService {
       (oferta.monto * comisionRenovacion).round(),
     );
     motor.agente.dinero += comision;
+    motor.registrarIngreso(comision);
     est.ofertas.remove(oferta);
     motor.agregarNoticia(
       'Renovaste a ${jugador.nick} con ${equipo.nombre}. '

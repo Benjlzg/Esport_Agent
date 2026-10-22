@@ -48,20 +48,17 @@ Jugador _jugador(
   return jugador;
 }
 
-Equipo _equipo(
-  String id, {
-  int prestigio = 70,
-  int presupuesto = 1000000,
-}) => Equipo(
-  id: id,
-  nombre: id.toUpperCase(),
-  juego: Juego.lol,
-  region: 'Test',
-  prestigio: prestigio,
-  presupuesto: presupuesto,
-  colorPrincipal: 0xFF000000,
-  escudo: 'x.png',
-);
+Equipo _equipo(String id, {int prestigio = 70, int presupuesto = 1000000}) =>
+    Equipo(
+      id: id,
+      nombre: id.toUpperCase(),
+      juego: Juego.lol,
+      region: 'Test',
+      prestigio: prestigio,
+      presupuesto: presupuesto,
+      colorPrincipal: 0xFF000000,
+      escudo: 'x.png',
+    );
 
 EstadoPartida _estado({
   required List<Jugador> jugadores,
@@ -169,9 +166,7 @@ void main() {
         equipos: [comprador, vendedor],
         semana: 5,
       );
-      final indiceJugadores = {
-        for (final j in estado.jugadores) j.id: j,
-      };
+      final indiceJugadores = {for (final j in estado.jugadores) j.id: j};
       var siguienteId = 0;
 
       final resultado = procesarMercadoIA(
@@ -198,60 +193,55 @@ void main() {
     expect(encontrado, isTrue, reason: 'La IA debería cerrar algún fichaje.');
   });
 
-  test(
-    'el anti-dinastía acredita al campeón e indexa a su reemplazo (I8)',
-    () {
-      final figura = _jugador(
-        'p1',
-        equipoId: 'dinastia',
-        habilidad: 90,
-        valorMercado: 500000,
-      );
-      final dinastia = _equipo('dinastia', prestigio: 90, presupuesto: 500000);
-      final comprador = _equipo('rival', prestigio: 85);
-      final palmares = [
-        for (final temporada in [2, 3, 4])
-          for (var split = 0; split < 2; split++)
-            RegistroCampeon(
-              temporada: temporada,
-              juego: Juego.lol,
-              descripcion: 'Liga (Split ${split + 1})',
-              tipo: TipoCampeon.liga,
-              ganadorId: 'dinastia',
-            ),
-      ];
-      final estado = _estado(
-        jugadores: [figura],
-        equipos: [dinastia, comprador],
-        temporada: 7,
-        semana: 1,
-        palmares: palmares,
-      );
-      final indiceJugadores = {
-        for (final j in estado.jugadores) j.id: j,
-      };
-      var siguienteId = 0;
+  test('el anti-dinastía acredita al campeón e indexa a su reemplazo (I8)', () {
+    final figura = _jugador(
+      'p1',
+      equipoId: 'dinastia',
+      habilidad: 90,
+      valorMercado: 500000,
+    );
+    final dinastia = _equipo('dinastia', prestigio: 90, presupuesto: 500000);
+    final comprador = _equipo('rival', prestigio: 85);
+    final palmares = [
+      for (final temporada in [2, 3, 4])
+        for (var split = 0; split < 2; split++)
+          RegistroCampeon(
+            temporada: temporada,
+            juego: Juego.lol,
+            descripcion: 'Liga (Split ${split + 1})',
+            tipo: TipoCampeon.liga,
+            ganadorId: 'dinastia',
+          ),
+    ];
+    final estado = _estado(
+      jugadores: [figura],
+      equipos: [dinastia, comprador],
+      temporada: 7,
+      semana: 1,
+      palmares: palmares,
+    );
+    final indiceJugadores = {for (final j in estado.jugadores) j.id: j};
+    var siguienteId = 0;
 
-      final resultado = procesarMercadoIA(
-        estado: estado,
-        indiceEquipos: {for (final e in estado.equipos) e.id: e},
-        indiceJugadores: indiceJugadores,
-        rnd: Random(1),
-        nuevoIdJugador: () => 'n${siguienteId++}',
-      );
+    final resultado = procesarMercadoIA(
+      estado: estado,
+      indiceEquipos: {for (final e in estado.equipos) e.id: e},
+      indiceJugadores: indiceJugadores,
+      rnd: Random(1),
+      nuevoIdJugador: () => 'n${siguienteId++}',
+    );
 
-      expect(resultado.fichajesCerrados, greaterThan(0));
-      expect(figura.equipoId, 'rival');
-      // La cláusula era el 40 % de 500.000 = 200.000.
-      expect(comprador.presupuesto, 800000);
-      expect(dinastia.presupuesto, 700000);
-      expect(figura.salarioAnual, calcularSalarioAnual(500000));
-      // La dinastía repuso su rol y el reemplazo está en el índice.
-      final reemplazo = estado.jugadores.firstWhere(
-        (j) => j.id != 'p1' && j.equipoId == 'dinastia',
-      );
-      expect(indiceJugadores[reemplazo.id], same(reemplazo));
-      expect(indiceJugadores.length, estado.jugadores.length);
-    },
-  );
+    expect(resultado.fichajesCerrados, greaterThan(0));
+    expect(figura.equipoId, 'rival');
+    // La cláusula era el 40 % de 500.000 = 200.000.
+    expect(comprador.presupuesto, 800000);
+    expect(dinastia.presupuesto, 700000);
+    expect(figura.salarioAnual, calcularSalarioAnual(500000));
+    // La dinastía repuso su rol y el reemplazo está en el índice.
+    final reemplazo = estado.jugadores.firstWhere(
+      (j) => j.id != 'p1' && j.equipoId == 'dinastia',
+    );
+    expect(indiceJugadores[reemplazo.id], same(reemplazo));
+    expect(indiceJugadores.length, estado.jugadores.length);
+  });
 }

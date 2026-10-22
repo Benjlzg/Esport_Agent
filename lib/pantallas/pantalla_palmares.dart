@@ -87,7 +87,13 @@ class PantallaPalmares extends StatelessWidget {
     int Function(T) temporada,
     Widget Function(T) constructor,
   ) {
-    final temporadas = <int>{for (final e in elementos) temporada(e)}.toList()
+    // Agrupa en una sola pasada: antes se recorría toda la lista por cada
+    // temporada (O(n²), M10).
+    final porTemporada = <int, List<T>>{};
+    for (final elemento in elementos) {
+      porTemporada.putIfAbsent(temporada(elemento), () => []).add(elemento);
+    }
+    final temporadas = porTemporada.keys.toList()
       ..sort((a, b) => b.compareTo(a));
     final widgets = <Widget>[];
     for (final t in temporadas) {
@@ -103,9 +109,7 @@ class PantallaPalmares extends StatelessWidget {
           ),
         ),
       );
-      widgets.addAll(
-        elementos.where((e) => temporada(e) == t).map(constructor),
-      );
+      widgets.addAll(porTemporada[t]!.map(constructor));
     }
     return widgets;
   }
@@ -158,7 +162,8 @@ class PantallaPalmares extends StatelessWidget {
         : motor.jugadorPorId(p.jugadorId!);
     final titulo = p.categoria == CategoriaPremio.agenteDelAnio
         ? (p.nombreAgente ?? 'Tu agencia')
-        : (jugador?.nick ?? '');
+        // El nick guardado en el premio sobrevive a la retirada del jugador.
+        : (jugador?.nick ?? p.nombreJugador ?? 'Jugador retirado');
     return Card(
       child: ListTile(
         leading: const Icon(

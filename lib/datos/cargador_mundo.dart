@@ -8,7 +8,7 @@
 //    primeros van a 1ª División y el resto a 2ª (si el JSON trae
 //    "division", se respeta).
 // 4) Si una división tiene menos de 8 equipos, se rellena con equipos
-//    ficticios de 2ª División (prestigio 35–54).
+//    ficticios. Los de 1ª División tienen prestigio 70–80 y los de 2ª, 35–54.
 // 5) Se asigna la liga según la región y la división.
 // 6) Se arman las plantillas: se usa el jugador real del JSON y se
 //    generan los roles que falten.
@@ -223,7 +223,7 @@ class CargadorMundo {
       division: division,
       liga: liga,
       prestigio: c.prestigio,
-      presupuesto: c.prestigio * 20000,
+      presupuesto: c.prestigio * presupuestoPorPrestigio,
       colorPrincipal: c.colorPrincipal,
       escudo: c.escudo,
       esReal: c.esReal,
@@ -312,6 +312,10 @@ class CargadorMundo {
       potencial: potencial,
       moral: 70,
       equipoId: equipo.id,
+      // Los jugadores reales heredan la región de su equipo (M2). Sin esto,
+      // los fichajes juveniles por región y el filtro de mercado los
+      // trataban como jugadores sin región.
+      region: equipo.region,
       salarioAnual: 0,
       semanasContrato: 52 + _rnd.nextInt(53),
       representadoPorMi: false,

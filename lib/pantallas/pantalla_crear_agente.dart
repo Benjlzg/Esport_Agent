@@ -19,6 +19,10 @@ class _PantallaCrearAgenteState extends State<PantallaCrearAgente> {
   final TextEditingController _nombre = TextEditingController();
   String _pais = paisesAgente.first;
 
+  /// Evita que dos toques seguidos en "Empezar carrera" lancen dos partidas
+  /// concurrentes (M12).
+  bool _creando = false;
+
   @override
   void dispose() {
     _nombre.dispose();
@@ -26,6 +30,7 @@ class _PantallaCrearAgenteState extends State<PantallaCrearAgente> {
   }
 
   Future<void> _empezar() async {
+    if (_creando) return;
     final nombre = _nombre.text.trim();
     if (nombre.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -33,7 +38,15 @@ class _PantallaCrearAgenteState extends State<PantallaCrearAgente> {
       );
       return;
     }
-    await widget.motor.nuevaPartida(nombre: nombre, pais: _pais);
+    setState(() => _creando = true);
+    try {
+      // `nuevaPartida` sobrescribe el guardado anterior solo al terminar de
+      // crear la partida nueva. Si algo falla, se puede volver atrás sin
+      // haber perdido la partida vieja (I13).
+      await widget.motor.nuevaPartida(nombre: nombre, pais: _pais);
+    } finally {
+      if (mounted) setState(() => _creando = false);
+    }
     if (!mounted) return;
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(builder: (_) => PantallaPrincipal(motor: widget.motor)),
@@ -77,8 +90,8 @@ class _PantallaCrearAgenteState extends State<PantallaCrearAgente> {
             ),
             const SizedBox(height: 28),
             ElevatedButton(
-              onPressed: _empezar,
-              child: const Text('Empezar carrera'),
+              onPressed: _creando ? null : _empezar,
+              child: Text(_creando ? 'Creando…' : 'Empezar carrera'),
             ),
             const SizedBox(height: 8),
             const Text(

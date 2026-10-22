@@ -3,6 +3,11 @@
 // 21–22 el torneo internacional, 23–26 la 2ª ventana de fichajes, 27–40 el
 // Split 2, 41–42 sus playoffs, 43–46 el Mundial y 47–52 el cierre de
 // temporada.
+import 'dart:math';
+
+import '../modelos/competicion.dart';
+import '../modelos/partido.dart';
+import 'liga.dart';
 
 /// Tipo de etapa, útil para saber qué se simula en cada momento.
 enum TipoEtapa {
@@ -42,93 +47,10 @@ class Etapa {
   bool contiene(int semana) => semana >= semanaInicio && semana <= semanaFin;
 }
 
-/// Devuelve la etapa concreta que se juega en una semana.
-Etapa etapaDeSemana(int semana) {
-  if (semana <= 4) {
-    return const Etapa(
-      nombre: 'Pretemporada · Ventana de fichajes 1',
-      detalle: 'Preparación y fichajes antes del arranque.',
-      semanaInicio: 1,
-      semanaFin: 4,
-      tipo: TipoEtapa.pretemporada,
-    );
-  }
-  if (semana <= 18) {
-    final fecha = semana - 4;
-    return Etapa(
-      nombre: 'Split 1 · Fecha $fecha',
-      detalle: 'Fase regular del primer split.',
-      semanaInicio: 5,
-      semanaFin: 18,
-      tipo: TipoEtapa.liga,
-    );
-  }
-  if (semana <= 20) {
-    return Etapa(
-      nombre: 'Playoffs Split 1',
-      detalle: 'Semifinales y final del primer split.',
-      semanaInicio: 19,
-      semanaFin: 20,
-      tipo: TipoEtapa.playoffs,
-    );
-  }
-  if (semana <= 22) {
-    return const Etapa(
-      nombre: 'Torneo Internacional',
-      detalle: 'Torneo de mitad de temporada.',
-      semanaInicio: 21,
-      semanaFin: 22,
-      tipo: TipoEtapa.internacional,
-    );
-  }
-  if (semana <= 26) {
-    return const Etapa(
-      nombre: 'Ventana de fichajes 2',
-      detalle: 'Mercado de mitad de temporada.',
-      semanaInicio: 23,
-      semanaFin: 26,
-      tipo: TipoEtapa.fichajes,
-    );
-  }
-  if (semana <= 40) {
-    final fecha = semana - 26;
-    return Etapa(
-      nombre: 'Split 2 · Fecha $fecha',
-      detalle: 'Fase regular del segundo split.',
-      semanaInicio: 27,
-      semanaFin: 40,
-      tipo: TipoEtapa.liga,
-    );
-  }
-  if (semana <= 42) {
-    return Etapa(
-      nombre: 'Playoffs Split 2',
-      detalle: 'Semifinales y final del segundo split.',
-      semanaInicio: 41,
-      semanaFin: 42,
-      tipo: TipoEtapa.playoffs,
-    );
-  }
-  if (semana <= 46) {
-    return const Etapa(
-      nombre: 'Mundial',
-      detalle: 'Torneo mundial de fin de temporada.',
-      semanaInicio: 43,
-      semanaFin: 46,
-      tipo: TipoEtapa.mundial,
-    );
-  }
-  return const Etapa(
-    nombre: 'Fin de temporada',
-    detalle: 'Cierre: premios y mercado.',
-    semanaInicio: 47,
-    semanaFin: 52,
-    tipo: TipoEtapa.finTemporada,
-  );
-}
-
-/// Lista de etapas de una temporada completa (para la pantalla Calendario).
-List<Etapa> listaEtapas() => const [
+/// Etapas base de una temporada. Es la **única** fuente de verdad: tanto la
+/// pantalla de calendario como `etapaDeSemana` se derivan de esta lista, para
+/// que no puedan desincronizarse (sección 5 de la auditoría).
+const List<Etapa> _etapasTemporada = [
   Etapa(
     nombre: 'Pretemporada · Ventana de fichajes 1',
     detalle: 'Preparación y fichajes antes del arranque.',
@@ -194,6 +116,30 @@ List<Etapa> listaEtapas() => const [
   ),
 ];
 
+/// Devuelve la etapa concreta que se juega en una semana.
+///
+/// Para la fase regular se muestra la fecha exacta ("Split 1 · Fecha 3"),
+/// aunque la etapa base use el nombre genérico de la pantalla Calendario.
+Etapa etapaDeSemana(int semana) {
+  if (semana < 1) return _etapasTemporada.first;
+  if (semana > 52) return _etapasTemporada.last;
+
+  final base = _etapasTemporada.firstWhere((etapa) => etapa.contiene(semana));
+  if (base.tipo != TipoEtapa.liga) return base;
+  final split = base.semanaInicio == 5 ? 1 : 2;
+  final fecha = semana - (split == 1 ? 4 : 26);
+  return Etapa(
+    nombre: 'Split $split · Fecha $fecha',
+    detalle: base.detalle,
+    semanaInicio: base.semanaInicio,
+    semanaFin: base.semanaFin,
+    tipo: base.tipo,
+  );
+}
+
+/// Lista de etapas de una temporada completa (para la pantalla Calendario).
+List<Etapa> listaEtapas() => _etapasTemporada;
+
 /// Split de liga que se juega en la semana (null si no hay fase regular).
 int? splitDeLiga(int semana) {
   if (semana >= 5 && semana <= 18) return 1;
@@ -237,4 +183,44 @@ String proximaVentanaTexto(int semana) {
   if (semana < 1) return 'Próxima ventana: semana 1';
   if (semana <= 22) return 'Próxima ventana: semana 23';
   return 'Próxima ventana: semana 47';
+}
+
+// ------------------- FECHAS DE UNA LIGA -------------------
+//
+// Estas funciones viven aquí (y no en la pantalla) para que la próxima fecha
+// y la última jugada se puedan probar sin dibujar widgets. Las usa tanto
+// `PestanaLigas` como `proximosPartidosDeMisJugadores`.
+
+/// Última fecha jugada de un split, o null si aún no se jugó ninguna.
+int? ultimaFechaJugada(Competicion competicion, int split) {
+  final jugadas = competicion
+      .resultadosDeSplit(split)
+      .map((resultado) => resultado.fecha)
+      .toSet();
+  return jugadas.isEmpty ? null : jugadas.reduce(max);
+}
+
+/// Número de la próxima fecha de un split (1 si no se jugó ninguna).
+int proximaFechaDeLiga(Competicion competicion, int split) =>
+    (ultimaFechaJugada(competicion, split) ?? 0) + 1;
+
+/// Series de la próxima fecha de un split. Vacío si ya se jugó todo.
+List<(String, String)> proximaFechaDeLigaSeries(
+  Competicion competicion,
+  int split,
+) {
+  final fechas = generarFechas(competicion.equipoIds);
+  final numero = proximaFechaDeLiga(competicion, split);
+  if (numero < 1 || numero > fechas.length) return const [];
+  return fechas[numero - 1];
+}
+
+/// Resultados de la última fecha jugada de un split (vacío si no hay).
+List<ResultadoSerie> resultadosUltimaFecha(Competicion competicion, int split) {
+  final ultima = ultimaFechaJugada(competicion, split);
+  if (ultima == null) return const [];
+  return competicion
+      .resultadosDeSplit(split)
+      .where((resultado) => resultado.fecha == ultima)
+      .toList();
 }

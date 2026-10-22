@@ -47,6 +47,7 @@ List<PremioIndividual> calcularPremios(
       juego: juego,
       categoria: CategoriaPremio.jugadorDelAnio,
       jugadorId: jugadorDelAnio.id,
+      nombreJugador: jugadorDelAnio.nick,
       detalle:
           '${jugadorDelAnio.nick} (${jugadorDelAnio.rol}) · '
           'nota ${jugadorDelAnio.promedioNota.toStringAsFixed(1)} · '
@@ -70,6 +71,7 @@ List<PremioIndividual> calcularPremios(
         juego: juego,
         categoria: CategoriaPremio.revelacion,
         jugadorId: revelacion.id,
+        nombreJugador: revelacion.nick,
         detalle:
             '${revelacion.nick} (${revelacion.edad} años) · '
             'nota ${revelacion.promedioNota.toStringAsFixed(1)}',
@@ -90,6 +92,7 @@ List<PremioIndividual> calcularPremios(
         juego: juego,
         categoria: CategoriaPremio.maximoEliminador,
         jugadorId: killer.id,
+        nombreJugador: killer.nick,
         detalle:
             '${killer.nick} (${killer.rol}) · '
             '${killer.eliminacionesTemporada} eliminaciones',

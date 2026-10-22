@@ -1,15 +1,13 @@
 // Pestaña Mercado: lista de jugadores con filtros y orden.
 import 'package:flutter/material.dart';
 
+import '../logica/filtros_mercado.dart';
 import '../logica/motor_juego.dart';
 import '../modelos/juego.dart';
 import '../modelos/jugador.dart';
 import '../tema/tema_app.dart';
 import '../widgets/tarjeta_jugador.dart';
 import 'pantalla_detalle_jugador.dart';
-
-/// Opciones de orden de la lista.
-enum OrdenMercado { valor, habilidad, potencial, edad }
 
 class PestanaMercado extends StatefulWidget {
   const PestanaMercado({super.key, required this.motor});
@@ -45,28 +43,14 @@ class _PestanaMercadoState extends State<PestanaMercado> {
       return _listaCache!;
     }
 
-    var lista = widget.motor.jugadores.where((j) {
-      if (_juego != null && j.juego != _juego) return false;
-      if (_soloLibres && j.equipoId != null) return false;
-      if (_region != null) {
-        final equipo = j.equipoId == null
-            ? null
-            : widget.motor.equipoPorId(j.equipoId!);
-        if (equipo == null || equipo.region != _region) return false;
-      }
-      return true;
-    }).toList();
-
-    switch (_orden) {
-      case OrdenMercado.valor:
-        lista.sort((a, b) => b.valorMercado.compareTo(a.valorMercado));
-      case OrdenMercado.habilidad:
-        lista.sort((a, b) => b.habilidad.compareTo(a.habilidad));
-      case OrdenMercado.potencial:
-        lista.sort((a, b) => b.potencial.compareTo(a.potencial));
-      case OrdenMercado.edad:
-        lista.sort((a, b) => a.edad.compareTo(b.edad));
-    }
+    final lista = filtrarJugadoresMercado(
+      jugadores: widget.motor.jugadores,
+      equipos: widget.motor.indices.equipos,
+      juego: _juego,
+      region: _region,
+      soloLibres: _soloLibres,
+      orden: _orden,
+    );
 
     _revisionCache = widget.motor.revision;
     _juegoCache = _juego;

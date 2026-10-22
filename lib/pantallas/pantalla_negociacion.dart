@@ -59,46 +59,12 @@ class _PantallaNegociacionState extends State<PantallaNegociacion> {
   Future<void> _enviar() async {
     final jugador = widget.motor.jugadorPorId(widget.jugadorId)!;
     final equipo = _equipo!;
-    if (jugador.semanasRepresentado < semanasMinimasRepresentacion) {
-      final faltan =
-          semanasMinimasRepresentacion - jugador.semanasRepresentado;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Debes representar a ${jugador.nick} $semanasMinimasRepresentacion '
-            'semanas antes de ofrecerlo. Te faltan $faltan.',
-          ),
-        ),
-      );
-      return;
-    }
-    if (jugador.equipoId == equipo.id) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('No puedes ofrecer un jugador a su propio club.'),
-        ),
-      );
-      return;
-    }
-    if (jugador.bloqueadoTraspaso(widget.motor.temporada)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Recién fichado: podrá cambiar de equipo la próxima temporada.',
-          ),
-        ),
-      );
-      return;
-    }
-    if (!enVentanaFichajes(widget.motor.semana) && jugador.equipoId != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'El mercado está cerrado. '
-            '${proximaVentanaTexto(widget.motor.semana)}',
-          ),
-        ),
-      );
+    // Todas las reglas (ventana, bloqueo, periodo mínimo, club actual...) se
+    // comprueban en la lógica, igual que en el detalle del jugador.
+    final motivos = widget.motor.motivosParaOfrecer(jugador, equipo: equipo);
+    if (motivos.isNotEmpty) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(motivos.first)));
       return;
     }
     final precio = int.tryParse(_precio.text.trim());
@@ -166,6 +132,10 @@ class _PantallaNegociacionState extends State<PantallaNegociacion> {
         }
       }
     }
+    final motivos = motor.motivosParaOfrecer(
+      jugador,
+      equipo: equipoSeleccionado,
+    );
     final mercadoCerrado =
         !enVentanaFichajes(motor.semana) && jugador.equipoId != null;
     final recienFichado = jugador.bloqueadoTraspaso(motor.temporada);
@@ -235,8 +205,10 @@ class _PantallaNegociacionState extends State<PantallaNegociacion> {
                 padding: const EdgeInsets.all(12),
                 child: Row(
                   children: [
-                    const Icon(Icons.hourglass_bottom,
-                        color: AppColores.dorado),
+                    const Icon(
+                      Icons.hourglass_bottom,
+                      color: AppColores.dorado,
+                    ),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
@@ -329,13 +301,9 @@ class _PantallaNegociacionState extends State<PantallaNegociacion> {
           ElevatedButton.icon(
             icon: const Icon(Icons.send),
             label: const Text('Enviar oferta'),
-            onPressed: (_equipo == null ||
-                    mercadoCerrado ||
-                    recienFichado ||
-                    semanasFaltantes > 0)
-                ? null
-                : _enviar,
+            onPressed: (_equipo == null || motivos.isNotEmpty) ? null : _enviar,
           ),
+
           const SizedBox(height: 20),
 
           // Respuesta del equipo.

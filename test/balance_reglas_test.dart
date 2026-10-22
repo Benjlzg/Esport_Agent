@@ -58,26 +58,11 @@ void main() {
 
   group('reputación por traspaso', () {
     test('crece al principio y se frena al ser una agencia conocida', () {
-      expect(
-        reputacionPorTraspaso(reputacionActual: 10, elite: false),
-        2,
-      );
-      expect(
-        reputacionPorTraspaso(reputacionActual: 10, elite: true),
-        3,
-      );
-      expect(
-        reputacionPorTraspaso(reputacionActual: 30, elite: false),
-        1,
-      );
-      expect(
-        reputacionPorTraspaso(reputacionActual: 39, elite: true),
-        2,
-      );
-      expect(
-        reputacionPorTraspaso(reputacionActual: 40, elite: true),
-        0,
-      );
+      expect(reputacionPorTraspaso(reputacionActual: 10, elite: false), 2);
+      expect(reputacionPorTraspaso(reputacionActual: 10, elite: true), 3);
+      expect(reputacionPorTraspaso(reputacionActual: 30, elite: false), 1);
+      expect(reputacionPorTraspaso(reputacionActual: 39, elite: true), 2);
+      expect(reputacionPorTraspaso(reputacionActual: 40, elite: true), 0);
     });
   });
 

@@ -9,6 +9,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:esport_agent/logica/mercado.dart';
 import 'package:esport_agent/modelos/agente.dart';
+import 'package:esport_agent/modelos/competicion.dart';
 import 'package:esport_agent/modelos/equipo.dart';
 import 'package:esport_agent/modelos/estado_partida.dart';
 import 'package:esport_agent/modelos/historial.dart';
@@ -139,6 +140,50 @@ void main() {
         expect(comprador.presupuesto, 1000000);
       },
     );
+
+    test('M14: solo los títulos de 1ª División cuentan como dinastía', () {
+      final estado =
+          _estado(
+              jugadores: const [],
+              equipos: [
+                _equipo('dinastia1'),
+                _equipo('dinastia2', prestigio: 55, division: 2),
+              ],
+            )
+            ..competiciones.addAll([
+              Competicion(
+                juego: Juego.lol,
+                region: 'Test',
+                division: 1,
+                liga: 'Liga Primera',
+                equipoIds: ['dinastia1'],
+              ),
+              Competicion(
+                juego: Juego.lol,
+                region: 'Test',
+                division: 2,
+                liga: 'Liga Segunda',
+                equipoIds: ['dinastia2'],
+              ),
+            ]);
+
+      RegistroCampeon titulo(String equipoId, String liga) => RegistroCampeon(
+        temporada: 2,
+        juego: Juego.lol,
+        descripcion: '$liga (Split 1)',
+        tipo: TipoCampeon.liga,
+        ganadorId: equipoId,
+      );
+
+      expect(
+        tituloEsDePrimeraDivision(estado, titulo('dinastia1', 'Liga Primera')),
+        isTrue,
+      );
+      expect(
+        tituloEsDePrimeraDivision(estado, titulo('dinastia2', 'Liga Segunda')),
+        isFalse,
+      );
+    });
 
     test('no genera ofertas duplicadas de la misma dinastía', () {
       final objetivo = _jugador(

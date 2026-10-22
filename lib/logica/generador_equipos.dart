@@ -1,10 +1,11 @@
 // Genera equipos ficticios para completar las divisiones que no llegan
-// a 8 equipos. Los equipos ficticios son de 2ª División y su prestigio
-// va de 35 a 54 (ver PLAN_2A.md, sección 9).
+// a 8 equipos. En 2ª División el prestigio va de 35 a 54; en 1ª, de 70 a 80
+// para que las regiones con pocos equipos reales sigan siendo competitivas.
 import 'dart:math';
 
 import '../modelos/equipo.dart';
 import '../modelos/juego.dart';
+import 'formulas.dart';
 
 /// Primera parte del nombre de un equipo ficticio.
 const List<String> _prefijos = [
@@ -107,7 +108,8 @@ Equipo generarEquipoFicticio(
   required String liga,
 }) {
   final prestigio = division == 1
-      ? 70 + rnd.nextInt(11) // 70..80
+      ? 70 +
+            rnd.nextInt(11) // 70..80
       : 35 + rnd.nextInt(20); // 35..54
   return Equipo(
     id: id,
@@ -117,7 +119,7 @@ Equipo generarEquipoFicticio(
     division: division,
     liga: liga,
     prestigio: prestigio,
-    presupuesto: prestigio * 20000,
+    presupuesto: prestigio * presupuestoPorPrestigio,
     colorPrincipal: _elegir(rnd, _colores),
     escudo: '',
     esReal: false,

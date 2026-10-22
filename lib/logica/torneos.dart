@@ -372,33 +372,67 @@ List<String> _vivosEliminacion(Torneo torneo) {
   return vivos;
 }
 
+/// Una fila de la tabla de un grupo de un torneo.
+class FilaGrupoTorneo {
+  const FilaGrupoTorneo({
+    required this.equipoId,
+    required this.puntos,
+    required this.diferenciaMapas,
+  });
+
+  final String equipoId;
+  final int puntos;
+  final int diferenciaMapas;
+}
+
+/// Tabla ordenada de un grupo (puntos y diferencia de mapas).
+///
+/// La usan tanto la clasificación del torneo como la pantalla de Torneos:
+/// antes cada una repetía el mismo cálculo y podían dar resultados distintos
+/// (sección 5 de la auditoría).
+List<FilaGrupoTorneo> tablaGrupo(Torneo torneo, String grupo) {
+  final ids = torneo.grupos[grupo] ?? const <String>[];
+  final etapa = 'Grupo $grupo';
+  final puntos = <String, int>{for (final id in ids) id: 0};
+  final dif = <String, int>{for (final id in ids) id: 0};
+
+  for (final r in torneo.todosLosResultados.where((r) => r.etapa == etapa)) {
+    if (!puntos.containsKey(r.localId) || !puntos.containsKey(r.visitanteId)) {
+      continue;
+    }
+    if (r.ganadorId == r.localId) {
+      puntos[r.localId] = puntos[r.localId]! + puntosVictoria;
+    } else {
+      puntos[r.visitanteId] = puntos[r.visitanteId]! + puntosVictoria;
+    }
+    dif[r.localId] = dif[r.localId]! + (r.mapasLocal - r.mapasVisitante);
+    dif[r.visitanteId] =
+        dif[r.visitanteId]! + (r.mapasVisitante - r.mapasLocal);
+  }
+
+  final filas =
+      [
+        for (final id in ids)
+          FilaGrupoTorneo(
+            equipoId: id,
+            puntos: puntos[id]!,
+            diferenciaMapas: dif[id]!,
+          ),
+      ]..sort((a, b) {
+        final porPuntos = b.puntos.compareTo(a.puntos);
+        if (porPuntos != 0) return porPuntos;
+        return b.diferenciaMapas.compareTo(a.diferenciaMapas);
+      });
+  return filas;
+}
+
 /// Los 2 mejores de cada grupo por puntos y diferencia de mapas.
 List<String> _clasificadosDeGrupos(Torneo torneo) {
   final clasificados = <String>[];
-  for (final entrada in torneo.grupos.entries) {
-    final etapa = 'Grupo ${entrada.key}';
-    final resultados = torneo.todosLosResultados
-        .where((r) => r.etapa == etapa)
-        .toList();
-    final puntos = <String, int>{for (final id in entrada.value) id: 0};
-    final dif = <String, int>{for (final id in entrada.value) id: 0};
-    for (final r in resultados) {
-      if (r.ganadorId == r.localId) {
-        puntos[r.localId] = puntos[r.localId]! + puntosVictoria;
-      } else {
-        puntos[r.visitanteId] = puntos[r.visitanteId]! + puntosVictoria;
-      }
-      dif[r.localId] = dif[r.localId]! + (r.mapasLocal - r.mapasVisitante);
-      dif[r.visitanteId] =
-          dif[r.visitanteId]! + (r.mapasVisitante - r.mapasLocal);
-    }
-    final orden = entrada.value.toList()
-      ..sort((a, b) {
-        final porPuntos = puntos[b]!.compareTo(puntos[a]!);
-        if (porPuntos != 0) return porPuntos;
-        return dif[b]!.compareTo(dif[a]!);
-      });
-    clasificados.addAll(orden.take(2));
+  for (final grupo in torneo.grupos.keys) {
+    clasificados.addAll(
+      tablaGrupo(torneo, grupo).take(2).map((fila) => fila.equipoId),
+    );
   }
   return clasificados;
 }
@@ -452,9 +486,8 @@ List<String> _ordenarPorPrestigio(
 Map<String, int> distribucionPremios(Torneo torneo) {
   final distribucion = <String, int>{};
   final elim = torneo.rondasEliminacion;
-  if (elim.isEmpty) return distribucion;
+  if (elim.isEmpty || !torneo.finalJugada) return distribucion;
   final finalRonda = elim.last;
-  if (finalRonda.length != 1) return distribucion;
 
   final esMitad = torneo.tipo == TipoTorneo.mitad;
   final total = esMitad ? premioMitadTotal : premioMundialTotal;

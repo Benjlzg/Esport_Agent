@@ -19,7 +19,6 @@ class PestanaResumen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final agente = motor.agente;
-    final estado = motor.estado!;
     final mejores = motor.misMejoresJugadores;
 
     return ListView(
@@ -52,13 +51,13 @@ class PestanaResumen extends StatelessWidget {
                   children: [
                     _EtiquetaBalance(
                       texto:
-                          'Ganado: ${formatearDinero(estado.ingresosUltimaSemana)}',
+                          'Ganado: ${formatearDinero(motor.ingresosSemanaActual)}',
                       color: AppColores.exito,
                     ),
                     const SizedBox(width: 16),
                     _EtiquetaBalance(
                       texto:
-                          'Gastado: ${formatearDinero(estado.gastosUltimaSemana)}',
+                          'Gastado: ${formatearDinero(motor.gastosSemanaActual)}',
                       color: AppColores.peligro,
                     ),
                   ],
@@ -259,7 +258,8 @@ class PestanaResumen extends StatelessWidget {
             ),
           ),
           subtitle: Text(
-            '${p.competicion.liga} · Fecha ${p.fecha}',
+            '${p.competicion.liga} · Fecha ${p.fecha} · '
+            '${p.esLocal ? 'Local' : 'Visitante'}',
             style: const TextStyle(
               color: AppColores.textoSecundario,
               fontSize: 12,
@@ -272,8 +272,8 @@ class PestanaResumen extends StatelessWidget {
                 builder: (_) => PantallaPreviaPartido(
                   motor: motor,
                   competicion: p.competicion,
-                  localId: p.miEquipoId,
-                  visitanteId: p.rivalId,
+                  localId: p.localId,
+                  visitanteId: p.visitanteId,
                 ),
               ),
             );

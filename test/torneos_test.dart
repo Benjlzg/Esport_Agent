@@ -112,4 +112,81 @@ void main() {
       expect(torneo.subcampeonId, 'c');
     });
   });
+
+  group('M8: una semifinal con una sola serie no es la final', () {
+    test('sin una ronda llamada Final no hay campeón', () {
+      final torneo = Torneo(
+        id: 'tres_equipos',
+        tipo: TipoTorneo.mitad,
+        juego: Juego.lol,
+        temporada: 1,
+        nombre: 'Torneo de prueba',
+        participantes: ['a', 'b', 'c'],
+        rondas: [
+          [_serie('b', 'c', etapa: 'Semifinal')],
+        ],
+      );
+
+      expect(torneo.finalJugada, isFalse);
+      expect(torneo.campeonId, isNull);
+      expect(distribucionPremios(torneo), isEmpty);
+    });
+
+    test('con la final jugada sí hay campeón', () {
+      final torneo = Torneo(
+        id: 'tres_equipos_final',
+        tipo: TipoTorneo.mitad,
+        juego: Juego.lol,
+        temporada: 1,
+        nombre: 'Torneo de prueba',
+        participantes: ['a', 'b', 'c'],
+        rondas: [
+          [_serie('b', 'c', etapa: 'Semifinal')],
+          [_serie('a', 'b', etapa: 'Final')],
+        ],
+      );
+
+      expect(torneo.finalJugada, isTrue);
+      expect(torneo.campeonId, 'a');
+    });
+  });
+
+  group('tablaGrupo', () {
+    test('ordena por puntos y diferencia de mapas', () {
+      final torneo = Torneo(
+        id: 'grupo',
+        tipo: TipoTorneo.mundial,
+        juego: Juego.lol,
+        temporada: 1,
+        nombre: 'Mundial',
+        participantes: ['a', 'b', 'c'],
+        grupos: {
+          'A': ['a', 'b', 'c'],
+        },
+        rondas: [
+          [
+            _serie(
+              'a',
+              'b',
+              etapa: 'Grupo A',
+              mapasLocal: 1,
+              mapasVisitante: 0,
+            ),
+            _serie(
+              'c',
+              'b',
+              etapa: 'Grupo A',
+              mapasLocal: 1,
+              mapasVisitante: 0,
+            ),
+          ],
+        ],
+      );
+
+      final tabla = tablaGrupo(torneo, 'A');
+      expect(tabla.map((fila) => fila.equipoId), ['a', 'c', 'b']);
+      expect(tabla.first.puntos, 3);
+      expect(tabla.last.puntos, 0);
+    });
+  });
 }

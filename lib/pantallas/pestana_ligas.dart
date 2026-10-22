@@ -1,12 +1,9 @@
 // Pestaña Ligas: elige videojuego, región y división para ver la tabla de
 // posiciones, la próxima fecha y los resultados de la última. Se resaltan
 // los equipos donde juegan mis representados.
-import 'dart:math';
-
 import 'package:flutter/material.dart';
 
 import '../logica/calendario.dart';
-import '../logica/liga.dart';
 import '../logica/motor_juego.dart';
 import '../modelos/competicion.dart';
 import '../modelos/juego.dart';
@@ -29,11 +26,13 @@ class _PestanaLigasState extends State<PestanaLigas> {
   String? _region; // null = todas
   int? _division; // null = sin elegir
   late int _split;
+  late int _temporada;
 
   @override
   void initState() {
     super.initState();
     // Empieza en el split que se juega ahora mismo (1 por defecto).
+    _temporada = widget.motor.temporada;
     _split =
         splitDeLiga(widget.motor.semana) ?? (widget.motor.semana >= 27 ? 2 : 1);
     // Elige automáticamente un videojuego, una región y la 1ª División para
@@ -43,6 +42,19 @@ class _PestanaLigasState extends State<PestanaLigas> {
     _juego = primerJuego;
     _region = regiones.isEmpty ? null : regiones.first;
     _division = 1;
+  }
+
+  @override
+  void didUpdateWidget(covariant PestanaLigas oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Al cambiar de temporada, el split vuelve al que se juega ahora. Sin
+    // esto podía quedarse mostrando el Split 2 vacío (M18).
+    if (widget.motor.temporada != _temporada) {
+      _temporada = widget.motor.temporada;
+      _split =
+          splitDeLiga(widget.motor.semana) ??
+          (widget.motor.semana >= 27 ? 2 : 1);
+    }
   }
 
   @override
@@ -146,19 +158,11 @@ class _PestanaLigasState extends State<PestanaLigas> {
 
   Widget _liga(MotorJuego motor, Competicion competicion) {
     final tabla = competicion.tablaSplit(_split);
-    final resultados = competicion.resultadosDeSplit(_split);
-    final fechas = generarFechas(competicion.equipoIds);
-
-    final jugadas = resultados.map((r) => r.fecha).toSet();
-    final proximaFecha = jugadas.isEmpty ? 1 : jugadas.reduce(max) + 1;
-    final proximas = proximaFecha >= 1 && proximaFecha <= fechas.length
-        ? fechas[proximaFecha - 1]
-        : const <(String, String)>[];
-
-    final ultimaFecha = jugadas.isEmpty ? null : jugadas.reduce(max);
-    final resultadosUltima = ultimaFecha == null
-        ? const <ResultadoSerie>[]
-        : resultados.where((r) => r.fecha == ultimaFecha).toList();
+    // La próxima fecha y la última jugada se calculan en `calendario.dart`
+    // para poder probarlas sin widgets (sección 5 de la auditoría).
+    final proximas = proximaFechaDeLigaSeries(competicion, _split);
+    final ultimaFecha = ultimaFechaJugada(competicion, _split);
+    final resultadosUltima = resultadosUltimaFecha(competicion, _split);
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(12, 12, 12, margenBotonAvanzarSemana),

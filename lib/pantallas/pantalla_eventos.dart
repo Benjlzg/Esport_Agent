@@ -59,22 +59,25 @@ class _DialogoEvento extends StatelessWidget {
     return AlertDialog(
       backgroundColor: AppColores.superficie,
       title: Text(evento.titulo),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            evento.descripcion,
-            style: const TextStyle(color: AppColores.textoSecundario),
-          ),
-          if (tieneCosto) ...[
-            const SizedBox(height: 12),
-            const Text(
-              'Los costos ya están limitados al 30 % de tu dinero actual.',
-              style: TextStyle(color: AppColores.dorado, fontSize: 12),
+      // Un evento con texto largo no debe desbordar en pantallas pequeñas.
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              evento.descripcion,
+              style: const TextStyle(color: AppColores.textoSecundario),
             ),
+            if (tieneCosto) ...[
+              const SizedBox(height: 12),
+              const Text(
+                'Los costos ya están limitados al 30 % de tu dinero actual.',
+                style: TextStyle(color: AppColores.dorado, fontSize: 12),
+              ),
+            ],
           ],
-        ],
+        ),
       ),
       actions: evento.esDecision
           ? [

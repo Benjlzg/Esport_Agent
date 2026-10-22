@@ -408,17 +408,20 @@ void main() {
       expect(motor.estado!.ofertas, isEmpty);
     });
 
-    test('una oferta sin presupuesto se elimina al avanzar la semana', () async {
-      final motor = await _motorConEstado(
-        _estado(equipos: [_equipo('e1'), _equipo('e2', presupuesto: 50000)]),
-      );
-      final oferta = _ofertaTraspaso(monto: 100000);
-      motor.estado!.ofertas.add(oferta);
+    test(
+      'una oferta sin presupuesto se elimina al avanzar la semana',
+      () async {
+        final motor = await _motorConEstado(
+          _estado(equipos: [_equipo('e1'), _equipo('e2', presupuesto: 50000)]),
+        );
+        final oferta = _ofertaTraspaso(monto: 100000);
+        motor.estado!.ofertas.add(oferta);
 
-      await motor.avanzarSemana();
+        await motor.avanzarSemana();
 
-      expect(motor.estado!.ofertas, isEmpty);
-    });
+        expect(motor.estado!.ofertas, isEmpty);
+      },
+    );
   });
 
   group('I12 — confirmación al vender', () {
@@ -430,9 +433,7 @@ void main() {
       final oferta = _ofertaTraspaso();
       motor.estado!.ofertas.add(oferta);
 
-      await tester.pumpWidget(
-        MaterialApp(home: PantallaOfertas(motor: motor)),
-      );
+      await tester.pumpWidget(MaterialApp(home: PantallaOfertas(motor: motor)));
       await tester.pumpAndSettle();
 
       await tester.tap(find.widgetWithText(ElevatedButton, 'Aceptar'));

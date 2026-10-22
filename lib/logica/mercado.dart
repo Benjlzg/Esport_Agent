@@ -502,6 +502,19 @@ void _garantizarTitulares({
   }
 }
 
+/// ¿El título de liga pertenece a la 1ª División?
+///
+/// Si la partida no trae competiciones (datos de prueba o guardados muy
+/// antiguos), se acepta el título para no romper el comportamiento anterior.
+bool tituloEsDePrimeraDivision(EstadoPartida estado, RegistroCampeon titulo) {
+  if (estado.competiciones.isEmpty) return true;
+  for (final comp in estado.competiciones) {
+    if (comp.division != 1) continue;
+    if (titulo.descripcion.startsWith('${comp.liga} (Split')) return true;
+  }
+  return false;
+}
+
 /// Intenta debilitar a las dinastías: equipos con 3 o más títulos de split
 /// en las últimas 5 temporadas pierden figuras a manos de equipos que no
 /// están en esa lista. Devuelve cuántos traspasos se cerraron.
@@ -529,6 +542,9 @@ int _fichajesDeCampeones({
   for (final r in estado.palmares) {
     if (r.tipo != TipoCampeon.liga) continue;
     if (r.temporada < desde || r.temporada >= estado.temporada) continue;
+    // Solo cuentan los títulos de 1ª División: ganar la 2ª no convierte a un
+    // equipo en dinastía de la élite (M14).
+    if (!tituloEsDePrimeraDivision(estado, r)) continue;
     titulosRecientes[r.ganadorId] = (titulosRecientes[r.ganadorId] ?? 0) + 1;
   }
   // Se debilita a los campeones de la temporada anterior y, sobre todo, a
@@ -537,11 +553,15 @@ int _fichajesDeCampeones({
     ...estado.palmares
         .where(
           (r) =>
-              r.temporada == estado.temporada - 1 && r.tipo == TipoCampeon.liga,
+              r.temporada == estado.temporada - 1 &&
+              r.tipo == TipoCampeon.liga &&
+              tituloEsDePrimeraDivision(estado, r),
         )
         .map((r) => r.ganadorId),
     ...titulosRecientes.entries.where((e) => e.value >= 3).map((e) => e.key),
   };
+  // Solo los equipos de 1ª División pueden ser dinastías de la élite.
+  campeones.removeWhere((id) => (indiceEquipos[id]?.division ?? 1) != 1);
   if (campeones.isEmpty) return 0;
 
   var cerrados = 0;
@@ -565,7 +585,14 @@ int _fichajesDeCampeones({
     while (robados < maxRobos && rnd.nextDouble() < probabilidad) {
       final plantilla =
           (porEquipo[campeonId] ?? const <Jugador>[])
-              .where((j) => !j.estaInactivo && !rolesVendidos.contains(j.rol))
+              .where(
+                (j) =>
+                    !j.estaInactivo &&
+                    !rolesVendidos.contains(j.rol) &&
+                    // Un jugador recién traspasado no puede volver a
+                    // cambiar de equipo en la misma temporada (M14).
+                    !j.bloqueadoTraspaso(estado.temporada),
+              )
               .toList()
             ..sort((a, b) => b.habilidad.compareTo(a.habilidad));
 
@@ -581,6 +608,9 @@ int _fichajesDeCampeones({
         // liga se refuerce con una figura del campeón.
         final compradores = estado.equipos.where((e) {
           if (e.id == campeon.id || e.juego != campeon.juego) return false;
+          // La dinastía se mide en 1ª División, así que el comprador debe
+          // competir en la misma división (M14).
+          if (e.division != campeon.division) return false;
           // El comprador no puede ser otra dinastía: si no, las figuras
           // circulan entre los mismos equipos fuertes y la liga no se abre.
           if (campeones.contains(e.id)) return false;

@@ -3,13 +3,11 @@
 // clave entre jugadores del mismo rol.
 import 'package:flutter/material.dart';
 
-import '../logica/formulas.dart';
 import '../logica/motor_juego.dart';
-import '../logica/simulador_partidos.dart';
+import '../logica/previa_partido.dart';
 import '../modelos/competicion.dart';
 import '../modelos/equipo.dart';
 import '../modelos/jugador.dart';
-import '../modelos/partido.dart';
 import '../tema/tema_app.dart';
 import '../widgets/barra_probabilidad.dart';
 import '../widgets/escudo_equipo.dart';
@@ -36,13 +34,14 @@ class PantallaPreviaPartido extends StatelessWidget {
       return const Scaffold(body: Center(child: Text('Equipo no encontrado.')));
     }
 
-    final poderLocal = poderEquipo(local, motor.jugadores);
-    final poderVisitante = poderEquipo(visitante, motor.jugadores);
-    final probLocal = probVictoria(poderLocal, poderVisitante);
-    final formaLocal = competicion.formaEquipo(localId);
-    final formaVisitante = competicion.formaEquipo(visitanteId);
-    final historial = competicion.enfrentamientos(localId, visitanteId);
-    final duelo = _dueloClave(local, visitante);
+    // Todos los cálculos viven en la lógica (`previa_partido.dart`), así la
+    // interfaz y la simulación no pueden divergir (sección 5).
+    final previa = construirPreviaPartido(
+      competicion: competicion,
+      local: local,
+      visitante: visitante,
+      jugadores: motor.jugadores,
+    );
 
     return Scaffold(
       appBar: AppBar(title: const Text('Previa del partido')),
@@ -52,7 +51,7 @@ class PantallaPreviaPartido extends StatelessWidget {
           // Cabecera con los dos equipos.
           Row(
             children: [
-              Expanded(child: _columnaEquipo(local, poderLocal)),
+              Expanded(child: _columnaEquipo(previa.local, previa.poderLocal)),
               const Padding(
                 padding: EdgeInsets.symmetric(horizontal: 8),
                 child: Text(
@@ -64,7 +63,9 @@ class PantallaPreviaPartido extends StatelessWidget {
                   ),
                 ),
               ),
-              Expanded(child: _columnaEquipo(visitante, poderVisitante)),
+              Expanded(
+                child: _columnaEquipo(previa.visitante, previa.poderVisitante),
+              ),
             ],
           ),
           const SizedBox(height: 20),
@@ -84,9 +85,9 @@ class PantallaPreviaPartido extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 10),
-                  _filaForma(local.nombre, formaLocal),
+                  _filaForma(previa.local.nombre, previa.formaLocal),
                   const SizedBox(height: 8),
-                  _filaForma(visitante.nombre, formaVisitante),
+                  _filaForma(previa.visitante.nombre, previa.formaVisitante),
                 ],
               ),
             ),
@@ -108,20 +109,20 @@ class PantallaPreviaPartido extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 12),
-                  BarraProbabilidad(probLocal: probLocal),
+                  BarraProbabilidad(probLocal: previa.probabilidadLocal),
                   const SizedBox(height: 8),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        local.nombre,
+                        previa.local.nombre,
                         style: const TextStyle(
                           color: AppColores.acento,
                           fontSize: 12,
                         ),
                       ),
                       Text(
-                        visitante.nombre,
+                        previa.visitante.nombre,
                         style: const TextStyle(
                           color: AppColores.peligro,
                           fontSize: 12,
@@ -150,7 +151,7 @@ class PantallaPreviaPartido extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 10),
-                  if (historial.isEmpty)
+                  if (previa.historial.isEmpty)
                     const Text(
                       'Todavía no se han enfrentado esta temporada.',
                       style: TextStyle(
@@ -159,8 +160,8 @@ class PantallaPreviaPartido extends StatelessWidget {
                       ),
                     )
                   else
-                    ...historial.reversed.map(
-                      (r) => _filaHistorial(r, local, visitante),
+                    ...previa.historial.reversed.map(
+                      (entrada) => _filaHistorial(entrada, previa),
                     ),
                 ],
               ),
@@ -183,7 +184,7 @@ class PantallaPreviaPartido extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 10),
-                  if (duelo == null)
+                  if (previa.dueloClave == null)
                     const Text(
                       'Sin jugadores coincidentes en el mismo rol.',
                       style: TextStyle(
@@ -192,7 +193,10 @@ class PantallaPreviaPartido extends StatelessWidget {
                       ),
                     )
                   else
-                    _filaDuelo(duelo.$1, duelo.$2),
+                    _filaDuelo(
+                      previa.dueloClave!.local,
+                      previa.dueloClave!.visitante,
+                    ),
                 ],
               ),
             ),
@@ -278,14 +282,15 @@ class PantallaPreviaPartido extends StatelessWidget {
     );
   }
 
-  Widget _filaHistorial(ResultadoSerie r, Equipo local, Equipo visitante) {
+  Widget _filaHistorial(EntradaHistorialDirecto entrada, PreviaPartido previa) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         children: [
           Expanded(
             child: Text(
-              '${local.nombre} ${r.mapasLocal}–${r.mapasVisitante} ${visitante.nombre}',
+              '${previa.local.nombre} ${entrada.golesLocal}–'
+              '${entrada.golesVisitante} ${previa.visitante.nombre}',
               style: const TextStyle(
                 color: AppColores.textoPrincipal,
                 fontSize: 13,
@@ -293,7 +298,7 @@ class PantallaPreviaPartido extends StatelessWidget {
             ),
           ),
           Text(
-            r.etapa,
+            entrada.etapa,
             style: const TextStyle(
               color: AppColores.textoSecundario,
               fontSize: 11,
@@ -349,26 +354,5 @@ class PantallaPreviaPartido extends StatelessWidget {
         ),
       ],
     );
-  }
-
-  /// Busca el mejor duelo del mismo rol entre las dos alineaciones
-  /// disponibles (los inactivos no entran).
-  (Jugador, Jugador)? _dueloClave(Equipo local, Equipo visitante) {
-    final plantillaLocal = alineacionDe(local, motor.jugadores);
-    final plantillaVisitante = alineacionDe(visitante, motor.jugadores);
-
-    (Jugador, Jugador)? mejor;
-    var mejorPuntaje = -1;
-    for (final a in plantillaLocal) {
-      for (final b in plantillaVisitante) {
-        if (a.rol != b.rol) continue;
-        final puntaje = a.habilidad + b.habilidad;
-        if (puntaje > mejorPuntaje) {
-          mejorPuntaje = puntaje;
-          mejor = (a, b);
-        }
-      }
-    }
-    return mejor;
   }
 }

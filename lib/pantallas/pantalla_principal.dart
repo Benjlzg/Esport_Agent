@@ -42,10 +42,13 @@ class _PantallaPrincipalState extends State<PantallaPrincipal> {
   void initState() {
     super.initState();
     _pestanas[0] = _crearPestana(0);
-    // Al entrar (por ejemplo al pulsar "Continuar"), muestra los eventos que
-    // se guardaron pendientes de la sesión anterior.
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _mostrarEventosPendientes();
+    // Al entrar (por ejemplo al pulsar "Continuar"), muestra los eventos y
+    // la ceremonia de premios que se guardaron pendientes de la sesión
+    // anterior (M5).
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await _mostrarEventosPendientes();
+      if (!mounted) return;
+      await _mostrarCeremoniaSiPendiente();
     });
   }
 

@@ -367,7 +367,7 @@ void main() {
         expect(estado.semana, 7);
         expect(estado.temporada, 2);
         expect(estado.toJson()['version'], versionFormato);
-        expect(versionFormato, 8);
+        expect(versionFormato, 9);
         expect(versionMinimaCompatible, 3);
       },
     );
@@ -586,38 +586,41 @@ void main() {
   });
 
   group('I4/I15 — idempotencia y límite de eventos', () {
-    test('resolver dos veces el mismo evento aplica dinero una sola vez', () async {
-      final jugador = _jugador('p1');
-      final motor = await _motorConEstado(
-        _estado(jugadores: [jugador], dinero: 1000),
-      );
-      final evento = EventoPendiente(
-        id: 'ev_doble',
-        definicionId: 'marca_perifericos',
-        jugadorId: 'p1',
-        titulo: 'Marca de periféricos',
-        descripcion: 'P1 firmó con una marca.',
-        esDecision: true,
-        opcionA: 'Aceptar el patrocinio',
-        opcionB: 'Rechazar',
-        ingresoBaseA: 25000,
-        temporada: 1,
-        semana: 1,
-      );
-      motor.estado!.eventosPendientes.add(evento);
-      final dineroInicial = motor.agente.dinero;
+    test(
+      'resolver dos veces el mismo evento aplica dinero una sola vez',
+      () async {
+        final jugador = _jugador('p1');
+        final motor = await _motorConEstado(
+          _estado(jugadores: [jugador], dinero: 1000),
+        );
+        final evento = EventoPendiente(
+          id: 'ev_doble',
+          definicionId: 'marca_perifericos',
+          jugadorId: 'p1',
+          titulo: 'Marca de periféricos',
+          descripcion: 'P1 firmó con una marca.',
+          esDecision: true,
+          opcionA: 'Aceptar el patrocinio',
+          opcionB: 'Rechazar',
+          ingresoBaseA: 25000,
+          temporada: 1,
+          semana: 1,
+        );
+        motor.estado!.eventosPendientes.add(evento);
+        final dineroInicial = motor.agente.dinero;
 
-      final primera = await motor.resolverEvento(evento, 0);
-      final dineroTrasPrimera = motor.agente.dinero;
-      final segunda = await motor.resolverEvento(evento, 0);
+        final primera = await motor.resolverEvento(evento, 0);
+        final dineroTrasPrimera = motor.agente.dinero;
+        final segunda = await motor.resolverEvento(evento, 0);
 
-      expect(primera.ok, isTrue);
-      expect(segunda.ok, isFalse);
-      expect(segunda.mensaje, contains('ya no está disponible'));
-      expect(dineroTrasPrimera - dineroInicial, 25000);
-      expect(motor.agente.dinero, dineroTrasPrimera);
-      expect(motor.eventosPendientes, isEmpty);
-    });
+        expect(primera.ok, isTrue);
+        expect(segunda.ok, isFalse);
+        expect(segunda.mensaje, contains('ya no está disponible'));
+        expect(dineroTrasPrimera - dineroInicial, 25000);
+        expect(motor.agente.dinero, dineroTrasPrimera);
+        expect(motor.eventosPendientes, isEmpty);
+      },
+    );
 
     test('los pendientes se limitan a 8 y expiran los más antiguos', () {
       final estado = _estado();

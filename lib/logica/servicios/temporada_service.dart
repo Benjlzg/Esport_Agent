@@ -159,8 +159,13 @@ class TemporadaService {
       motor.eventosService.generarSemana();
     }
 
-    est.ingresosUltimaSemana = ingresos;
-    est.gastosUltimaSemana = gastos;
+    // El resumen suma lo de esta semana (salarios y oficina) con lo que el
+    // agente movió desde el avance anterior: traspasos, renovaciones y
+    // eventos (M4). Después se vacía el acumulador de la semana en curso.
+    est.ingresosUltimaSemana = ingresos + est.ingresosSemanaEnCurso;
+    est.gastosUltimaSemana = gastos + est.gastosSemanaEnCurso;
+    est.ingresosSemanaEnCurso = 0;
+    est.gastosSemanaEnCurso = 0;
 
     await motor.guardarYNotificar();
   }
@@ -332,7 +337,9 @@ class TemporadaService {
       est.equipos,
     );
     est.torneos = [];
-    est.ceremoniaPendiente = false;
+    // No se borra `ceremoniaPendiente`: si el jugador no vio la ceremonia
+    // antes de terminar la temporada, debe seguir disponible al cargar o
+    // avanzar, en vez de perderse (M5).
     for (final j in est.jugadores) {
       // La pretemporada cura lesiones y descansos.
       j.semanasInactivo = 0;

@@ -1,6 +1,6 @@
 # INFORME DE BALANCE — FASE 2.5
 
-- Generado: **2026-10-21 23:53:28** (hora local).
+- Generado: **2026-10-22 02:08:36** (hora local).
 - Generado por: `test/balance_test.dart`.
 
 - Semilla: **20251019**.
@@ -42,32 +42,32 @@ En esta ejecución se hicieron **3 rondas** de ajuste. Los cambios se probaron c
 
 | Temporada | Presup. inicio | Presup. fin | Fin / inicio | Valor máx. | Valor P95 |
 | --- | --- | --- | --- | --- | --- |
-| 1 | 447.280.000 | 181.872.000 | 0.41× | 2.157.000 | 1.262.000 |
-| 2 | 447.280.000 | 163.245.000 | 0.36× | 3.783.000 | 1.733.000 |
-| 3 | 447.280.000 | 136.024.000 | 0.30× | 3.783.000 | 2.319.000 |
-| 4 | 447.280.000 | 137.989.000 | 0.31× | 3.783.000 | 2.436.000 |
-| 5 | 447.280.000 | 129.218.000 | 0.29× | 3.783.000 | 2.454.000 |
-| 6 | 447.280.000 | 117.741.000 | 0.26× | 3.783.000 | 2.493.000 |
-| 7 | 447.280.000 | 116.993.000 | 0.26× | 3.672.000 | 2.406.000 |
-| 8 | 447.280.000 | 132.790.000 | 0.30× | 3.783.000 | 2.370.000 |
-| 9 | 447.280.000 | 120.511.000 | 0.27× | 3.783.000 | 2.337.000 |
-| 10 | 447.280.000 | 128.070.000 | 0.29× | 3.783.000 | 2.289.000 |
+| 1 | 447.280.000 | 421.209.000 | 0.94× | 2.157.000 | 1.262.000 |
+| 2 | 447.280.000 | 300.747.000 | 0.67× | 3.783.000 | 1.728.000 |
+| 3 | 447.280.000 | 286.134.000 | 0.64× | 3.783.000 | 2.391.000 |
+| 4 | 447.280.000 | 282.768.000 | 0.63× | 3.783.000 | 2.535.000 |
+| 5 | 447.280.000 | 277.307.000 | 0.62× | 3.492.000 | 2.568.000 |
+| 6 | 447.280.000 | 267.223.000 | 0.60× | 3.783.000 | 2.538.000 |
+| 7 | 447.280.000 | 264.970.000 | 0.59× | 3.783.000 | 2.538.000 |
+| 8 | 447.280.000 | 275.452.000 | 0.62× | 3.783.000 | 2.442.000 |
+| 9 | 447.280.000 | 250.191.000 | 0.56× | 3.783.000 | 2.370.000 |
+| 10 | 447.280.000 | 265.337.000 | 0.59× | 3.783.000 | 2.370.000 |
 
 
 ## Habilidad promedio por videojuego (jugadores con equipo)
 
 | Temporada | LoL | Valorant | CS2 | Dota 2 | Media |
 | --- | --- | --- | --- | --- | --- |
-| 1 | 60.2 | 64.6 | 65.7 | 62.9 | 63.3 |
-| 2 | 63.3 | 67.4 | 68.8 | 65.2 | 66.2 |
-| 3 | 65.1 | 68.4 | 69.7 | 67.3 | 67.6 |
-| 4 | 65.7 | 69.8 | 69.9 | 68.3 | 68.4 |
-| 5 | 66.5 | 69.7 | 70.7 | 68.7 | 68.9 |
-| 6 | 66.3 | 70.9 | 71.5 | 69.0 | 69.4 |
-| 7 | 67.1 | 70.6 | 71.2 | 69.6 | 69.6 |
-| 8 | 67.4 | 70.0 | 70.7 | 69.2 | 69.3 |
-| 9 | 67.6 | 69.7 | 70.9 | 69.2 | 69.3 |
-| 10 | 66.9 | 69.1 | 68.9 | 69.1 | 68.5 |
+| 1 | 60.3 | 64.3 | 67.0 | 63.0 | 63.7 |
+| 2 | 63.5 | 67.7 | 70.2 | 66.9 | 67.1 |
+| 3 | 65.3 | 68.5 | 71.4 | 68.3 | 68.4 |
+| 4 | 67.1 | 69.4 | 72.4 | 69.9 | 69.7 |
+| 5 | 67.3 | 70.5 | 72.6 | 70.7 | 70.3 |
+| 6 | 68.1 | 70.6 | 73.9 | 71.4 | 71.0 |
+| 7 | 68.3 | 70.2 | 73.8 | 71.1 | 70.8 |
+| 8 | 68.5 | 70.4 | 73.1 | 70.2 | 70.6 |
+| 9 | 68.5 | 69.9 | 73.0 | 69.9 | 70.3 |
+| 10 | 68.0 | 69.8 | 72.0 | 69.4 | 69.8 |
 
 
 ## Progresión de jóvenes (16–21 años)
@@ -78,21 +78,21 @@ Los promedios por situación excluyen a los jugadores que ya estaban en su poten
 
 | Temporada | Con equipo | Sin equipo | Titulares | Suplentes | Media todos | Medidos | En su potencial |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | 6.3 | 7.7 | 6.3 | 0.0 | 6.3 | 810 | 0 |
-| 2 | 4.5 | 6.5 | 4.6 | 4.0 | 3.4 | 941 | 263 |
-| 3 | 4.4 | 3.7 | 4.6 | 3.6 | 2.3 | 1053 | 464 |
-| 4 | 4.0 | 3.7 | 4.2 | 3.6 | 2.0 | 1032 | 512 |
-| 5 | 4.1 | 4.1 | 4.3 | 3.4 | 2.1 | 927 | 455 |
-| 6 | 4.2 | 4.0 | 4.4 | 3.3 | 2.5 | 781 | 297 |
-| 7 | 4.1 | 3.9 | 4.2 | 3.6 | 2.4 | 756 | 298 |
-| 8 | 4.1 | 4.3 | 4.1 | 4.0 | 2.5 | 755 | 308 |
-| 9 | 4.3 | 3.8 | 4.3 | 4.1 | 2.4 | 760 | 314 |
-| 10 | 3.9 | 3.8 | 4.0 | 3.8 | 2.3 | 730 | 297 |
+| 1 | 6.1 | 6.6 | 6.1 | 0.0 | 6.1 | 810 | 0 |
+| 2 | 4.8 | 5.4 | 4.9 | 4.4 | 3.4 | 962 | 287 |
+| 3 | 4.4 | 4.1 | 4.5 | 3.8 | 2.5 | 1064 | 434 |
+| 4 | 4.2 | 4.0 | 4.3 | 3.6 | 2.0 | 1000 | 501 |
+| 5 | 3.9 | 3.7 | 4.1 | 3.5 | 1.9 | 895 | 442 |
+| 6 | 4.0 | 4.3 | 4.3 | 3.3 | 2.5 | 740 | 278 |
+| 7 | 4.1 | 4.1 | 4.2 | 4.0 | 2.6 | 726 | 274 |
+| 8 | 4.4 | 3.8 | 4.7 | 4.0 | 2.6 | 678 | 264 |
+| 9 | 4.4 | 4.5 | 4.6 | 4.1 | 2.9 | 699 | 252 |
+| 10 | 4.3 | 4.5 | 4.4 | 4.0 | 2.8 | 712 | 252 |
 
 
-- Progresión media con equipo (con margen de mejora): **4.4 puntos/temporada** · sin equipo: **4.6**.
+- Progresión media con equipo (con margen de mejora): **4.5 puntos/temporada** · sin equipo: **4.5**.
 - La regla ×0,5 para jugadores sin equipo se aplica por jugador y está cubierta por `test/progresion_test.dart`; la media observada sin equipo puede variar por la mezcla de edades y de potencial.
-- Jugadores medidos en 10 temporadas: 8545 · ya estaban en su potencial: 3208.
+- Jugadores medidos en 10 temporadas: 8286 · ya estaban en su potencial: 2984.
 - Criterio 4–8 puntos por temporada: **cumple**.
 
 ## Dominio por liga (1ª División, 10 temporadas)
@@ -101,11 +101,11 @@ Para cada liga de 1ª División se cuentan las temporadas distintas en las que e
 
 | Liga | Equipo | Temporadas ganadas | Títulos de split |
 | --- | --- | --- | --- |
-| Circuito Sudamericano · CS2 · Sudamérica | furia_cs2 | 6 de 10 | 7 |
-| Liga Norteamericana · LoL · Norteamérica | cloud9_lol | 6 de 10 | 7 |
-| Circuito Sudamericano · Valorant · Latinoamérica Sur | fic_valorant_85 | 6 de 10 | 6 |
-| Liga Europea · LoL · Europa | g2_lol | 6 de 10 | 6 |
-| Liga Coreana · LoL · Corea | geng_lol | 5 de 10 | 8 |
+| Liga Coreana · LoL · Corea | geng_lol | 6 de 10 | 7 |
+| Liga Norteamericana · LoL · Norteamérica | cloud9_lol | 5 de 10 | 8 |
+| Circuito Sudamericano · CS2 · Sudamérica | furia_cs2 | 5 de 10 | 6 |
+| Circuito Sudamericano · Valorant · Latinoamérica Sur | fic_valorant_83 | 5 de 10 | 6 |
+| Circuito de Asia y Oceanía · CS2 · Asia-Oceanía | the_mongolz_cs2 | 5 de 10 | 6 |
 
 
 - Ligas con un campeón por encima de 6 de 10 temporadas: **0**.
@@ -115,37 +115,37 @@ Para cada liga de 1ª División se cuentan las temporadas distintas en las que e
 
 | Temporada | Fichajes IA V1 (1–4) | Fichajes IA V2 (23–26) | Fichajes IA V3 (47–52) | Fichajes IA total | Ofertas IA | Eventos | Eventos con decisión |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | 248 | 226 | 223 | 697 | 0 | 18 | 2 |
-| 2 | 354 | 173 | 230 | 757 | 0 | 17 | 1 |
-| 3 | 369 | 176 | 222 | 767 | 0 | 8 | 0 |
-| 4 | 356 | 182 | 201 | 739 | 0 | 17 | 1 |
-| 5 | 355 | 189 | 198 | 742 | 0 | 13 | 1 |
-| 6 | 402 | 158 | 189 | 749 | 0 | 13 | 1 |
-| 7 | 411 | 144 | 179 | 734 | 0 | 12 | 1 |
-| 8 | 385 | 161 | 200 | 746 | 0 | 12 | 1 |
-| 9 | 392 | 158 | 171 | 721 | 0 | 12 | 0 |
-| 10 | 391 | 158 | 187 | 736 | 0 | 16 | 2 |
+| 1 | 241 | 243 | 313 | 797 | 0 | 12 | 1 |
+| 2 | 310 | 210 | 256 | 776 | 0 | 19 | 1 |
+| 3 | 309 | 203 | 258 | 770 | 0 | 12 | 1 |
+| 4 | 277 | 189 | 236 | 702 | 0 | 14 | 0 |
+| 5 | 343 | 177 | 221 | 741 | 0 | 11 | 1 |
+| 6 | 330 | 171 | 199 | 700 | 0 | 11 | 1 |
+| 7 | 311 | 180 | 216 | 707 | 0 | 18 | 1 |
+| 8 | 300 | 169 | 209 | 678 | 0 | 12 | 1 |
+| 9 | 298 | 188 | 223 | 709 | 0 | 9 | 1 |
+| 10 | 314 | 159 | 226 | 699 | 0 | 12 | 2 |
 
 
 ## Tiempos
 
 | Temporada | Tiempo total | Media por semana |
 | --- | --- | --- |
-| 1 | 3879 ms | 74.6 ms |
+| 1 | 4155 ms | 79.9 ms |
 | 2 | 5150 ms | 99.0 ms |
-| 3 | 5072 ms | 97.5 ms |
-| 4 | 5466 ms | 105.1 ms |
-| 5 | 4711 ms | 90.6 ms |
-| 6 | 4681 ms | 90.0 ms |
-| 7 | 4767 ms | 91.7 ms |
-| 8 | 4700 ms | 90.4 ms |
-| 9 | 4705 ms | 90.5 ms |
-| 10 | 4769 ms | 91.7 ms |
+| 3 | 4990 ms | 96.0 ms |
+| 4 | 5025 ms | 96.6 ms |
+| 5 | 4329 ms | 83.3 ms |
+| 6 | 4579 ms | 88.1 ms |
+| 7 | 4554 ms | 87.6 ms |
+| 8 | 4472 ms | 86.0 ms |
+| 9 | 4218 ms | 81.1 ms |
+| 10 | 4620 ms | 88.8 ms |
 
 
 - Semanas medidas: 520.
-- Tiempo total de avance: 48128 ms.
-- Media global por semana: 89.6 ms.
+- Tiempo total de avance: 46321 ms.
+- Media global por semana: 86.2 ms.
 
 ## Tamaño de los datos (corrección A3)
 
@@ -153,16 +153,16 @@ Se miden al final de cada temporada, antes de la limpieza de inicio de temporada
 
 | Temporada | Jugadores | Noticias | Resultados | Palmarés | Premios | Ofertas | Eventos | Guardado (KB) |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | 2519 | 200 | 5456 | 100 | 16 | 0 | 0 | 2840.1 |
-| 2 | 2731 | 200 | 5456 | 200 | 32 | 0 | 0 | 3446.2 |
-| 3 | 2792 | 200 | 5456 | 300 | 48 | 0 | 0 | 3459.0 |
-| 4 | 2779 | 200 | 5456 | 400 | 64 | 0 | 0 | 3513.4 |
-| 5 | 2784 | 200 | 5456 | 500 | 80 | 0 | 0 | 3536.0 |
-| 6 | 2784 | 200 | 5456 | 600 | 96 | 0 | 0 | 3542.2 |
-| 7 | 2794 | 200 | 5456 | 700 | 112 | 0 | 0 | 3544.8 |
-| 8 | 2795 | 200 | 5456 | 800 | 128 | 0 | 0 | 3565.8 |
-| 9 | 2774 | 200 | 5456 | 900 | 144 | 0 | 0 | 3564.1 |
-| 10 | 2806 | 200 | 5456 | 1000 | 160 | 0 | 0 | 3591.7 |
+| 1 | 2587 | 200 | 5456 | 100 | 16 | 0 | 0 | 2935.1 |
+| 2 | 2702 | 200 | 5456 | 200 | 32 | 0 | 0 | 3563.8 |
+| 3 | 2766 | 200 | 5456 | 300 | 48 | 0 | 0 | 3489.9 |
+| 4 | 2731 | 200 | 5456 | 400 | 64 | 0 | 0 | 3533.0 |
+| 5 | 2749 | 200 | 5456 | 500 | 80 | 0 | 0 | 3521.8 |
+| 6 | 2728 | 200 | 5456 | 600 | 96 | 0 | 0 | 3549.9 |
+| 7 | 2765 | 200 | 5456 | 700 | 112 | 0 | 0 | 3541.0 |
+| 8 | 2741 | 200 | 5456 | 800 | 128 | 0 | 0 | 3590.2 |
+| 9 | 2742 | 200 | 5456 | 899 | 144 | 0 | 0 | 3561.6 |
+| 10 | 2729 | 200 | 5456 | 999 | 160 | 0 | 0 | 3597.9 |
 
 
 ## Invariantes
@@ -172,16 +172,16 @@ Sin violaciones duras en las 10 temporadas.
 ## Veredicto
 
 - Violaciones duras: **0**.
-- Mayor salto de habilidad entre temporadas: 2.86 puntos (orientativo ≤ 3).
-- Progresión media de 16–21 años con equipo: 4.4 puntos/temporada (objetivo 4–8; sin equipo 4.6).
+- Mayor salto de habilidad entre temporadas: 3.40 puntos (orientativo ≤ 3).
+- Progresión media de 16–21 años con equipo: 4.5 puntos/temporada (objetivo 4–8; sin equipo 4.5).
 - Mayor dominio en una liga de 1ª División: 6 de 10 temporadas del mismo equipo (orientativo ≤ 6): **cumple**.
-- Mayor relación presupuesto fin / inicio: 0.41×.
-- Tiempo de la temporada 10 / temporada 1: 1.23× (meta ≤ 1,5×).
-- Tamaño final del guardado: 3591.7 KB.
-- Fichajes IA registrados en las ventanas: 7388.
-- Robot de 3 temporadas: sobrevivió, racha máxima sin opciones 2 semanas.
-- Ingresos del robot: traspasos $229.920 vs eventos $135.730. Fuente principal: Traspasos.
-- Reputación del robot: 10 → 37 (meta 30–45 al final de la T3): **cumple**.
+- Mayor relación presupuesto fin / inicio: 0.94×.
+- Tiempo de la temporada 10 / temporada 1: 1.11× (meta ≤ 1,5×).
+- Tamaño final del guardado: 3597.9 KB.
+- Fichajes IA registrados en las ventanas: 7279.
+- Robot de 3 temporadas: sobrevivió, racha máxima sin opciones 5 semanas.
+- Ingresos del robot: traspasos $279.710 vs eventos $146.604. Fuente principal: Comisiones de salario.
+- Reputación del robot: 10 → 30 (meta 30–45 al final de la T3): **cumple**.
 
 <!-- ROBOT:INICIO -->
 ## Jugador robot (3 temporadas)
@@ -193,45 +193,46 @@ Sin violaciones duras en las 10 temporadas.
 
 | Temporada | Dinero inicio | Dinero fin | Reput. inicio | Reput. fin | Decisiones | Fichajes | Ventas | Eventos | Ofertas | Semanas sin opción | Racha máx. |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | 50.000 | 103.502 | 10 | 24 | 13 | 8 | 9 | 35 | 1 | 6 | 2 |
-| 2 | 103.502 | 183.970 | 24 | 29 | 12 | 0 | 8 | 42 | 3 | 0 | 0 |
-| 3 | 183.970 | 286.161 | 29 | 37 | 15 | 0 | 8 | 43 | 1 | 0 | 0 |
+| 1 | 50.000 | 147.268 | 10 | 24 | 13 | 8 | 9 | 33 | 7 | 9 | 5 |
+| 2 | 147.268 | 233.161 | 24 | 31 | 10 | 1 | 8 | 42 | 1 | 0 | 0 |
+| 3 | 233.161 | 333.660 | 31 | 30 | 20 | 0 | 7 | 43 | 0 | 0 | 0 |
 
 
 ### Dinero e ingresos
 
-- Semana con menos dinero: T1 · S21 ($45.944).
-- Principal fuente de ingresos: Traspasos ($229.920).
-- Criterio B1 (sin quiebra y ≤ $5.000.000 al final de la T3): **cumple** (dinero final $286.161).
+- Semana con menos dinero: T1 · S10 ($22.672).
+- Principal fuente de ingresos: Comisiones de salario ($445.312).
+- Criterio B1 (sin quiebra y ≤ $5.000.000 al final de la T3): **cumple** (dinero final $333.660).
 
 | Fuente de ingreso | Total |
 | --- | --- |
-| Comisiones de salario | 18.900 |
-| Traspasos | 229.920 |
-| Renovaciones | 5.200 |
-| Eventos | 135.730 |
+| Comisiones de salario | 445.312 |
+| Traspasos | 279.710 |
+| Renovaciones | 0 |
+| Eventos | 146.604 |
 
 
 ### Decisiones por tipo
 
 | Evento | Veces |
 | --- | --- |
-| torneo_exhibicion | 9 |
-| marca_perifericos | 9 |
-| oferta_otro_juego | 8 |
-| polemica_redes | 7 |
-| mentor_veterano | 4 |
+| torneo_exhibicion | 11 |
+| polemica_redes | 9 |
+| marca_perifericos | 8 |
+| oferta_otro_juego | 5 |
+| inversor_interesado | 3 |
+| mentor_veterano | 3 |
+| conflicto_agente | 2 |
 | burnout | 2 |
-| inversor_interesado | 1 |
 
 
 ### Veredicto del robot
 
 - Quiebra: **no**.
-- Eventos respondidos: 120 (40 con decisión).
-- Fichajes propios: 8 · ventas: 25.
-- Semanas sin ninguna opción: 6 · racha máxima: 2 (preocupante desde 8).
+- Eventos respondidos: 118 (43 con decisión).
+- Fichajes propios: 9 · ventas: 24.
+- Semanas sin ninguna opción: 9 · racha máxima: 5 (preocupante desde 8).
 - Racha preocupante: **no**.
-- Tiempo del robot: 17237 ms.
+- Tiempo del robot: 17353 ms.
 
 <!-- ROBOT:FIN -->

@@ -234,8 +234,7 @@ class Jugador {
       region: json['region'] as String?,
       semanasComoSuplente: (json['semanasComoSuplente'] as num?)?.toInt() ?? 0,
       semanasInactivo: (json['semanasInactivo'] as num?)?.toInt() ?? 0,
-      semanasRepresentado:
-          (json['semanasRepresentado'] as num?)?.toInt() ?? 0,
+      semanasRepresentado: (json['semanasRepresentado'] as num?)?.toInt() ?? 0,
       temporadaUltimoTraspaso: (json['temporadaUltimoTraspaso'] as num?)
           ?.toInt(),
       partidasTemporada: (json['partidasTemporada'] as num?)?.toInt() ?? 0,

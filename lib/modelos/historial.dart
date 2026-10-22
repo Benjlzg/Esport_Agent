@@ -88,6 +88,7 @@ class PremioIndividual {
     this.juego,
     required this.categoria,
     this.jugadorId,
+    this.nombreJugador,
     this.rol,
     required this.detalle,
     this.nombreAgente,
@@ -105,6 +106,11 @@ class PremioIndividual {
   /// Id del jugador premiado (si aplica).
   final String? jugadorId;
 
+  /// Nick del jugador cuando se entregó el premio. Se guarda para que la
+  /// pantalla de Palmarés siga mostrando su nombre aunque ya se haya
+  /// retirado y no esté en la lista de jugadores (M10 de la auditoría).
+  final String? nombreJugador;
+
   /// Rol del jugador premiado (para el Equipo Ideal).
   final String? rol;
 
@@ -121,6 +127,7 @@ class PremioIndividual {
       'juego': juego?.name,
       'categoria': categoria.name,
       'jugadorId': jugadorId,
+      'nombreJugador': nombreJugador,
       'rol': rol,
       'detalle': detalle,
       'nombreAgente': nombreAgente,
@@ -138,6 +145,7 @@ class PremioIndividual {
         orElse: () => CategoriaPremio.jugadorDelAnio,
       ),
       jugadorId: json['jugadorId'] as String?,
+      nombreJugador: json['nombreJugador'] as String?,
       rol: json['rol'] as String?,
       detalle: json['detalle'] as String,
       nombreAgente: json['nombreAgente'] as String?,

@@ -2,6 +2,7 @@
 // división.
 import 'package:flutter/material.dart';
 
+import '../logica/filtros_mercado.dart';
 import '../logica/formulas.dart';
 import '../logica/motor_juego.dart';
 import '../modelos/juego.dart';
@@ -25,12 +26,12 @@ class _PestanaEquiposState extends State<PestanaEquipos> {
 
   @override
   Widget build(BuildContext context) {
-    final equipos = widget.motor.equipos.where((e) {
-      if (_juego != null && e.juego != _juego) return false;
-      if (_region != null && e.region != _region) return false;
-      if (_division != null && e.division != _division) return false;
-      return true;
-    }).toList();
+    final equipos = filtrarEquipos(
+      equipos: widget.motor.equipos,
+      juego: _juego,
+      region: _region,
+      division: _division,
+    );
 
     final regiones = _juego == null
         ? const <String>[]

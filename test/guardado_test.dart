@@ -101,13 +101,13 @@ void main() {
     },
   );
 
-  test('las partidas v3–v7 sin contador cargan y lo reconstruyen', () async {
+  test('las partidas v3–v8 sin contador cargan y lo reconstruyen', () async {
     final motor = await _partidaNueva();
     final estado = motor.estado!;
     _anadirGenerados(estado);
     final mapaBase = estado.toJson();
 
-    for (final version in [3, 4, 5, 6, 7]) {
+    for (final version in [3, 4, 5, 6, 7, 8]) {
       final mapa = Map<String, dynamic>.from(mapaBase);
       mapa['version'] = version;
       // Una partida vieja no tiene el contador ni los campos de las fases
@@ -129,6 +129,8 @@ void main() {
         'paresBloqueados',
         'ingresosUltimaSemana',
         'gastosUltimaSemana',
+        'ingresosSemanaEnCurso',
+        'gastosSemanaEnCurso',
         'finDelJuego',
       ]) {
         mapa.remove(campo);
@@ -156,7 +158,7 @@ void main() {
       expect(cargado.estado!.toJson()['version'], versionFormato);
     }
 
-    expect(versionFormato, 8);
+    expect(versionFormato, 9);
     expect(versionMinimaCompatible, 3);
   });
 
@@ -211,6 +213,69 @@ void main() {
       expect(reparado['agente']['dinero'], 111111);
     },
   );
+
+  test('I14: repara competiciones, plantillas y torneos de una v4', () async {
+    final motor = await _partidaNueva();
+    final estado = motor.estado!;
+    estado.semana = 30;
+    // Simula una partida v4 a la que le faltan los datos derivados.
+    estado.competiciones = [];
+    estado.torneos = [];
+
+    final mapa = Map<String, dynamic>.from(estado.toJson());
+    mapa['version'] = 4;
+    for (final campo in [
+      'siguienteIdJugador',
+      'eventosPendientes',
+      'ultimaSemanaEvento',
+      'frecuenciaEventos',
+      'semanasInversor',
+      'semanasContactoGrande',
+      'ceremoniaPendiente',
+      'torneos',
+      'competiciones',
+      'palmares',
+      'premios',
+      'ofertas',
+      'fichajesVentana',
+      'rondasNegociacion',
+      'paresBloqueados',
+      'ingresosUltimaSemana',
+      'gastosUltimaSemana',
+      'ingresosSemanaEnCurso',
+      'gastosSemanaEnCurso',
+      'finDelJuego',
+    ]) {
+      mapa.remove(campo);
+    }
+    SharedPreferences.setMockInitialValues({clavePartida: jsonEncode(mapa)});
+
+    final cargado = MotorJuego(semilla: _semilla);
+    expect(await cargado.cargar(), ResultadoCarga.ok);
+
+    // 1) Las ligas se regeneran.
+    expect(cargado.estado!.competiciones, isNotEmpty);
+    // 2) Cada equipo vuelve a tener sus 5 titulares.
+    for (final equipo in cargado.estado!.equipos) {
+      final titulares = cargado.estado!.jugadores
+          .where((j) => j.equipoId == equipo.id && !j.suplente)
+          .map((j) => j.rol)
+          .toSet();
+      expect(titulares, containsAll(equipo.juego.roles));
+    }
+    // 3) El Torneo de Mitad de la temporada en curso se reconstruye porque
+    //    la semana 30 ya pasó de las semanas 21–22.
+    final mitades = cargado.estado!.torneos.where(
+      (t) => t.temporada == 1 && t.tipo.name == 'mitad',
+    );
+    expect(mitades, hasLength(4));
+
+    // 4) El original migrado queda como copia .bak antes de repararlo.
+    final respaldo = File('${carpeta.path}/partida_esports_agent.json.bak');
+    expect(await respaldo.exists(), isTrue);
+    final original = jsonDecode(await respaldo.readAsString());
+    expect(original['version'], 4);
+  });
 
   test('migra una partida antigua de shared_preferences al archivo', () async {
     final motor = await _partidaNueva();

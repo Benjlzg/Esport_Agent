@@ -37,6 +37,14 @@ class EventosService {
       opcion: opcion,
     );
     motor.agregarNoticia(resultado.noticia, resultado.tipoNoticia);
+    // Los ingresos y costos del evento cuentan en el resumen de la semana
+    // (M4), igual que los traspasos y las renovaciones.
+    if (resultado.ingresoCobrado > 0) {
+      motor.registrarIngreso(resultado.ingresoCobrado);
+    }
+    if (resultado.costoCobrado > 0) {
+      motor.registrarGasto(resultado.costoCobrado);
+    }
     // Un evento puede mover al jugador de equipo/rol, liberarlo o retirarlo.
     // Se reconstruyen los índices siempre para que la ficha y el mercado no
     // trabajen con datos viejos.

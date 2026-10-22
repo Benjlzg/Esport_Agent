@@ -103,7 +103,7 @@ class _PantallaCeremoniaPremiosState extends State<PantallaCeremoniaPremios> {
     final esAgente = premio.categoria == CategoriaPremio.agenteDelAnio;
     final ganador = esAgente
         ? (premio.nombreAgente ?? 'Tu agencia')
-        : (jugador?.nick ?? '—');
+        : (jugador?.nick ?? premio.nombreJugador ?? '—');
 
     return Padding(
       padding: const EdgeInsets.all(24),

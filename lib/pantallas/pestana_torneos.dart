@@ -252,31 +252,11 @@ class _PestanaTorneosState extends State<PestanaTorneos> {
   }
 
   /// Tabla resumida de un grupo (puntos y diferencia de mapas).
+  ///
+  /// El cálculo vive en `torneos.dart` y lo comparte con la clasificación,
+  /// así la pantalla no puede mostrar una tabla distinta de la real.
   Widget _tablaGrupo(Torneo torneo, String grupo) {
-    final etapa = 'Grupo $grupo';
-    final ids = torneo.grupos[grupo] ?? const <String>[];
-    final puntos = <String, int>{for (final id in ids) id: 0};
-    final dif = <String, int>{for (final id in ids) id: 0};
-    for (final r in torneo.todosLosResultados.where((r) => r.etapa == etapa)) {
-      if (!puntos.containsKey(r.localId) ||
-          !puntos.containsKey(r.visitanteId)) {
-        continue;
-      }
-      if (r.ganadorId == r.localId) {
-        puntos[r.localId] = puntos[r.localId]! + puntosVictoria;
-      } else {
-        puntos[r.visitanteId] = puntos[r.visitanteId]! + puntosVictoria;
-      }
-      dif[r.localId] = dif[r.localId]! + (r.mapasLocal - r.mapasVisitante);
-      dif[r.visitanteId] =
-          dif[r.visitanteId]! + (r.mapasVisitante - r.mapasLocal);
-    }
-    final orden = ids.toList()
-      ..sort((a, b) {
-        final porPuntos = puntos[b]!.compareTo(puntos[a]!);
-        if (porPuntos != 0) return porPuntos;
-        return dif[b]!.compareTo(dif[a]!);
-      });
+    final tabla = tablaGrupo(torneo, grupo);
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
@@ -291,20 +271,21 @@ class _PestanaTorneosState extends State<PestanaTorneos> {
               fontWeight: FontWeight.bold,
             ),
           ),
-          for (final id in orden)
+          for (final fila in tabla)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 2),
               child: Row(
                 children: [
-                  if (widget.motor.equipoPorId(id) != null)
+                  if (widget.motor.equipoPorId(fila.equipoId) != null)
                     EscudoEquipo(
-                      equipo: widget.motor.equipoPorId(id)!,
+                      equipo: widget.motor.equipoPorId(fila.equipoId)!,
                       tamano: 22,
                     ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      widget.motor.equipoPorId(id)?.nombre ?? id,
+                      widget.motor.equipoPorId(fila.equipoId)?.nombre ??
+                          fila.equipoId,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         color: AppColores.textoPrincipal,
@@ -313,7 +294,9 @@ class _PestanaTorneosState extends State<PestanaTorneos> {
                     ),
                   ),
                   Text(
-                    '${puntos[id]} pts · ${dif[id]! >= 0 ? '+' : ''}${dif[id]}',
+                    '${fila.puntos} pts · '
+                    '${fila.diferenciaMapas >= 0 ? '+' : ''}'
+                    '${fila.diferenciaMapas}',
                     style: const TextStyle(
                       color: AppColores.textoSecundario,
                       fontSize: 12,

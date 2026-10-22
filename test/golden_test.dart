@@ -259,6 +259,9 @@ Future<MotorJuego> _prepararBase() async {
     await avanzarSemanaSimulada(motor);
   }
   await resolverEventosAutomaticos(motor);
+  // La ceremonia tiene su propia captura. Si quedara pendiente, la pantalla
+  // principal la abriría al entrar (M5) y taparía el resto de capturas.
+  motor.estado!.ceremoniaPendiente = false;
   return motor;
 }
 

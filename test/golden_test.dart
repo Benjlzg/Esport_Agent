@@ -28,6 +28,7 @@ import 'package:esport_agent/pantallas/pantalla_principal.dart';
 import 'package:esport_agent/tema/tema_app.dart';
 
 import 'apoyo/entorno_simulacion.dart';
+import 'apoyo/fuentes.dart';
 
 const Size _tamanoLogico = Size(390, 844);
 const double _densidad = 2.0;
@@ -43,7 +44,7 @@ void main() {
   setUpAll(() async {
     SharedPreferences.setMockInitialValues({});
     Directory('../capturas').createSync(recursive: true);
-    await _cargarFuentes();
+    await cargarFuentesDePrueba();
     _base = await _prepararBase();
     _conEvento = await _prepararEvento();
     _conOferta = await _prepararOferta();
@@ -317,67 +318,4 @@ Future<MotorJuego> _prepararCeremonia() async {
   }
   await resolverEventosAutomaticos(motor);
   return motor;
-}
-
-/// Carga las fuentes reales (Roboto y MaterialIcons) del SDK si existen.
-Future<void> _cargarFuentes() async {
-  final carpeta = _carpetaFuentes();
-  if (carpeta == null) {
-    // ignore: avoid_print
-    print(
-      'golden_test: no se encontraron las fuentes del SDK; se usan las '
-      'fuentes de pruebas.',
-    );
-    return;
-  }
-
-  final material = File('${carpeta.path}/MaterialIcons-Regular.otf');
-  if (material.existsSync()) {
-    final loader = FontLoader('MaterialIcons')..addFont(_bytes(material));
-    await loader.load();
-  }
-
-  final familias = {
-    'Roboto': ['Roboto-Regular.ttf', 'Roboto-Bold.ttf', 'Roboto-Medium.ttf'],
-  };
-  for (final entrada in familias.entries) {
-    final cargador = FontLoader(entrada.key);
-    var encontrada = false;
-    for (final archivo in entrada.value) {
-      final f = File('${carpeta.path}/$archivo');
-      if (f.existsSync()) {
-        cargador.addFont(_bytes(f));
-        encontrada = true;
-      }
-    }
-    if (encontrada) await cargador.load();
-  }
-}
-
-Future<ByteData> _bytes(File archivo) async {
-  final contenido = await archivo.readAsBytes();
-  return ByteData.view(contenido.buffer);
-}
-
-/// Busca la carpeta `material_fonts` del SDK de Flutter.
-Directory? _carpetaFuentes() {
-  final candidatos = <String>[
-    if (Platform.environment['FLUTTER_ROOT'] != null)
-      '${Platform.environment['FLUTTER_ROOT']}/bin/cache/artifacts/material_fonts',
-    '/snap/flutter/common/flutter/bin/cache/artifacts/material_fonts',
-  ];
-
-  // Sube desde el ejecutable de pruebas buscando la carpeta del SDK.
-  var dir = File(Platform.resolvedExecutable).parent;
-  for (var i = 0; i < 8; i++) {
-    candidatos.add('${dir.path}/bin/cache/artifacts/material_fonts');
-    candidatos.add('${dir.path}/artifacts/material_fonts');
-    dir = dir.parent;
-  }
-
-  for (final ruta in candidatos) {
-    final d = Directory(ruta);
-    if (d.existsSync()) return d;
-  }
-  return null;
 }

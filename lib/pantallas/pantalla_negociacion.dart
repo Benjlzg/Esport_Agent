@@ -204,13 +204,19 @@ class _PantallaNegociacionState extends State<PantallaNegociacion> {
           // Elegir equipo (solo del mismo videojuego).
           DropdownButtonFormField<Equipo>(
             initialValue: _equipo,
+            // Ocupa todo el ancho y recorta con puntos suspensivos los nombres
+            // largos, para que no se salgan en pantallas estrechas.
+            isExpanded: true,
             dropdownColor: AppColores.superficie,
             decoration: const InputDecoration(labelText: 'Equipo interesado'),
             items: equipos
                 .map(
                   (e) => DropdownMenuItem(
                     value: e,
-                    child: Text('${e.nombre} (Prestigio ${e.prestigio})'),
+                    child: Text(
+                      '${e.nombre} (Prestigio ${e.prestigio})',
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
                 )
                 .toList(),

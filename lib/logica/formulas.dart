@@ -317,7 +317,7 @@ int formaEstrellas(double promedioNotas) {
   return 1;
 }
 
-/// Estrellas a partir de las últimas notas. Sin partidos recientes = 3★.
+/// Estrellas a partir de las últimas notas. Sin partidos recientes = 3 estrellas.
 int estrellasDeNotas(List<double> ultimasNotas) {
   if (ultimasNotas.isEmpty) return formaNeutra;
   final promedio = ultimasNotas.reduce((a, b) => a + b) / ultimasNotas.length;

@@ -166,11 +166,24 @@ Se implementó solo la sección **C (interfaz)** de `CORRECCIONES_2_5.md`. La se
 - **C7 — Ofrecer un jugador:** el precio pedido se rellena con el valor de mercado y se preselecciona el primer equipo interesado (y no bloqueado). Si no hay interesados, el precio sigue precargado.
 - **C8 — Semanas de las ofertas:** el "3" de la captura venía del fixture de `golden_test.dart`; ahora usa **2**. Además, una oferta creada en la semana actual ya no descuenta una semana en el mismo avance, así que el agente dispone realmente de las 2 semanas prometidas. Prueba nueva en `test/mercado_test.dart`.
 
+### Revisión y pruebas de interfaz (2026-10-21)
+
+- Nuevo `test/interfaz_test.dart` con **7 pruebas** que cubren C1–C7:
+  - C1: a **320 px** de ancho, "Calendario", "Ligas" y "Torneos" ocupan una sola línea en el `SegmentedButton`.
+  - C2: Resumen, Mi agencia, Mercado, Equipos, Calendario y Ligas reservan exactamente `margenBotonAvanzarSemana` (**100 px**) al final de su lista.
+  - C3: Mercado, Equipos y Ligas usan `Wrap` y "Dota 2" aparece completo a 320 px.
+  - C4: recorre todo `lib/` y falla si aparece un emoji; se cambió un `★` que quedaba en un comentario de `formulas.dart`.
+  - C5: Ligas abre con la 1ª División seleccionada y sin el mensaje de "elige un videojuego...".
+  - C6: el círculo de iniciales de un equipo negro tiene borde `#BDBDBD`.
+  - C7: la negociación abre con el valor de mercado en el precio y el primer equipo interesado seleccionado, también a 320 px.
+- **C7 más robusto:** el desplegable de equipo usa `isExpanded: true` y recorta con puntos suspensivos los nombres largos, para que no se desborde en pantallas estrechas.
+- Se extrajo la carga de fuentes reales del SDK a `test/apoyo/fuentes.dart`, compartida con `golden_test.dart`. Sin Roboto/MaterialIcons, la fuente de pruebas hace que los textos parezcan más anchos y las pruebas de 320 px darían falsos positivos.
+
 ### Verificación
 
 - `flutter analyze` → **No issues found!**
-- `flutter test` → **55 pasan, 14 fallan y 2 saltan** (las `lento`). Los 14 fallos son únicamente las comparaciones de `test/golden_test.dart`, porque las imágenes de `capturas/` siguen mostrando la interfaz anterior. **No se regeneraron** por instrucción expresa.
-- Las 51 pruebas de lógica y de widgets pasan, incluidas las nuevas de ofertas. No se ejecutaron `balance_test.dart` ni `robot_test.dart`.
+- `flutter test` → **69 pasan, 14 fallan y 2 saltan** (las `lento`). Los 14 fallos son únicamente las comparaciones de `test/golden_test.dart`, porque las imágenes de `capturas/` siguen mostrando la interfaz anterior. **No se regeneraron** por instrucción expresa.
+- Las **69 pruebas restantes** pasan, incluidas las 7 nuevas de `test/interfaz_test.dart` y las de ofertas. No se ejecutaron `balance_test.dart` ni `robot_test.dart`.
 - `versionFormato` sigue en **6** y la sección C no añade campos al guardado.
 
 ### Pendiente

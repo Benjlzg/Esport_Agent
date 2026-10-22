@@ -21,13 +21,64 @@ double puntajeFichaje(Jugador j) {
 }
 
 /// El titular (no suplente) más débil del equipo, o null si no tiene.
-Jugador? titularMasDebil(Equipo equipo, List<Jugador> jugadores) {
+///
+/// [titularesPorRol] es el índice del equipo (rol → titular). Si se pasa, no
+/// hace falta recorrer la lista de todos los jugadores (corrección I9).
+Jugador? titularMasDebil(
+  Equipo equipo,
+  List<Jugador> jugadores, {
+  Map<String, Jugador>? titularesPorRol,
+}) {
+  if (titularesPorRol != null) {
+    Jugador? debil;
+    for (final j in titularesPorRol.values) {
+      if (debil == null || j.habilidad < debil.habilidad) debil = j;
+    }
+    return debil;
+  }
   Jugador? debil;
   for (final j in jugadores) {
     if (j.equipoId != equipo.id || j.suplente) continue;
     if (debil == null || j.habilidad < debil.habilidad) debil = j;
   }
   return debil;
+}
+
+/// Construye el índice equipo → (rol → titular) en una sola pasada.
+///
+/// Es la estructura que evita el bucle O(equipos × roles × jugadores) de la
+/// red de seguridad del mercado (corrección I9).
+Map<String, Map<String, Jugador>> titularesPorEquipoRol(
+  Map<String, List<Jugador>> porEquipo,
+) {
+  final indice = <String, Map<String, Jugador>>{};
+  for (final entrada in porEquipo.entries) {
+    indice[entrada.key] = _titularesDeLista(entrada.value);
+  }
+  return indice;
+}
+
+Map<String, Jugador> _titularesDeLista(List<Jugador> plantilla) {
+  final porRol = <String, Jugador>{};
+  for (final jugador in plantilla) {
+    if (jugador.suplente) continue;
+    final actual = porRol[jugador.rol];
+    if (actual == null || jugador.habilidad > actual.habilidad) {
+      porRol[jugador.rol] = jugador;
+    }
+  }
+  return porRol;
+}
+
+/// Recalcula el índice de titulares de un equipo tras un movimiento.
+void _actualizarTitularesDeEquipo(
+  Map<String, Map<String, Jugador>> titulares,
+  Map<String, List<Jugador>> porEquipo,
+  String equipoId,
+) {
+  titulares[equipoId] = _titularesDeLista(
+    porEquipo[equipoId] ?? const <Jugador>[],
+  );
 }
 
 /// Agrupa a los jugadores por videojuego y rol. La clave es "juego|rol".
@@ -253,6 +304,10 @@ ResultadoMercadoIA procesarMercadoIA({
 
   // Orden aleatorio: antes los equipos más fuertes (que van primero en la
   // lista) elegían siempre los mejores agentes libres y aumentaban su ventaja.
+  //
+  // El índice de titulares se construye una sola vez después del anti-dinastía
+  // y se actualiza con cada traspaso (corrección I9).
+  final titulares = titularesPorEquipoRol(porEquipo);
   final equiposEnOrden = List<Equipo>.from(estado.equipos)..shuffle(rnd);
   for (final equipo in equiposEnOrden) {
     final usados = estado.fichajesVentana[equipo.id] ?? 0;
@@ -262,7 +317,11 @@ ResultadoMercadoIA procesarMercadoIA({
     if (rnd.nextDouble() >= probIntentarFichaje) continue;
 
     final roster = porEquipo[equipo.id] ?? const <Jugador>[];
-    final debil = titularMasDebil(equipo, roster);
+    final debil = titularMasDebil(
+      equipo,
+      roster,
+      titularesPorRol: titulares[equipo.id],
+    );
     if (debil == null) continue;
 
     final umbral = debil.habilidad + diferenciaMinimaFichaje;
@@ -321,10 +380,12 @@ ResultadoMercadoIA procesarMercadoIA({
     debil.suplente = true;
     final liberados = recortarSuplentes(estado, equipo);
     for (final j in liberados) {
+      porEquipo[equipo.id]?.removeWhere((x) => x.id == j.id);
       noticias.add(
         '${j.nick} quedó libre para hacer sitio en ${equipo.nombre}.',
       );
     }
+    _actualizarTitularesDeEquipo(titulares, porEquipo, equipo.id);
 
     // Se cierra el traspaso. El candidato ya se filtró por presupuesto.
     equipo.presupuesto -= elegido.valorMercado;
@@ -334,6 +395,11 @@ ResultadoMercadoIA procesarMercadoIA({
     if (clubVendedor != null && clubVendedor.id != equipo.id) {
       clubVendedor.presupuesto += elegido.valorMercado;
     }
+    // El jugador cambia de lista de equipo también en el índice local.
+    if (origenId != null) {
+      porEquipo[origenId]?.removeWhere((j) => j.id == elegido.id);
+    }
+    porEquipo.putIfAbsent(equipo.id, () => <Jugador>[]).add(elegido);
     elegido.equipoId = equipo.id;
     elegido.suplente = false;
     elegido.semanasContrato = 52 + rnd.nextInt(53);
@@ -344,6 +410,10 @@ ResultadoMercadoIA procesarMercadoIA({
     elegido.temporadaUltimoTraspaso = estado.temporada;
     estado.fichajesVentana[equipo.id] = usados + 1;
     fichajesCerrados++;
+    _actualizarTitularesDeEquipo(titulares, porEquipo, equipo.id);
+    if (origenId != null) {
+      _actualizarTitularesDeEquipo(titulares, porEquipo, origenId);
+    }
 
     // Reponer el hueco dejado en el equipo de origen.
     if (origenId != null && origenId != equipo.id) {
@@ -357,12 +427,14 @@ ResultadoMercadoIA procesarMercadoIA({
       );
       if (reemplazo != null) {
         indiceJugadores[reemplazo.id] = reemplazo;
+        porEquipo.putIfAbsent(origenId, () => <Jugador>[]).add(reemplazo);
         porJuegoRol
             .putIfAbsent(
               '${reemplazo.juego.name}|${reemplazo.rol}',
               () => <Jugador>[],
             )
             .add(reemplazo);
+        _actualizarTitularesDeEquipo(titulares, porEquipo, origenId);
       }
     }
 
@@ -384,6 +456,8 @@ ResultadoMercadoIA procesarMercadoIA({
     rnd: rnd,
     nuevoIdJugador: nuevoIdJugador,
     indiceJugadores: indiceJugadores,
+    titulares: titulares,
+    porEquipo: porEquipo,
   );
 
   return ResultadoMercadoIA(
@@ -402,13 +476,15 @@ void _garantizarTitulares({
   required Random rnd,
   required String Function() nuevoIdJugador,
   required Map<String, Jugador> indiceJugadores,
+  required Map<String, Map<String, Jugador>> titulares,
+  required Map<String, List<Jugador>> porEquipo,
 }) {
   for (final equipo in estado.equipos) {
+    final porRol = titulares[equipo.id] ?? const <String, Jugador>{};
     for (final rol in equipo.juego.roles) {
-      final tieneTitular = estado.jugadores.any(
-        (j) => j.equipoId == equipo.id && j.rol == rol && !j.suplente,
-      );
-      if (tieneTitular) continue;
+      // Antes se recorría toda la lista de jugadores para cada equipo y rol.
+      // Ahora el índice dice directamente si el rol tiene titular (I9).
+      if (porRol[rol] != null) continue;
       final reemplazo = generarReemplazoSiFalta(
         estado: estado,
         indiceEquipos: indiceEquipos,
@@ -417,7 +493,11 @@ void _garantizarTitulares({
         equipoId: equipo.id,
         rol: rol,
       );
-      if (reemplazo != null) indiceJugadores[reemplazo.id] = reemplazo;
+      if (reemplazo != null) {
+        indiceJugadores[reemplazo.id] = reemplazo;
+        porEquipo.putIfAbsent(equipo.id, () => <Jugador>[]).add(reemplazo);
+        _actualizarTitularesDeEquipo(titulares, porEquipo, equipo.id);
+      }
     }
   }
 }

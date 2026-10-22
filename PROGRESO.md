@@ -515,5 +515,67 @@ Se corrigieron los problemas importantes **I2, I4, I5, I6, I7, I8, I12 e I15**, 
 - **B4 — Fase 4:** el presupuesto de los equipos se sigue reiniciando cada temporada; esta corrección solo acredita al vendedor durante la temporada.
 - El resto de problemas menores de `AUDITORIA.md` (M1–M19) sigue pendiente.
 
+## Auditoría — guardado, rendimiento y motor (I3, I9, I10, I11; terminada, 2026-10-22)
+
+Se corrigieron los cuatro problemas indicados de `AUDITORIA.md`. La API pública que usan las pantallas no cambió y `versionFormato` sigue en **8**.
+
+### I3 — Guardado en archivo propio, atómico y con copia `.bak`
+
+- Nuevo `lib/servicios/repositorio_partida.dart`:
+  - La partida se guarda en `partida_esports_agent.json` dentro de la carpeta privada de la app que devuelve **path_provider** (`getApplicationSupportDirectory`).
+  - **Escritura atómica:** primero se escribe `partida_esports_agent.json.tmp` con `flush: true` y después se renombra sobre el principal (mismo directorio).
+  - Antes de reemplazar el principal se copia el guardado anterior a `partida_esports_agent.json.bak`.
+  - Si el principal está dañado, se carga el `.bak` y se repara el principal.
+  - `borrarPartida()` elimina principal, respaldo, temporales y la clave antigua.
+- **Migración automática:** si no hay archivo y existe la clave `partida_esports_agent` en `shared_preferences`, se lee, se valida y se guarda en el archivo nuevo; solo entonces se borra la clave antigua. Las partidas v3–v8 siguen cargando.
+- `lib/servicios/guardado.dart` conserva las funciones históricas `guardarPartida`, `cargarPartida`, `existePartida` y `borrarPartida`, que ahora delegan en el repositorio.
+- **Paquete añadido:** `path_provider` (el usuario lo pidió expresamente). Es el único paquete nuevo.
+- En `flutter test` sin plugins, el repositorio usa un almacén en memoria para que las pruebas de widgets no dependan de E/S real. Las pruebas de archivo pasan una carpeta temporal explícita.
+- `resolverEventosInformativos` guarda **una sola vez al final**, no una vez por evento (mejora del punto de rendimiento de I3).
+- Pruebas nuevas en `test/guardado_test.dart`: respaldo `.bak`, ausencia de `.tmp`, recuperación desde el respaldo y migración desde `shared_preferences`.
+
+### I9 — Índice de plantillas y titulares en el mercado
+
+- Nuevo `lib/logica/indices_mundo.dart` (`IndicesMundo`): jugadores/equipos por id, plantilla por equipo, titular por equipo+rol y representados por equipo.
+- `procesarMercadoIA` construye una sola vez el mapa `equipo → (rol → titular)` y lo actualiza con cada traspaso, suplente liberado y reemplazo.
+- `_garantizarTitulares` ya no hace `estado.jugadores.any(...)` por cada equipo y rol; consulta el índice.
+- `titularMasDebil` acepta el índice del equipo (se conserva la firma antigua para las pruebas y usos externos).
+- El índice local de `porEquipo` también se actualiza al mover jugadores, algo que antes quedaba desfasado dentro de la misma ventana.
+- Nueva prueba `test/rendimiento_test.dart`: 320 equipos y 2.800 jugadores, ventana de mercado por debajo de **3 s** (en la práctica, milisegundos), más una prueba de actualización del índice tras cambiar equipo y rol.
+
+### I10 — Solo se reconstruye la pestaña visible
+
+- `MotorJuego.revision` sube con cada `notifyListeners`.
+- `PantallaPrincipal` conserva las instancias de las pestañas y solo genera de nuevo la activa; las demás no se reconstruyen en cada notificación. Su estado (filtros, scroll) se conserva porque siguen en el `IndexedStack`.
+- `PestanaMercado` cachea la lista filtrada/ordenada y la invalida solo si cambia `revision` o algún filtro.
+- `proximosPartidosDeMisJugadores` usa `IndicesMundo.representadosPorEquipo`, así que ya no recorre los ~2.800 jugadores por cada competición.
+
+### I11 — Servicios extraídos de `motor_juego.dart`
+
+`MotorJuego` sigue siendo la fachada `ChangeNotifier` y mantiene los mismos métodos públicos; las pantallas no se tocaron. La lógica se repartió en:
+
+- `lib/logica/indices_mundo.dart` — índices derivados del estado.
+- `lib/servicios/repositorio_partida.dart` — persistencia.
+- `lib/logica/servicios/mercado_service.dart` — reclutar, ofrecer, contraofertas, ofertas, renovaciones, mercado IA y anti-dinastía.
+- `lib/logica/servicios/temporada_service.dart` — avance semanal, contratos, progresión, suplentes, nueva temporada, ascensos, retiradas y jóvenes.
+- `lib/logica/servicios/competicion_service.dart` — ligas, playoffs, torneos, palmarés y premios.
+- `lib/logica/servicios/eventos_service.dart` — generación, resolución, eventos informativos y frecuencia.
+- `lib/logica/eventos_catalogo.dart` — catálogo de eventos separado del motor; `eventos.dart` lo reexporta para no romper importaciones.
+
+Tamaños resultantes: `motor_juego.dart` pasó de **1.910 a 626 líneas**; `eventos.dart` de **1.402 a 304**, con el catálogo en un archivo aparte de 1.114 líneas.
+
+### Verificación
+
+- `flutter analyze` → **No issues found!**
+- `flutter test` → **154 pasan, 2 saltan** (las pruebas `@Tags(['lento'])`).
+- Capturas de `capturas/` regeneradas con `flutter test test/golden_test.dart --update-goldens`: el índice de mercado cambia algunas decisiones de la IA y, por tanto, el fixture determinista.
+- Pruebas lentas ejecutadas aparte: `flutter test --tags lento --run-skipped test/balance_test.dart test/robot_test.dart` → **2 pasan**, sin violaciones duras. El `INFORME_BALANCE.md` regenerado no se incluye en este commit para no mezclar cambios de balance; como observación, el dominio máximo subió a **8 de 10** (criterio ≤ 6) y el guardado final quedó en **3.660 KB**.
+
+### Pendiente
+
+- Revisar el efecto de I9 en el dominio por liga (el informe regenerado marcó 8 de 10) y decidir si hace falta un ajuste de balance en la Fase 4.
+- **B4 — Fase 4:** el presupuesto de los equipos se sigue reiniciando cada temporada.
+- El resto de problemas menores de `AUDITORIA.md` (M1–M19) sigue pendiente.
+
 
 

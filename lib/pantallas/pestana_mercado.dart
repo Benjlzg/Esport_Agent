@@ -26,7 +26,25 @@ class _PestanaMercadoState extends State<PestanaMercado> {
   OrdenMercado _orden = OrdenMercado.valor;
   bool _soloLibres = true;
 
+  // Caché de la lista filtrada: evita recorrer y ordenar miles de jugadores
+  // en cada reconstrucción si el motor y los filtros no cambiaron (I10).
+  int _revisionCache = -1;
+  Juego? _juegoCache;
+  String? _regionCache;
+  OrdenMercado? _ordenCache;
+  bool? _soloLibresCache;
+  List<Jugador>? _listaCache;
+
   List<Jugador> _filtrar() {
+    if (_revisionCache == widget.motor.revision &&
+        _juegoCache == _juego &&
+        _regionCache == _region &&
+        _ordenCache == _orden &&
+        _soloLibresCache == _soloLibres &&
+        _listaCache != null) {
+      return _listaCache!;
+    }
+
     var lista = widget.motor.jugadores.where((j) {
       if (_juego != null && j.juego != _juego) return false;
       if (_soloLibres && j.equipoId != null) return false;
@@ -49,6 +67,13 @@ class _PestanaMercadoState extends State<PestanaMercado> {
       case OrdenMercado.edad:
         lista.sort((a, b) => a.edad.compareTo(b.edad));
     }
+
+    _revisionCache = widget.motor.revision;
+    _juegoCache = _juego;
+    _regionCache = _region;
+    _ordenCache = _orden;
+    _soloLibresCache = _soloLibres;
+    _listaCache = lista;
     return lista;
   }
 

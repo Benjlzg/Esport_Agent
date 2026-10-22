@@ -28,17 +28,40 @@ class PantallaPrincipal extends StatefulWidget {
 class _PantallaPrincipalState extends State<PantallaPrincipal> {
   int _indice = 0;
 
+  /// Widgets de las pestañas. Solo se reconstruye la pestaña visible; las
+  /// demás conservan su última versión y su estado (corrección I10).
+  final List<Widget> _pestanas = List<Widget>.filled(
+    5,
+    const SizedBox.shrink(),
+  );
+
   /// Evita abrir dos veces la misma tanda de eventos.
   bool _mostrandoEventos = false;
 
   @override
   void initState() {
     super.initState();
+    _pestanas[0] = _crearPestana(0);
     // Al entrar (por ejemplo al pulsar "Continuar"), muestra los eventos que
     // se guardaron pendientes de la sesión anterior.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _mostrarEventosPendientes();
     });
+  }
+
+  Widget _crearPestana(int indice) {
+    switch (indice) {
+      case 0:
+        return PestanaResumen(motor: widget.motor);
+      case 1:
+        return PestanaMisJugadores(motor: widget.motor);
+      case 2:
+        return PestanaMercado(motor: widget.motor);
+      case 3:
+        return PestanaEquipos(motor: widget.motor);
+      default:
+        return PantallaCompeticion(motor: widget.motor);
+    }
   }
 
   @override
@@ -56,13 +79,10 @@ class _PantallaPrincipalState extends State<PantallaPrincipal> {
           return _PantallaFinDelJuego(motor: widget.motor);
         }
 
-        final pestanas = [
-          PestanaResumen(motor: widget.motor),
-          PestanaMisJugadores(motor: widget.motor),
-          PestanaMercado(motor: widget.motor),
-          PestanaEquipos(motor: widget.motor),
-          PantallaCompeticion(motor: widget.motor),
-        ];
+        // Solo se genera de nuevo la pestaña visible. Las demás son las
+        // mismas instancias de la build anterior, así Flutter no las vuelve
+        // a construir en cada notificación (I10).
+        _pestanas[_indice] = _crearPestana(_indice);
 
         return Scaffold(
           body: SafeArea(
@@ -73,7 +93,7 @@ class _PantallaPrincipalState extends State<PantallaPrincipal> {
                   onAvanzarDiez: _avanzarDiezSemanas,
                 ),
                 Expanded(
-                  child: IndexedStack(index: _indice, children: pestanas),
+                  child: IndexedStack(index: _indice, children: _pestanas),
                 ),
               ],
             ),

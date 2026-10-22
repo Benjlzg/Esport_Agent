@@ -2,6 +2,7 @@
 // después de cargar una partida deben ser únicos, y las partidas v3–v7 sin
 // el contador guardado deben seguir cargando.
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -47,8 +48,16 @@ void _anadirGenerados(EstadoPartida estado) {
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  setUp(() {
+  late Directory carpeta;
+
+  setUp(() async {
     SharedPreferences.setMockInitialValues({});
+    carpeta = await Directory.systemTemp.createTemp('esport_agent_guardado_');
+    repositorioPartida = RepositorioPartida(directorio: () async => carpeta);
+  });
+
+  tearDown(() async {
+    if (await carpeta.exists()) await carpeta.delete(recursive: true);
   });
 
   test(
@@ -125,13 +134,11 @@ void main() {
         mapa.remove(campo);
       }
       // El campo de semanas de representación también es nuevo (I1).
-      mapa['jugadores'] = (mapa['jugadores'] as List)
-          .map((j) {
-            final jugador = Map<String, dynamic>.from(j as Map);
-            jugador.remove('semanasRepresentado');
-            return jugador;
-          })
-          .toList();
+      mapa['jugadores'] = (mapa['jugadores'] as List).map((j) {
+        final jugador = Map<String, dynamic>.from(j as Map);
+        jugador.remove('semanasRepresentado');
+        return jugador;
+      }).toList();
       SharedPreferences.setMockInitialValues({clavePartida: jsonEncode(mapa)});
 
       final cargado = MotorJuego(semilla: _semilla);
@@ -151,5 +158,74 @@ void main() {
 
     expect(versionFormato, 8);
     expect(versionMinimaCompatible, 3);
+  });
+
+  test('guarda en un archivo con respaldo .bak y sin temporales', () async {
+    final motor = await _partidaNueva();
+    // Carpeta nueva para que el primer guardado de este test no encuentre un
+    // archivo anterior de `nuevaPartida`.
+    final carpetaNueva = await Directory('${carpeta.path}/primera')
+        .create(recursive: true);
+    repositorioPartida = RepositorioPartida(
+      directorio: () async => carpetaNueva,
+    );
+    final principal = File('${carpetaNueva.path}/partida_esports_agent.json');
+    final respaldo = File('${principal.path}.bak');
+
+    await guardarPartida(motor.estado!);
+
+    expect(await principal.exists(), isTrue);
+    expect(await File('${principal.path}.tmp').exists(), isFalse);
+    // Todavía no hay copia porque es el primer guardado de este test.
+    expect(await respaldo.exists(), isFalse);
+
+    motor.agente.dinero = 123456;
+    await guardarPartida(motor.estado!);
+
+    expect(await respaldo.exists(), isTrue);
+    expect(await File('${principal.path}.tmp').exists(), isFalse);
+
+    final carga = await cargarPartida();
+    expect(carga.resultado, ResultadoCarga.ok);
+    expect(carga.estado!.agente.dinero, 123456);
+  });
+
+  test(
+    'recupera la partida desde el respaldo si el principal está dañado',
+    () async {
+      final motor = await _partidaNueva();
+      motor.agente.dinero = 111111;
+      await guardarPartida(motor.estado!);
+      motor.agente.dinero = 222222;
+      await guardarPartida(motor.estado!);
+
+      final principal = File('${carpeta.path}/partida_esports_agent.json');
+      await principal.writeAsString('esto no es json');
+
+      final carga = await cargarPartida();
+      expect(carga.resultado, ResultadoCarga.ok);
+      // El respaldo es el guardado anterior, con 111.111.
+      expect(carga.estado!.agente.dinero, 111111);
+      // Además, el principal se repara con el contenido del respaldo.
+      final reparado = jsonDecode(await principal.readAsString());
+      expect(reparado['agente']['dinero'], 111111);
+    },
+  );
+
+  test('migra una partida antigua de shared_preferences al archivo', () async {
+    final motor = await _partidaNueva();
+    motor.agente.dinero = 987654;
+    final texto = jsonEncode(motor.estado!.toJson());
+    SharedPreferences.setMockInitialValues({clavePartida: texto});
+
+    final carga = await cargarPartida();
+    expect(carga.resultado, ResultadoCarga.ok);
+    expect(carga.estado!.agente.dinero, 987654);
+
+    final principal = File('${carpeta.path}/partida_esports_agent.json');
+    expect(await principal.exists(), isTrue);
+    // La clave antigua se elimina después de migrar.
+    final prefs = await SharedPreferences.getInstance();
+    expect(prefs.containsKey(clavePartida), isFalse);
   });
 }

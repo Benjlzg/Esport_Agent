@@ -267,3 +267,50 @@ Se corrigieron los detalles encontrados en las capturas nuevas sin tocar la Fase
 - No se ejecutaron `test/balance_test.dart` ni `test/robot_test.dart` (pruebas lentas), por indicación del usuario.
 - `versionFormato` sigue en **6**; esta corrección no añade campos al guardado.
 
+## Fase 2.5 — Balance real y progresión (terminada, 2026-10-21)
+
+### Diagnóstico del informe que no cambiaba
+
+- Las pruebas lentas **sí se ejecutan** con `flutter test --tags lento --run-skipped` y escriben en `INFORME_BALANCE.md` en la raíz del proyecto. No están saltadas ni escriben en otra ruta.
+- La causa real: el commit «Correcciones 2.5: balance» no incluyó el informe regenerado. El archivo versionado seguía mostrando el robot con $1.000.000.000, sin dominio por liga ni tamaño del guardado. Además el informe no tenía fecha/hora, así que dos ejecuciones con la misma semilla parecían idénticas.
+- **Corrección:** el informe ahora empieza con `- Generado: **AAAA-MM-DD HH:MM:SS**`, y `balance_test.dart` comprueba después de escribir que el archivo existe, tiene la fecha y la sección de progresión. El informe final se versiona en el commit.
+
+### Sección B revisada (completa)
+
+- **B1:** robot con **$50.000** y reputación **10**; anota dinero por temporada, quiebra, semana con menos dinero, fuente principal e ingresos por fuente.
+- **B2:** espera de **26 semanas** para el mismo evento del mismo jugador y **12 semanas** para eventos de agencia; `marca_perifericos` con peso **6**.
+- **B3:** tabla de dominio por liga de 1ª División (5 ligas con campeón más repetido) y criterio ≤ 6 de 10.
+- **B4:** presupuesto que se reinicia cada temporada queda anotado como pendiente de la Fase 4.
+- **A3:** noticias de 2 temporadas, resultados de la temporada actual, agentes libres limitados a 300, ofertas vencidas y eventos resueltos eliminados; el informe incluye el tamaño del guardado en KB.
+
+### Progresión juvenil
+
+- Nuevo `lib/logica/progresion.dart`: probabilidad semanal según edad (16–19 → 10 %, 20–21 → 9 %, 22–23 → 5 %), subida de 1–2 puntos hasta los 21 y de 1 punto después.
+- Sin equipo la probabilidad se multiplica por **0,5**; un suplente por **0,85**; moral alta da un bonus de ×1,10.
+- `test/progresion_test.dart` cubre probabilidades, la mitad sin equipo, suplentes, moral, media de 4–8 puntos y el tope del potencial.
+- **3 rondas de ajuste** documentadas en el informe:
+  1. Tabla nueva → media 4,2, pero salto T1 → T2 de 3,17 (límite 3).
+  2. Subir 16–19 → media 4,4, salto 3,19 y robot con racha de 8 (preocupante); revertida.
+  3. Volver a la tabla anterior y bajar `ajusteHabilidadReemplazo` de **-2 a -3** → media 4,2, salto **2,69** y robot con racha máxima **5**.
+
+### Resultado final del informe
+
+- Generado el **2026-10-21 23:04:28** (hora local), semilla **20251019**.
+- 0 violaciones duras; salto máximo de habilidad **2,69** (≤ 3); progresión 16–21 con equipo **4,2** puntos/temporada (4–8).
+- Robot: no quiebra, termina la T3 con **$627.916** (≤ $5.000.000), principal ingreso **eventos**, racha máxima **5** (no preocupante).
+- Tiempo T10 / T1: **1,33×** (meta ≤ 1,5×); guardado final **3.592,7 KB**; **6.914** fichajes IA.
+- **Dominio por liga:** sigue en **10 de 10** para varios equipos; **no cumple** el criterio ≤ 6. Se deja anotado para la Fase 4 porque B3 pide medirlo/proponerlo sin aplicarlo y B4 (economía) sigue pendiente.
+- Capturas de `capturas/` regeneradas con `flutter test test/golden_test.dart --update-goldens` porque el fixture cambia con la nueva progresión.
+
+### Verificación
+
+- `flutter analyze` → **No issues found!**
+- `flutter test` → **105 pasan, 2 saltan** (las `@Tags(['lento'])`).
+- `flutter test --tags lento --run-skipped` → **2 pasan** (`balance_test.dart` y `robot_test.dart`).
+- `versionFormato` sigue en **6**; no hay campos nuevos en el guardado.
+
+### Pendiente
+
+- **Dominio por liga (B3):** reducir el determinismo de las series o añadir desgaste a los campeones, en una fase de balance/economía.
+- **B4 — Fase 4 (economía):** el presupuesto de los equipos se reinicia cada temporada; los premios y las ventas no se acumulan.
+

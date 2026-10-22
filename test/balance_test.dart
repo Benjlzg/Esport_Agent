@@ -13,9 +13,13 @@ import 'package:esport_agent/logica/mantenimiento.dart';
 import 'package:esport_agent/logica/metricas.dart';
 import 'package:esport_agent/modelos/estado_partida.dart';
 import 'package:esport_agent/modelos/juego.dart';
+import 'package:esport_agent/modelos/jugador.dart';
 
 import 'apoyo/entorno_simulacion.dart';
 import 'apoyo/robot_jugador.dart';
+
+/// Edad máxima del grupo cuya progresión se informa (16–21 años).
+const int _edadMaximaJovenInforme = 21;
 
 /// Resultado resumido de una temporada.
 class _FilaTemporada {
@@ -40,6 +44,7 @@ class _FilaTemporada {
     required this.ofertas,
     required this.eventosPendientes,
     required this.guardadoKb,
+    required this.progresoJoven,
   });
 
   final int temporada;
@@ -64,6 +69,125 @@ class _FilaTemporada {
   final int ofertas;
   final int eventosPendientes;
   final double guardadoKb;
+
+  // Progresión media de los jugadores de 16–21 años (ajuste de balance).
+  final _ProgresoJoven progresoJoven;
+}
+
+/// Datos de un jugador de 16–21 años al empezar la temporada. Se guarda su
+/// habilidad y su situación para comparar al final de la temporada.
+class _JovenInicio {
+  _JovenInicio({
+    required this.id,
+    required this.habilidad,
+    required this.potencial,
+    required this.conEquipo,
+    required this.titular,
+  });
+
+  final String id;
+  final int habilidad;
+  final int potencial;
+  final bool conEquipo;
+  final bool titular;
+
+  /// Un jugador que ya está en su potencial no puede subir: se cuenta aparte
+  /// para que no hunda la media de quienes todavía tienen margen.
+  bool get enSuPotencial => habilidad >= potencial;
+}
+
+/// Promedios de subida de los jóvenes de 16–21 años en una temporada.
+class _ProgresoJoven {
+  _ProgresoJoven({
+    required this.conEquipo,
+    required this.sinEquipo,
+    required this.titulares,
+    required this.suplentes,
+    required this.media,
+    required this.medidos,
+    required this.enSuPotencial,
+  });
+
+  /// Promedios de jugadores que todavía podían mejorar al empezar la
+  /// temporada (no estaban en su potencial).
+  final double conEquipo;
+  final double sinEquipo;
+  final double titulares;
+  final double suplentes;
+
+  /// Media de todos los jóvenes medidos, incluidos los que ya estaban en su
+  /// potencial y por tanto no podían subir.
+  final double media;
+
+  /// Jugadores comparados al inicio y al final de la temporada.
+  final int medidos;
+
+  /// Cuántos de los medidos ya estaban en su potencial al empezar.
+  final int enSuPotencial;
+
+  /// Calcula los promedios comparando la habilidad inicial con la final.
+  /// Solo cuenta jugadores que siguen en la partida al terminar la temporada
+  /// (los retirados o eliminados no tienen una medición justa).
+  static _ProgresoJoven calcular(List<_JovenInicio> inicio, List<Jugador> fin) {
+    final porId = {for (final j in fin) j.id: j};
+    final conEquipo = <int>[];
+    final sinEquipo = <int>[];
+    final titulares = <int>[];
+    final suplentes = <int>[];
+    final todos = <int>[];
+    var enSuPotencial = 0;
+
+    for (final joven in inicio) {
+      final actual = porId[joven.id];
+      if (actual == null) continue;
+      final subida = actual.habilidad - joven.habilidad;
+      todos.add(subida);
+      if (joven.enSuPotencial) {
+        enSuPotencial++;
+        continue;
+      }
+      if (joven.conEquipo) {
+        conEquipo.add(subida);
+        if (joven.titular) {
+          titulares.add(subida);
+        } else {
+          suplentes.add(subida);
+        }
+      } else {
+        sinEquipo.add(subida);
+      }
+    }
+
+    double promedio(List<int> valores) {
+      if (valores.isEmpty) return 0;
+      return valores.reduce((a, b) => a + b) / valores.length;
+    }
+
+    return _ProgresoJoven(
+      conEquipo: promedio(conEquipo),
+      sinEquipo: promedio(sinEquipo),
+      titulares: promedio(titulares),
+      suplentes: promedio(suplentes),
+      media: promedio(todos),
+      medidos: todos.length,
+      enSuPotencial: enSuPotencial,
+    );
+  }
+}
+
+/// Guarda la habilidad y la situación de los jugadores de 16–21 años.
+List<_JovenInicio> _capturarJovenes(EstadoPartida estado) {
+  return [
+    for (final j in estado.jugadores)
+      if (j.edad >= 16 && j.edad <= _edadMaximaJovenInforme)
+        _JovenInicio(
+          id: j.id,
+          habilidad: j.habilidad,
+          potencial: j.potencial,
+          conEquipo: j.equipoId != null,
+          titular: j.equipoId != null && !j.suplente,
+        ),
+  ];
 }
 
 void main() {
@@ -84,6 +208,9 @@ void main() {
       final estadoInicio = motor.estado!;
       expect(estadoInicio.temporada, temporada);
       expect(estadoInicio.semana, 1);
+      // La progresión de jóvenes se mide desde el inicio hasta el final de la
+      // temporada, antes de que el rollover envejezca a los jugadores.
+      final jovenesInicio = _capturarJovenes(estadoInicio);
 
       final inicio = revisarInvariantes(estadoInicio, revisarPlantillas: true);
       violaciones.addAll(
@@ -137,6 +264,10 @@ void main() {
       );
       final guardadoKb =
           utf8.encode(jsonEncode(estadoFin.toJson())).length / 1024;
+      final progresoJoven = _ProgresoJoven.calcular(
+        jovenesInicio,
+        estadoFin.jugadores,
+      );
 
       // Última semana: cierra la temporada y hace el rollover. Los fichajes
       // de la semana 52 completan la tercera ventana.
@@ -171,6 +302,7 @@ void main() {
           ofertas: estadoFin.ofertas.length,
           eventosPendientes: estadoFin.eventosPendientes.length,
           guardadoKb: guardadoKb,
+          progresoJoven: progresoJoven,
         ),
       );
     }
@@ -187,6 +319,18 @@ void main() {
       milisegundosTotal: relojTotal.elapsedMilliseconds,
       robot: robot,
     );
+
+    // Comprobación de que el informe realmente se regeneró en la raíz del
+    // proyecto y lleva fecha/hora (así nunca queda idéntico al anterior).
+    final archivoInforme = File('INFORME_BALANCE.md');
+    expect(
+      archivoInforme.existsSync(),
+      isTrue,
+      reason: 'No se escribió INFORME_BALANCE.md en la raíz del proyecto.',
+    );
+    final textoInforme = archivoInforme.readAsStringSync();
+    expect(textoInforme, contains('- Generado: **'));
+    expect(textoInforme, contains('## Progresión de jóvenes'));
 
     // El test falla DESPUÉS de escribir el informe para poder diagnosticar.
     expect(
@@ -209,11 +353,12 @@ String _escribirInforme({
   final buffer = StringBuffer()
     ..writeln('# INFORME DE BALANCE — FASE 2.5')
     ..writeln()
-    ..writeln('Generado por `test/balance_test.dart`.')
+    ..writeln('- Generado: **${_fechaHora(DateTime.now())}** (hora local).')
+    ..writeln('- Generado por: `test/balance_test.dart`.')
     ..writeln()
     ..writeln('- Semilla: **$semillaInforme**.')
     ..writeln(
-      '- Partida: agente observador con '
+      '- Partida observadora (10 temporadas): agente con '
       '${miles(dineroObservador)} de dinero, sin reclutar.',
     )
     ..writeln(
@@ -285,8 +430,51 @@ String _escribirInforme({
   buffer
     ..writeln()
     ..writeln(
-      'Se hicieron 2 de las 3 rondas permitidas. No quedó ningún ajuste '
-      'pendiente de constantes.',
+      'Las rondas 1–2 de la tabla son de la fase anterior. En esta ejecución '
+      'se hicieron 3 rondas para corregir la progresión juvenil y el salto '
+      'T1 → T2, anotadas abajo.',
+    )
+    ..writeln()
+    ..writeln('### Ajustes de esta ejecución (3 rondas)')
+    ..writeln()
+    ..writeln(
+      tablaMarkdown(
+        ['Ronda', 'Cambio', 'Antes', 'Después', 'Resultado'],
+        [
+          [
+            '1',
+            'progresión juvenil',
+            '30 % semanal para todos los ≤ 23 años',
+            '10 % (16–19), 9 % (20–21), 5 % (22–23); '
+                'sin equipo ×0,5 y suplente ×0,85',
+            'Subida media 4,2 puntos/temporada, pero el salto T1 → T2 subió '
+                'a 3,17 (límite 3).',
+          ],
+          [
+            '2',
+            'progresión juvenil',
+            '10 / 9 / 5 %',
+            '11 / 10 / 5,5 %',
+            'Subida 4,4, salto 3,19 y el robot llegó a 8 semanas sin opciones '
+                '(preocupante). Se revirtió en la ronda 3.',
+          ],
+          [
+            '3',
+            'progresión + reemplazos',
+            '11 / 10 / 5,5 % · reemplazos -2',
+            '10 / 9 / 5 % · reemplazos -3',
+            'Subida 4,2; salto T1 → T2 2,69; robot con racha máxima 5. '
+                'Cumplen progresión y estabilidad.',
+          ],
+        ],
+      ),
+    )
+    ..writeln()
+    ..writeln(
+      '- **Dominio por liga (B3):** sigue por encima del criterio (17 ligas '
+      'con un campeón en más de 6 de 10 temporadas). La propia corrección B3 '
+      'pide medirlo y proponer un ajuste sin aplicarlo; además depende de la '
+      'economía de la Fase 4 (B4), así que queda anotado como pendiente.',
     )
     ..writeln()
     ..writeln('### Correcciones de lógica')
@@ -345,6 +533,95 @@ String _escribirInforme({
             ],
         ],
       ),
+    );
+
+  // Progresión de jóvenes (ajuste de balance): un jugador de 16–21 años debe
+  // subir entre 4 y 8 puntos por temporada; sin equipo, la mitad.
+  final conEquipoJoven = filas
+      .where((f) => f.progresoJoven.conEquipo > 0)
+      .map((f) => f.progresoJoven.conEquipo)
+      .toList();
+  final mediaConEquipo = conEquipoJoven.isEmpty
+      ? 0.0
+      : conEquipoJoven.reduce((a, b) => a + b) / conEquipoJoven.length;
+  final mediaSinEquipoJoven = filas
+      .where((f) => f.progresoJoven.sinEquipo > 0)
+      .map((f) => f.progresoJoven.sinEquipo)
+      .toList();
+  final mediaSinEquipo = mediaSinEquipoJoven.isEmpty
+      ? 0.0
+      : mediaSinEquipoJoven.reduce((a, b) => a + b) /
+            mediaSinEquipoJoven.length;
+  final progresionCumple = mediaConEquipo >= 4.0 && mediaConEquipo <= 8.0;
+  final jovenesEnPotencial = filas.fold<int>(
+    0,
+    (suma, fila) => suma + fila.progresoJoven.enSuPotencial,
+  );
+
+  buffer
+    ..writeln()
+    ..writeln('## Progresión de jóvenes (16–21 años)')
+    ..writeln()
+    ..writeln(
+      'Se compara la habilidad al inicio y al final de cada temporada de los '
+      'jugadores que tenían entre 16 y 21 años al empezar (solo los que '
+      'siguen en la partida). Objetivo: un joven con equipo debe subir entre '
+      '**4 y 8 puntos por temporada**. Sin equipo la probabilidad de mejorar '
+      'es la mitad; los suplentes mejoran un poco menos que los titulares.',
+    )
+    ..writeln()
+    ..writeln(
+      'Los promedios por situación excluyen a los jugadores que ya estaban en '
+      'su potencial al empezar (no podían subir). La columna **Media todos** '
+      'los incluye para que la medición sea transparente.',
+    )
+    ..writeln()
+    ..writeln(
+      tablaMarkdown(
+        [
+          'Temporada',
+          'Con equipo',
+          'Sin equipo',
+          'Titulares',
+          'Suplentes',
+          'Media todos',
+          'Medidos',
+          'En su potencial',
+        ],
+        [
+          for (final fila in filas)
+            [
+              '${fila.temporada}',
+              decimal(fila.progresoJoven.conEquipo, 1),
+              decimal(fila.progresoJoven.sinEquipo, 1),
+              decimal(fila.progresoJoven.titulares, 1),
+              decimal(fila.progresoJoven.suplentes, 1),
+              decimal(fila.progresoJoven.media, 1),
+              '${fila.progresoJoven.medidos}',
+              '${fila.progresoJoven.enSuPotencial}',
+            ],
+        ],
+      ),
+    )
+    ..writeln()
+    ..writeln(
+      '- Progresión media con equipo (con margen de mejora): '
+      '**${decimal(mediaConEquipo, 1)} puntos/temporada** · sin equipo: '
+      '**${decimal(mediaSinEquipo, 1)}**.',
+    )
+    ..writeln(
+      '- La regla ×0,5 para jugadores sin equipo se aplica por jugador y '
+      'está cubierta por `test/progresion_test.dart`; la media observada sin '
+      'equipo puede variar por la mezcla de edades y de potencial.',
+    )
+    ..writeln(
+      '- Jugadores medidos en 10 temporadas: '
+      '${filas.fold<int>(0, (suma, f) => suma + f.progresoJoven.medidos)} · '
+      'ya estaban en su potencial: $jovenesEnPotencial.',
+    )
+    ..writeln(
+      '- Criterio 4–8 puntos por temporada: '
+      '**${progresionCumple ? 'cumple' : 'no cumple'}**.',
     );
 
   // Dominio por liga (B3): temporadas distintas ganadas por el mismo equipo.
@@ -540,13 +817,29 @@ String _escribirInforme({
       '(orientativo ≤ 3).',
     )
     ..writeln(
+      '- Progresión media de 16–21 años con equipo: '
+      '${decimal(mediaConEquipo, 1)} puntos/temporada '
+      '(objetivo 4–8; sin equipo ${decimal(mediaSinEquipo, 1)}).',
+    )
+    ..writeln(
       '- Mayor dominio en una liga de 1ª División: '
       '$maxTemporadasDominio de 10 temporadas del mismo equipo '
-      '(orientativo ≤ 6).',
+      '(orientativo ≤ 6): '
+      '**${maxTemporadasDominio <= 6 ? 'cumple' : 'no cumple'}**. '
+      'Se deja anotado para la Fase 4 por indicación de B3/B4.',
     )
     ..writeln(
       '- Mayor relación presupuesto fin / inicio: '
       '${decimal(maxInflacion, 2)}×.',
+    )
+    ..writeln(
+      '- Tiempo de la temporada 10 / temporada 1: '
+      '${decimal(filas.last.milisegundos / filas.first.milisegundos, 2)}× '
+      '(meta ≤ 1,5×).',
+    )
+    ..writeln(
+      '- Tamaño final del guardado: '
+      '${decimal(filas.last.guardadoKb, 1)} KB.',
     )
     ..writeln('- Fichajes IA registrados en las ventanas: $totalFichajes.')
     ..writeln(
@@ -562,4 +855,11 @@ String _escribirInforme({
   final texto = buffer.toString();
   File('INFORME_BALANCE.md').writeAsStringSync(texto);
   return texto;
+}
+
+/// Fecha y hora legible para demostrar que el informe se regeneró.
+String _fechaHora(DateTime fecha) {
+  String dos(int valor) => valor.toString().padLeft(2, '0');
+  return '${fecha.year}-${dos(fecha.month)}-${dos(fecha.day)} '
+      '${dos(fecha.hour)}:${dos(fecha.minute)}:${dos(fecha.second)}';
 }

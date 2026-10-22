@@ -35,14 +35,14 @@ const int semanasParaBancarrota = 8;
 const double multiplicadorValorMinimo = 0.2;
 const double multiplicadorValorMaximo = 3.0;
 
-/// Probabilidad semanal de que un jugador joven (≤ 23) suba 1 o 2 puntos de
-/// habilidad. Con moral alta se suma un 10 % extra.
-const double probProgresoJoven = 0.30;
+// La progresión juvenil se movió a `lib/logica/progresion.dart`: ahora la
+// probabilidad depende de la edad, del equipo, de ser suplente y de la moral.
 
 /// Ajuste de habilidad al generar un reemplazo para cubrir un rol vacío.
 /// Un valor negativo evita que las plantillas suban de nivel solo por las
 /// bajas y mantiene estable la media de habilidad entre temporadas.
-const int ajusteHabilidadReemplazo = -2;
+/// Se bajó de -2 a -3 en la última ronda para suavizar el salto T1 → T2.
+const int ajusteHabilidadReemplazo = -3;
 
 /// Multiplicador del valor según la edad del jugador.
 double multiplicadorEdad(int edad) {

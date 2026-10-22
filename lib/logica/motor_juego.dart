@@ -30,6 +30,7 @@ import 'mercado.dart';
 import 'metricas.dart';
 import 'negociacion.dart';
 import 'premios.dart';
+import 'progresion.dart';
 import 'renovaciones.dart';
 import 'torneos.dart';
 
@@ -1365,37 +1366,11 @@ class MotorJuego extends ChangeNotifier {
   }
 
   /// Aplica el progreso semanal de un jugador (mejora o empeora).
+  ///
+  /// La tabla de probabilidades vive en `progresion.dart` para poder probarla
+  /// y ajustarla sin tocar el resto del motor.
   void _progresarJugador(Jugador j) {
-    final dado = _rnd.nextDouble();
-
-    if (j.edad <= 23) {
-      // Jóvenes: 22% de subir 1 o 2 (32% si la moral es mayor a 80).
-      if (j.habilidad < j.potencial) {
-        var probabilidad = probProgresoJoven;
-        if (j.moral > 80) probabilidad += 0.10;
-        if (j.moral >= 30 && dado < probabilidad) {
-          final subida = _rnd.nextInt(2) + 1; // 1 o 2
-          j.habilidad = min(j.potencial, j.habilidad + subida);
-        }
-      }
-    } else if (j.edad <= 27) {
-      // Adultos: 15% de subir o bajar 1 (no suben si la moral es muy baja).
-      if (dado < 0.15) {
-        final subir = _rnd.nextBool();
-        if (subir) {
-          if (j.moral >= 30) {
-            j.habilidad = min(j.potencial, j.habilidad + 1);
-          }
-        } else {
-          j.habilidad = max(1, j.habilidad - 1);
-        }
-      }
-    } else {
-      // Mayores: 20% de bajar 1.
-      if (dado < 0.20) {
-        j.habilidad = max(1, j.habilidad - 1);
-      }
-    }
+    aplicarProgresoSemanal(j, _rnd);
   }
 
   /// Cambio de temporada: envejecer, retiros, nuevos jóvenes y presupuestos.

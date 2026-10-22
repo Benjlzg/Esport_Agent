@@ -587,8 +587,14 @@ class MotorJuego extends ChangeNotifier {
     // Queda bloqueado para otro traspaso hasta la próxima temporada.
     jugador.temporadaUltimoTraspaso = estado!.temporada;
 
-    // Reputación: +3 si el equipo es de élite (prestigio >= 85), si no +1.
-    ag.reputacion = min(100, ag.reputacion + (equipo.prestigio >= 85 ? 3 : 1));
+    // Reputación: cada traspaso cerrado suma. Un equipo de élite
+    // (prestigio ≥ 85) da más visibilidad que uno normal. Antes era +1/+3 y
+    // los eventos negativos podían dejar la reputación estancada o bajando.
+    final reputacionGanada = reputacionPorTraspaso(
+      reputacionActual: ag.reputacion,
+      elite: equipo.prestigio >= 85,
+    );
+    ag.reputacion = min(100, ag.reputacion + reputacionGanada);
 
     _agregarNoticia(
       '${jugador.nick} fue transferido a ${equipo.nombre} por ${formatearDinero(precio)}. '
@@ -1413,6 +1419,11 @@ class MotorJuego extends ChangeNotifier {
       }
     }
 
+    // Defender un título desgasta: los campeones de la temporada anterior
+    // empiezan la nueva con menos moral. Ayuda a que un equipo no gane su
+    // liga todas las temporadas seguidas.
+    _aplicarDesgasteACampeones(est);
+
     // Se generan 3 jóvenes por región de cada videojuego (potencial 60–95).
     final nicksUsados = est.jugadores.map((j) => j.nick).toSet();
     for (final juego in Juego.values) {
@@ -1470,6 +1481,53 @@ class MotorJuego extends ChangeNotifier {
 
     // Los jóvenes y reemplazos nuevos entran en los índices por id.
     _reconstruirIndices();
+  }
+
+  /// Resta moral a los jugadores de los equipos que ganaron un título de liga
+  /// en la temporada que acaba de terminar.
+  ///
+  /// Es un desgaste pequeño (10 puntos) y se aplica una sola vez al inicio de
+  /// la temporada. No toca a los agentes libres ni a los recién llegados.
+  void _aplicarDesgasteACampeones(EstadoPartida est) {
+    final temporadaAnterior = est.temporada - 1;
+    final desde = est.temporada - 5;
+    final titulosRecientes = <String, int>{};
+    for (final r in est.palmares) {
+      if (r.tipo != TipoCampeon.liga) continue;
+      if (r.temporada < desde || r.temporada >= est.temporada) continue;
+      titulosRecientes[r.ganadorId] = (titulosRecientes[r.ganadorId] ?? 0) + 1;
+    }
+    final campeones = <String>{
+      ...est.palmares
+          .where(
+            (r) =>
+                r.temporada == temporadaAnterior &&
+                r.tipo == TipoCampeon.liga,
+          )
+          .map((r) => r.ganadorId),
+      // Una dinastía con 3 o más títulos recientes también arrastra desgaste.
+      ...titulosRecientes.entries
+          .where((e) => e.value >= 3)
+          .map((e) => e.key),
+    };
+    // Desgaste competitivo: cada título reciente por encima de 2 resta un 4 %
+    // al poder del equipo, con un tope del 20 %. Se recalcula cada temporada,
+    // así que un equipo que deja de ganar recupera su nivel.
+    for (final equipo in est.equipos) {
+      final titulos = titulosRecientes[equipo.id] ?? 0;
+      final descuento = titulos <= 2
+          ? 0.0
+          : min(0.20, (titulos - 2) * 0.04);
+      equipo.factorPoder = 1.0 - descuento;
+    }
+
+    if (campeones.isEmpty) return;
+
+    for (final j in est.jugadores) {
+      final equipoId = j.equipoId;
+      if (equipoId == null || !campeones.contains(equipoId)) continue;
+      j.moral = (j.moral - desgasteMoralCampeon).clamp(0, 100);
+    }
   }
 
   /// Al empezar la temporada, algunos equipos de 2ª División fichan a un

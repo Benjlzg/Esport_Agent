@@ -311,6 +311,45 @@ Se corrigieron los detalles encontrados en las capturas nuevas sin tocar la Fase
 
 ### Pendiente
 
-- **Dominio por liga (B3):** reducir el determinismo de las series o añadir desgaste a los campeones, en una fase de balance/economía.
 - **B4 — Fase 4 (economía):** el presupuesto de los equipos se reinicia cada temporada; los premios y las ventas no se acumulan.
+
+## Fase 2.5 — Balance: dominio, ingresos y reputación (terminada, 2026-10-21)
+
+Se corrigieron los 3 problemas de balance con **3 rondas** de ajuste, todas anotadas en `INFORME_BALANCE.md`.
+
+### 1. Dominio por liga
+
+- **Series más abiertas:** `factorProbabilidad` subió de **6,0 a 18,0**. La ventaja por poder sigue existiendo, pero una serie ya no queda casi decidida de antemano.
+- **Equipos ficticios de 1ª División:** antes se generaban con prestigio **35–54** (nivel de 2ª) y ahora con **70–80**. Las regiones con pocos equipos reales dejaron de tener un campeón fijo.
+- **Anti-dinastía:** al abrir la primera ventana, los equipos con **3+ títulos de split en 5 temporadas** pierden entre **3 y 5 figuras**. Solo pueden comprarlas equipos que no sean dinastías, con una cláusula de salida del **40 %** del valor. Así las figuras no circulan solo entre los mismos equipos fuertes.
+- **Desgaste de campeones:** la plantilla campeona empieza la temporada siguiente con **−10 de moral**. Además, cada título reciente por encima de 2 resta **4 % de poder** (máximo 20 %); el equipo recupera el 100 % cuando deja de ganar.
+- **Mercado IA:** el orden de los equipos se baraja cada ventana para que los más fuertes no elijan siempre los mejores agentes libres.
+- **Red de seguridad:** al cerrar cada ventana se comprueban los 5 roles de todos los equipos y se repone cualquier titular que falte.
+
+**Resultado:** máximo **6 de 10** temporadas con el mismo campeón; **0 ligas** por encima del criterio (antes 17).
+
+### 2. Ingresos
+
+- `gananciaStreamer` pasó de 5.000–20.000 a **2.000–6.000**.
+- `gananciaMarca` pasó de 10.000–50.000 a **4.000–15.000**.
+- `gananciaInversor` pasó de 25.000–100.000 a **8.000–30.000**.
+
+**Resultado del robot:** traspasos **$229.920** vs eventos **$135.730**. La fuente principal vuelve a ser **Traspasos**.
+
+### 3. Reputación
+
+- **Diagnóstico:** la reputación bajaba por eventos negativos (`polemica_redes` y `rumor_negativo`, −2 cada uno), que en la T3 superaban las 8 ventas del robot, que solo daban +1 cada una.
+- Cada traspaso da **+2** (normal) o **+3** (equipo de élite, prestigio ≥ 85). A partir de 30 el traspaso suma **+1**, y a partir de 40 los traspasos ya no suman: la reputación sigue subiendo solo con eventos, premios o títulos. Es un rendimiento decreciente para no pasarse del objetivo.
+- **Resultado del robot:** **10 → 24 → 29 → 37** al final de la T3 (meta 30–45). Crece en las tres temporadas y nunca baja.
+
+### Cambios técnicos y verificación
+
+- **Guardado:** nuevo campo `Equipo.factorPoder` (por defecto **1,0**). Las partidas viejas cargan sin cambios; `versionFormato` sigue en **6**.
+- **Pruebas nuevas:** `test/balance_reglas_test.dart` cubre el divisor de probabilidad, el prestigio de los ficticios, los topes de ingresos, la reputación por traspaso y la serialización de `factorPoder`.
+- **Informe:** `INFORME_BALANCE.md` regenerado el **2026-10-21 23:53:28**, semilla **20251019**. Incluye la tabla de las 3 rondas y los resultados finales.
+- `flutter test --tags lento --run-skipped` → **2 pasan** (`balance_test.dart` y `robot_test.dart`).
+- `flutter test` → **112 pasan, 2 saltan** (las lentas).
+- `flutter analyze` → **No issues found!**
+- Capturas de `capturas/` regeneradas porque la simulación del fixture cambió.
+- Sin violaciones duras; salto máximo de habilidad **2,86**; progresión juvenil **4,4**; tiempo T10/T1 **1,22×**; guardado final **3.591,7 KB**.
 

@@ -5,6 +5,7 @@ import 'dart:math';
 
 import '../modelos/equipo.dart';
 import '../modelos/estado_partida.dart';
+import '../modelos/historial.dart';
 import '../modelos/jugador.dart';
 import '../modelos/oferta.dart';
 import 'formulas.dart';
@@ -184,7 +185,24 @@ ResultadoMercadoIA procesarMercadoIA({
   final porJuegoRol = agruparPorJuegoYRol(estado.jugadores);
   final porEquipo = agruparPorEquipo(estado.jugadores);
 
-  for (final equipo in estado.equipos) {
+  // Al abrir la primera ventana de la temporada, los rivales intentan
+  // llevarse a una figura de los campeones de la temporada anterior. Va antes
+  // del mercado normal para que los compradores todavía tengan presupuesto.
+  if (estado.semana == 1) {
+    fichajesCerrados += _fichajesDeCampeones(
+      estado: estado,
+      indiceEquipos: indiceEquipos,
+      porEquipo: porEquipo,
+      rnd: rnd,
+      nuevoIdJugador: nuevoIdJugador,
+      noticias: noticias,
+    );
+  }
+
+  // Orden aleatorio: antes los equipos más fuertes (que van primero en la
+  // lista) elegían siempre los mejores agentes libres y aumentaban su ventaja.
+  final equiposEnOrden = List<Equipo>.from(estado.equipos)..shuffle(rnd);
+  for (final equipo in equiposEnOrden) {
     final usados = estado.fichajesVentana[equipo.id] ?? 0;
     if (usados >= maxFichajesPorVentana) continue;
 
@@ -291,9 +309,204 @@ ResultadoMercadoIA procesarMercadoIA({
     }
   }
 
+  // Red de seguridad: si una sucesión de fichajes dejó a un equipo sin
+  // titular en algún rol, se repone antes de cerrar la semana. Sin esto,
+  // el recorte de suplentes podía dejar plantillas de 4 titulares.
+  _garantizarTitulares(
+    estado: estado,
+    indiceEquipos: indiceEquipos,
+    rnd: rnd,
+    nuevoIdJugador: nuevoIdJugador,
+    indiceJugadores: indiceJugadores,
+  );
+
   return ResultadoMercadoIA(
     noticias: noticias,
     ofertas: ofertas,
     fichajesCerrados: fichajesCerrados,
   );
+}
+
+/// Comprueba que cada equipo tenga un titular en todos los roles de su juego.
+/// Si falta alguno, genera un reemplazo. Es una red de seguridad para que una
+/// cadena de traspasos y recortes no deje plantillas incompletas.
+void _garantizarTitulares({
+  required EstadoPartida estado,
+  required Map<String, Equipo> indiceEquipos,
+  required Random rnd,
+  required String Function() nuevoIdJugador,
+  required Map<String, Jugador> indiceJugadores,
+}) {
+  for (final equipo in estado.equipos) {
+    for (final rol in equipo.juego.roles) {
+      final tieneTitular = estado.jugadores.any(
+        (j) => j.equipoId == equipo.id && j.rol == rol && !j.suplente,
+      );
+      if (tieneTitular) continue;
+      final reemplazo = generarReemplazoSiFalta(
+        estado: estado,
+        indiceEquipos: indiceEquipos,
+        rnd: rnd,
+        nuevoIdJugador: nuevoIdJugador,
+        equipoId: equipo.id,
+        rol: rol,
+      );
+      if (reemplazo != null) indiceJugadores[reemplazo.id] = reemplazo;
+    }
+  }
+}
+
+/// Intenta debilitar a las dinastías: equipos con 3 o más títulos de split
+/// en las últimas 5 temporadas pierden figuras a manos de equipos que no
+/// están en esa lista. Devuelve cuántos traspasos se cerraron.
+///
+/// Solo se ejecuta una vez por temporada (semana 1) y no toca a los jugadores
+/// que representa el agente: sus traspasos dependen de una oferta y de su
+/// decisión, no de la IA del mercado.
+int _fichajesDeCampeones({
+  required EstadoPartida estado,
+  required Map<String, Equipo> indiceEquipos,
+  required Map<String, List<Jugador>> porEquipo,
+  required Random rnd,
+  required String Function() nuevoIdJugador,
+  required List<String> noticias,
+}) {
+  if (estado.temporada < 2) return 0;
+
+  // Cuento los títulos de liga de las últimas 5 temporadas. Una dinastía
+  // sigue perdiendo figuras aunque falle un año.
+  final desde = estado.temporada - 5;
+  final titulosRecientes = <String, int>{};
+  for (final r in estado.palmares) {
+    if (r.tipo != TipoCampeon.liga) continue;
+    if (r.temporada < desde || r.temporada >= estado.temporada) continue;
+    titulosRecientes[r.ganadorId] = (titulosRecientes[r.ganadorId] ?? 0) + 1;
+  }
+  // Se debilita a los campeones de la temporada anterior y, sobre todo, a
+  // las dinastías con 3 o más títulos de split en las últimas 5 temporadas.
+  final campeones = <String>{
+    ...estado.palmares
+        .where(
+          (r) =>
+              r.temporada == estado.temporada - 1 &&
+              r.tipo == TipoCampeon.liga,
+        )
+        .map((r) => r.ganadorId),
+    ...titulosRecientes.entries
+        .where((e) => e.value >= 3)
+        .map((e) => e.key),
+  };
+  if (campeones.isEmpty) return 0;
+
+  var cerrados = 0;
+  for (final campeonId in campeones) {
+    final campeon = indiceEquipos[campeonId];
+    if (campeon == null) continue;
+
+    // Cuanto más dominante es un equipo, más rivales intentan quitarle
+    // jugadores. La cláusula de salida (40 % del valor) permite que equipos
+    // con menos presupuesto puedan reforzarse; sin ella, los traspasos contra
+    // campeones casi nunca se cerraban porque sus figuras valían más que el
+    // presupuesto rival.
+    final titulos = titulosRecientes[campeonId] ?? 0;
+    final maxRobos = 3 + (titulos >= 5 ? 1 : 0) + (titulos >= 7 ? 1 : 0);
+    // Una dinastía con 6+ títulos recientes pierde seguro a todos sus
+    // titulares que los rivales puedan pagar: es el freno más fuerte contra
+    // un campeón que se perpetúa.
+    final probabilidad = titulos >= 6 ? 1.0 : probFichajeDeCampeon;
+    final rolesVendidos = <String>{};
+    var robados = 0;
+    while (robados < maxRobos && rnd.nextDouble() < probabilidad) {
+      final plantilla = (porEquipo[campeonId] ?? const <Jugador>[])
+          .where(
+            (j) =>
+                !j.representadoPorMi &&
+                !j.estaInactivo &&
+                !rolesVendidos.contains(j.rol),
+          )
+          .toList()
+        ..sort((a, b) => b.habilidad.compareTo(a.habilidad));
+
+      var cerrado = false;
+      for (final jugador in plantilla) {
+        final precioClausula = max(
+          1000,
+          ((jugador.valorMercado * 0.40) / 1000).round() * 1000,
+        );
+
+        // Busco un comprador del mismo juego, con nivel y dinero suficientes.
+        // El margen de 20 puntos permite que el segundo o tercer equipo de la
+        // liga se refuerce con una figura del campeón.
+        final compradores = estado.equipos.where((e) {
+          if (e.id == campeon.id || e.juego != campeon.juego) return false;
+          // El comprador no puede ser otra dinastía: si no, las figuras
+          // circulan entre los mismos equipos fuertes y la liga no se abre.
+          if (campeones.contains(e.id)) return false;
+          if (e.prestigio < campeon.prestigio - 20) return false;
+          if (e.presupuesto < precioClausula) return false;
+          return (estado.fichajesVentana[e.id] ?? 0) < maxFichajesPorVentana;
+        }).toList()..sort((a, b) => b.prestigio.compareTo(a.prestigio));
+        if (compradores.isEmpty) continue;
+
+        // El comprador más fuerte es el que más interés tiene en debilitar al
+        // campeón; si hay varios, se elige uno al azar entre los tres primeros.
+        final limite = compradores.length < 3 ? compradores.length : 3;
+        final comprador = compradores[rnd.nextInt(limite)];
+
+        // El jugador desplazado en ese rol pasa a suplente.
+        for (final otro in estado.jugadores) {
+          if (otro.id != jugador.id &&
+              otro.equipoId == comprador.id &&
+              otro.rol == jugador.rol &&
+              !otro.suplente) {
+            otro.suplente = true;
+          }
+        }
+        for (final sobrante in recortarSuplentes(estado, comprador)) {
+          noticias.add(
+            '${sobrante.nick} quedó libre para hacer sitio en ${comprador.nombre}.',
+          );
+        }
+
+        comprador.presupuesto = max(0, comprador.presupuesto - precioClausula);
+        jugador.equipoId = comprador.id;
+        jugador.suplente = false;
+        jugador.semanasContrato = 52 + rnd.nextInt(53);
+        jugador.semanasComoSuplente = 0;
+        jugador.temporadaUltimoTraspaso = estado.temporada;
+        estado.fichajesVentana[comprador.id] =
+            (estado.fichajesVentana[comprador.id] ?? 0) + 1;
+
+        // Actualizo los índices locales que usa el resto del mercado.
+        porEquipo[campeon.id]?.remove(jugador);
+        porEquipo.putIfAbsent(comprador.id, () => <Jugador>[]).add(jugador);
+
+        noticias.add(
+          '${comprador.nombre} paga la cláusula de salida de ${jugador.nick}, '
+          'figura de ${campeon.nombre}, que pierde una pieza tras su título.',
+        );
+
+        // El campeón repone el rol si se quedó sin titular.
+        final reemplazo = generarReemplazoSiFalta(
+          estado: estado,
+          indiceEquipos: indiceEquipos,
+          rnd: rnd,
+          nuevoIdJugador: nuevoIdJugador,
+          equipoId: campeon.id,
+          rol: jugador.rol,
+        );
+        if (reemplazo != null) {
+          porEquipo.putIfAbsent(campeon.id, () => <Jugador>[]).add(reemplazo);
+        }
+
+        rolesVendidos.add(jugador.rol);
+        robados++;
+        cerrados++;
+        cerrado = true;
+        break;
+      }
+      if (!cerrado) break;
+    }
+  }
+  return cerrados;
 }

@@ -16,6 +16,7 @@ class Equipo {
     this.division = 1,
     this.liga = '',
     this.esReal = false,
+    this.factorPoder = 1.0,
     List<String>? rivales,
   }) : rivales = rivales ?? <String>[];
 
@@ -49,6 +50,13 @@ class Equipo {
 
   /// Dinero disponible para fichajes.
   int presupuesto;
+
+  /// Desgaste competitivo de una dinastía (1,0 = sin desgaste).
+  ///
+  /// Al empezar cada temporada, los equipos con varios títulos recientes
+  /// juegan por debajo de su habilidad nominal porque todos los rivales los
+  /// conocen y la presión pesa. Vuelve a 1,0 cuando dejan de dominar.
+  double factorPoder;
 
   /// Color en formato 0xFFRRGGBB, usado en el círculo con iniciales.
   final int colorPrincipal;
@@ -85,6 +93,7 @@ class Equipo {
       'esReal': esReal,
       'prestigio': prestigio,
       'presupuesto': presupuesto,
+      'factorPoder': factorPoder,
       'colorPrincipal': colorPrincipal,
       'escudo': escudo,
       'rivales': rivales,
@@ -100,6 +109,7 @@ class Equipo {
       region: json['region'] as String,
       prestigio: json['prestigio'] as int,
       presupuesto: json['presupuesto'] as int,
+      factorPoder: (json['factorPoder'] as num?)?.toDouble() ?? 1.0,
       colorPrincipal: json['colorPrincipal'] as int,
       escudo: json['escudo'] as String,
       division: json['division'] as int? ?? 1,

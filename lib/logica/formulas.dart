@@ -41,8 +41,9 @@ const double multiplicadorValorMaximo = 3.0;
 /// Ajuste de habilidad al generar un reemplazo para cubrir un rol vacío.
 /// Un valor negativo evita que las plantillas suban de nivel solo por las
 /// bajas y mantiene estable la media de habilidad entre temporadas.
-/// Se bajó de -2 a -3 en la última ronda para suavizar el salto T1 → T2.
-const int ajusteHabilidadReemplazo = -3;
+/// Se bajó de -2 a -3 y luego a -4 para suavizar el salto de habilidad entre
+/// temporadas que introdujo el mayor movimiento de plantillas.
+const int ajusteHabilidadReemplazo = -4;
 
 /// Multiplicador del valor según la edad del jugador.
 double multiplicadorEdad(int edad) {
@@ -136,7 +137,9 @@ const double factorFormaPoder = 0.5;
 const double ajusteMoralPoder = 500.0;
 
 /// Divisor de la diferencia de poder dentro de la curva sigmoide.
-const double factorProbabilidad = 6.0;
+/// Se subió de 6,0 a 18,0 para que una serie no quede decidida casi siempre
+/// por el equipo con más poder: los partidos son algo más aleatorios.
+const double factorProbabilidad = 18.0;
 
 /// Roles con más eliminaciones (reciben ×1,3).
 const List<String> rolesOfensivos = [
@@ -208,6 +211,39 @@ const int efectoPremioReputacion = 3;
 
 /// Reputación que gano si me llevo el Agente del Año.
 const int reputacionAgenteDelAnio = 5;
+
+/// Reputación que gano por cada traspaso cerrado. Un traspaso a un equipo de
+/// élite (prestigio ≥ 85) vale más porque tiene más visibilidad. Con +2/+3,
+/// un agente activo llega a 30–45 al final de la temporada 3.
+const int reputacionTraspasoNormal = 2;
+const int reputacionTraspasoElite = 3;
+
+/// Reputación que aporta un traspaso según la fama que ya tengas.
+///
+/// Los primeros traspasos se notan mucho; cuando la agencia ya es conocida,
+/// cada fichaje sigue sumando pero con rendimientos decrecientes. Así la
+/// reputación no se dispara por encima de lo previsto (30–45 al final de T3)
+/// y tampoco se estanca si hay eventos negativos.
+int reputacionPorTraspaso({
+  required int reputacionActual,
+  required bool elite,
+}) {
+  final base = elite ? reputacionTraspasoElite : reputacionTraspasoNormal;
+  // A partir de 40 la agencia ya es muy conocida: los traspasos dejan de
+  // sumar por sí solos y la reputación solo sube con eventos, premios o
+  // títulos. Así se evita pasarse del objetivo de 30–45 en la temporada 3.
+  if (reputacionActual >= 40) return 0;
+  if (reputacionActual >= 30) return max(1, base - 1);
+  return base;
+}
+
+/// Desgaste de moral que sufre la plantilla de un campeón al empezar la
+/// temporada siguiente: defender un título pesa y el equipo llega más cansado.
+const int desgasteMoralCampeon = 10;
+
+/// Probabilidad de que, al abrir la primera ventana de la temporada, otro
+/// equipo intente fichar a un jugador importante de un campeón.
+const double probFichajeDeCampeon = 0.85;
 
 /// Prestigio que sube o baja un equipo al ascender o descender.
 const int prestigioAscensoDescenso = 8;

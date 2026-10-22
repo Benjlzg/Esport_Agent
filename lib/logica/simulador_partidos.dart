@@ -64,10 +64,11 @@ double poderEquipo(Equipo equipo, List<Jugador> jugadores) {
       titulares.length;
 
   return poderEquipoDesdeNumeros(
-    habilidadPromedio: habilidad,
-    moralPromedio: moral,
-    formaPromedio: forma,
-  );
+        habilidadPromedio: habilidad,
+        moralPromedio: moral,
+        formaPromedio: forma,
+      ) *
+      equipo.factorPoder;
 }
 
 /// Simula una serie completa y devuelve su resultado.

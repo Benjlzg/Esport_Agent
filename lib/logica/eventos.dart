@@ -77,12 +77,16 @@ const int costoAuditoriaMax = 10000;
 const double porcentajeMentor = 0.05;
 
 /// Ganancias de los eventos positivos.
-const int gananciaStreamerMin = 5000;
-const int gananciaStreamerMax = 20000;
-const int gananciaMarcaMin = 10000;
-const int gananciaMarcaMax = 50000;
-const int gananciaInversorMin = 25000;
-const int gananciaInversorMax = 100000;
+///
+/// Se redujeron para que los traspasos y sus comisiones sigan siendo la
+/// principal fuente de ingresos de un agente (el robot ganaba más con los
+/// eventos que vendiendo jugadores).
+const int gananciaStreamerMin = 2000;
+const int gananciaStreamerMax = 6000;
+const int gananciaMarcaMin = 4000;
+const int gananciaMarcaMax = 15000;
+const int gananciaInversorMin = 8000;
+const int gananciaInversorMax = 30000;
 
 // ------------------- ESTRUCTURAS INTERNAS -------------------
 

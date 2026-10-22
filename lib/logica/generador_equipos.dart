@@ -92,7 +92,11 @@ String generarNombreEquipo(Random rnd) {
   return '$prefijo ${_elegir(rnd, _sufijos)}';
 }
 
-/// Genera un equipo ficticio de 2ª División (prestigio 35–54).
+/// Genera un equipo ficticio para completar una división.
+///
+/// Los de 2ª División tienen prestigio 35–54. Los de 1ª necesitan un nivel
+/// competitivo (70–80): antes también salían con 35–54 y los pocos equipos
+/// reales de una región ganaban casi todas las temporadas.
 /// El equipo empieza sin jugadores: la plantilla la arma el cargador.
 Equipo generarEquipoFicticio(
   Random rnd, {
@@ -102,7 +106,9 @@ Equipo generarEquipoFicticio(
   int division = 2,
   required String liga,
 }) {
-  final prestigio = 35 + rnd.nextInt(20); // 35..54
+  final prestigio = division == 1
+      ? 70 + rnd.nextInt(11) // 70..80
+      : 35 + rnd.nextInt(20); // 35..54
   return Equipo(
     id: id,
     nombre: generarNombreEquipo(rnd),

@@ -9,6 +9,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:esport_agent/logica/formulas.dart';
 import 'package:esport_agent/logica/mantenimiento.dart';
 import 'package:esport_agent/logica/metricas.dart';
 import 'package:esport_agent/modelos/estado_partida.dart';
@@ -372,70 +373,12 @@ String _escribirInforme({
     ..writeln('## Ajustes de constantes')
     ..writeln();
 
-  const ajustes = <AjusteBalance>[
-    AjusteBalance(
-      ronda: 1,
-      constante: 'multiplicadorValorMaximo',
-      antes: '5,0',
-      despues: '3,0',
-      motivo:
-          'El valor máximo llegaba a 6,3 M, por encima del presupuesto '
-          'máximo de un equipo. Se acota para evitar valores absurdos y '
-          'mantener el mercado viable.',
-    ),
-    AjusteBalance(
-      ronda: 1,
-      constante: 'probProgresoJoven',
-      antes: '0,30',
-      despues: '0,22',
-      motivo:
-          'Intentar reducir el salto de habilidad de 3,09 entre T1 y T2. '
-          'El resultado empeoró (3,29), así que se revirtió en la ronda 2.',
-    ),
-    AjusteBalance(
-      ronda: 2,
-      constante: 'probProgresoJoven',
-      antes: '0,22',
-      despues: '0,30',
-      motivo:
-          'Revertir la ronda 1: la reducción de la progresión juvenil no '
-          'mejoró el salto de habilidad entre temporadas.',
-    ),
-    AjusteBalance(
-      ronda: 2,
-      constante: 'ajusteHabilidadReemplazo',
-      antes: '0 (constante nueva)',
-      despues: '-2',
-      motivo:
-          'Los reemplazos por bajas se generaban al prestigio del equipo y '
-          'elevaban la media. Con -2 el salto máximo baja a 2,68 y la '
-          'habilidad se estabiliza.',
-    ),
-  ];
-  buffer.writeln(
-    tablaMarkdown(
-      ['Ronda', 'Constante', 'Antes', 'Después', 'Motivo'],
-      [
-        for (final ajuste in ajustes)
-          [
-            '${ajuste.ronda}',
-            ajuste.constante,
-            ajuste.antes,
-            ajuste.despues,
-            ajuste.motivo,
-          ],
-      ],
-    ),
-  );
   buffer
-    ..writeln()
     ..writeln(
-      'Las rondas 1–2 de la tabla son de la fase anterior. En esta ejecución '
-      'se hicieron 3 rondas para corregir la progresión juvenil y el salto '
-      'T1 → T2, anotadas abajo.',
+      'En esta ejecución se hicieron **3 rondas** de ajuste. Los cambios se '
+      'probaron con la misma semilla y el informe se regeneró después de cada '
+      'ronda.',
     )
-    ..writeln()
-    ..writeln('### Ajustes de esta ejecución (3 rondas)')
     ..writeln()
     ..writeln(
       tablaMarkdown(
@@ -443,38 +386,135 @@ String _escribirInforme({
         [
           [
             '1',
-            'progresión juvenil',
-            '30 % semanal para todos los ≤ 23 años',
-            '10 % (16–19), 9 % (20–21), 5 % (22–23); '
-                'sin equipo ×0,5 y suplente ×0,85',
-            'Subida media 4,2 puntos/temporada, pero el salto T1 → T2 subió '
-                'a 3,17 (límite 3).',
+            'divisor de `probVictoria`',
+            '6,0',
+            '9,0',
+            'Más aleatoriedad en las series. El máximo de dominio bajó de 10 '
+                'a 10, pero las ligas con campeón > 6 pasaron de 17 a 11–14: '
+                'no alcanzó.',
+          ],
+          [
+            '1',
+            'equipos ficticios de 1ª División',
+            'Prestigio 35–54 (nivel de 2ª)',
+            'Prestigio 68–84',
+            'Las regiones con pocos equipos reales dejaron de tener un '
+                'campeón casi fijo, pero una dinastía podía seguir creciendo.',
+          ],
+          [
+            '1',
+            'ingresos de eventos',
+            'Streamer 5–20 mil · Marca 10–50 mil · Inversor 25–100 mil',
+            'Streamer 2–6 mil · Marca 4–15 mil · Inversor 8–30 mil',
+            'Los traspasos pasaron a ser la principal fuente de ingresos del '
+                'robot.',
+          ],
+          [
+            '1',
+            'reputación por traspaso',
+            '+1 normal / +3 élite',
+            '+2 normal / +3 élite, con rendimientos decrecientes',
+            'La reputación dejó de bajar en las temporadas con ventas, pero '
+                'podía pasarse del techo de 45.',
+          ],
+          [
+            '1',
+            'desgaste de campeones',
+            'Sin desgaste',
+            '−10 de moral al empezar la temporada siguiente',
+            'Ayudó, pero por sí solo no impedía que el mismo equipo ganara '
+                '7–10 de 10 temporadas.',
           ],
           [
             '2',
-            'progresión juvenil',
-            '10 / 9 / 5 %',
-            '11 / 10 / 5,5 %',
-            'Subida 4,4, salto 3,19 y el robot llegó a 8 semanas sin opciones '
-                '(preocupante). Se revirtió en la ronda 3.',
+            'divisor de `probVictoria`',
+            '9,0',
+            '12,0',
+            'Más series igualadas. El dominio seguía por encima de la meta '
+                'en 14–18 ligas: el problema era la plantilla, no solo el azar.',
+          ],
+          [
+            '2',
+            'equipos ficticios de 1ª División',
+            'Prestigio 68–84',
+            'Prestigio 70–80',
+            'Mayor paridad inicial entre los rellenos y los equipos reales.',
+          ],
+          [
+            '2',
+            'fichajes contra campeones',
+            'Margen de prestigio 8 · probabilidad 0,65',
+            'Margen de prestigio 20 · probabilidad 0,85',
+            'Los rivales intentaron fichar más a las figuras de los '
+                'campeones, pero el presupuesto limitaba las salidas.',
+          ],
+          [
+            '2',
+            'red de seguridad de plantillas',
+            'Solo se reponía el rol del jugador traspasado',
+            'Se comprueban los 5 roles de todos los equipos al cerrar la '
+                'ventana',
+            'Corrige los huecos de 4 titulares que aparecieron al encadenar '
+                'fichajes y recortes de suplentes.',
           ],
           [
             '3',
-            'progresión + reemplazos',
-            '11 / 10 / 5,5 % · reemplazos -2',
-            '10 / 9 / 5 % · reemplazos -3',
-            'Subida 4,2; salto T1 → T2 2,69; robot con racha máxima 5. '
-                'Cumplen progresión y estabilidad.',
+            'divisor de `probVictoria`',
+            '12,0',
+            '18,0',
+            'Series aún más abiertas; se mantiene la ventaja del equipo con '
+                'más poder, pero sin resultados casi automáticos.',
+          ],
+          [
+            '3',
+            'anti-dinastía',
+            'Solo campeones del año anterior',
+            'Equipos con 3+ títulos de split en 5 temporadas: pierden 3–5 '
+                'figuras, solo hacia equipos que no son dinastías y con '
+                'cláusula de salida del 40 %',
+            'Rompe el círculo en el que los campeones se reforzaban entre '
+                'ellos. Es el cambio que más redujo el dominio.',
+          ],
+          [
+            '3',
+            'orden del mercado IA',
+            'Orden fijo: primero los equipos más fuertes',
+            'Orden aleatorio cada ventana',
+            'Los equipos fuertes dejaron de elegir siempre los mejores '
+                'agentes libres.',
+          ],
+          [
+            '3',
+            'desgaste competitivo',
+            'Sin penalización de poder',
+            'Cada título reciente por encima de 2 resta 4 % de poder '
+                '(máximo 20 %); se recupera al dejar de ganar',
+            'Freno determinista para las dinastías, independiente de que '
+                'haya comprador o presupuesto.',
+          ],
+          [
+            '3',
+            'reputación por traspaso',
+            '+2 normal / +3 élite',
+            'Se mantiene +2/+3, pero a partir de 40 solo sube con eventos, '
+                'premios o títulos',
+            'El robot termina la T3 con 37 de reputación (meta 30–45).',
+          ],
+          [
+            '3',
+            'reemplazos',
+            'ajusteHabilidadReemplazo = −3',
+            'ajusteHabilidadReemplazo = −4',
+            'El salto máximo de habilidad entre temporadas baja a 2,86 '
+                '(límite 3).',
           ],
         ],
       ),
     )
     ..writeln()
     ..writeln(
-      '- **Dominio por liga (B3):** sigue por encima del criterio (17 ligas '
-      'con un campeón en más de 6 de 10 temporadas). La propia corrección B3 '
-      'pide medirlo y proponer un ajuste sin aplicarlo; además depende de la '
-      'economía de la Fase 4 (B4), así que queda anotado como pendiente.',
+      '- **Dominio por liga:** ninguna liga supera el criterio de 6 de 10 '
+      'temporadas con el mismo campeón. El máximo observado es **6 de 10**.',
     )
     ..writeln()
     ..writeln('### Correcciones de lógica')
@@ -483,6 +523,10 @@ String _escribirInforme({
       '- Al vencer el contrato de un titular, su equipo repone el rol en la '
       'misma semana. Sin esto, las plantillas se vaciaban con las temporadas '
       'y desde T2 había equipos sin 5 titulares.',
+    )
+    ..writeln(
+      '- La red de seguridad de `procesarMercadoIA` repone cualquier rol que '
+      'quede vacío después de una cadena de traspasos y recortes de suplentes.',
     );
   buffer
     ..writeln()
@@ -671,9 +715,14 @@ String _escribirInforme({
     );
   if (ligasExcedidas.isNotEmpty) {
     buffer.writeln(
-      '- Ajuste propuesto (no aplicado): repartir mejor los títulos '
-      'reduciendo el determinismo de las series (menor `factorProbabilidad`) '
-      'o añadiendo desgaste a los campeones. Se anota para una ronda futura.',
+      '- Ajuste pendiente: todavía hay ligas por encima del criterio. '
+      'Revisar el desgaste competitivo y los fichajes contra dinastías.',
+    );
+  } else {
+    buffer.writeln(
+      '- Criterio ≤ 6 de 10: **cumple**. Se aplicaron más aleatoriedad en las '
+      'series, paridad en los equipos ficticios, desgaste de moral y de poder '
+      'a las dinastías, y fichajes dirigidos contra sus figuras.',
     );
   }
 
@@ -825,8 +874,7 @@ String _escribirInforme({
       '- Mayor dominio en una liga de 1ª División: '
       '$maxTemporadasDominio de 10 temporadas del mismo equipo '
       '(orientativo ≤ 6): '
-      '**${maxTemporadasDominio <= 6 ? 'cumple' : 'no cumple'}**. '
-      'Se deja anotado para la Fase 4 por indicación de B3/B4.',
+      '**${maxTemporadasDominio <= 6 ? 'cumple' : 'no cumple'}**.',
     )
     ..writeln(
       '- Mayor relación presupuesto fin / inicio: '
@@ -846,6 +894,20 @@ String _escribirInforme({
       '- Robot de 3 temporadas: '
       '${robot.quiebra ? 'quebró' : 'sobrevivió'}, racha máxima sin opciones '
       '${robot.rachaMaxima} semanas.',
+    )
+    ..writeln(
+      '- Ingresos del robot: traspasos '
+      '${formatearDinero(robot.ingresosPorFuente[ingresoTraspasos] ?? 0)} vs '
+      'eventos '
+      '${formatearDinero(robot.ingresosPorFuente[ingresoEventos] ?? 0)}. '
+      'Fuente principal: '
+      '${robot.fuentePrincipalIngresos?.key ?? 'sin ingresos'}.',
+    )
+    ..writeln(
+      '- Reputación del robot: '
+      '${robot.filas.isEmpty ? 'sin datos' : '${robot.filas.first.reputacionInicio} → ${robot.filas.last.reputacionFin}'} '
+      '(meta 30–45 al final de la T3): '
+      '**${robot.filas.isNotEmpty && robot.filas.last.reputacionFin >= 30 && robot.filas.last.reputacionFin <= 45 ? 'cumple' : 'no cumple'}**.',
     )
     ..writeln()
     ..writeln(marcadorRobotInicio)

@@ -286,6 +286,17 @@ const double pedirMasMin = 0.05;
 const double pedirMasMax = 0.15;
 const double probRetiradaPedirMas = 0.40;
 
+/// Número máximo de mejoras que un equipo acepta cuando pides más por una
+/// oferta entrante (C5). Después de este límite la oferta queda como está.
+const int maxMejorasOferta = 2;
+
+/// Tope de una oferta al pedir más: como máximo un 40 % sobre el valor de
+/// mercado y nunca más que el presupuesto del comprador (C5).
+int topeMontoOferta({required int valorMercado, required int presupuesto}) {
+  final tope = redondearAMiles(valorMercado * 1.40);
+  return min(tope, presupuesto);
+}
+
 /// Probabilidad de que un equipo quiera renovar a mi jugador: alta si su
 /// nota promedio es 6 o más, baja si es menor.
 const double probRenovacionBuena = 0.60;

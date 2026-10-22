@@ -45,9 +45,11 @@ List<Oferta> generarRenovaciones({
       tipo: TipoOferta.renovacion,
       jugadorId: j.id,
       equipoId: j.equipoId!,
+      equipoOrigenId: j.equipoId,
       monto: nuevoSalario,
       salarioAnual: nuevoSalario,
       semanasRestantes: umbralSemanasRenovacion,
+      montoMaximo: nuevoSalario,
       temporada: estado.temporada,
       semana: estado.semana,
     );

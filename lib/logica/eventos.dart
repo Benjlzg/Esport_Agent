@@ -956,14 +956,21 @@ List<DefinicionEvento> _crearCatalogo() {
               return 'El rumor no llegó a concretarse en una oferta.';
             }
             final j = candidatos[ctx.rnd.nextInt(candidatos.length)];
+            final monto = max(1000, j.valorMercado);
+            // El rival debe poder pagar la oferta: si no, no habría traspaso
+            // real (C4). Antes se generaba una oferta sin comprobar dinero.
             final rivales = ctx.estado.equipos
-                .where((e) => e.juego == j.juego && e.id != j.equipoId)
+                .where(
+                  (e) =>
+                      e.juego == j.juego &&
+                      e.id != j.equipoId &&
+                      e.presupuesto >= monto,
+                )
                 .toList();
             if (rivales.isEmpty) {
-              return 'No hubo ningún rival disponible para ${j.nick}.';
+              return 'No hubo ningún rival con presupuesto para ${j.nick}.';
             }
             final rival = rivales[ctx.rnd.nextInt(rivales.length)];
-            final monto = max(1000, j.valorMercado);
             final oferta = Oferta(
               id:
                   'of_fuga_${j.id}_${rival.id}_${ctx.estado.temporada}_'
@@ -971,9 +978,15 @@ List<DefinicionEvento> _crearCatalogo() {
               tipo: TipoOferta.traspaso,
               jugadorId: j.id,
               equipoId: rival.id,
+              equipoOrigenId: j.equipoId,
               monto: monto,
               salarioAnual: calcularSalarioAnual(monto),
               semanasRestantes: 2,
+              mejorasRealizadas: 0,
+              montoMaximo: topeMontoOferta(
+                valorMercado: j.valorMercado,
+                presupuesto: rival.presupuesto,
+              ),
               temporada: ctx.estado.temporada,
               semana: ctx.estado.semana,
             );

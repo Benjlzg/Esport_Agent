@@ -115,6 +115,55 @@ List<Jugador> recortarSuplentes(EstadoPartida estado, Equipo equipo) {
   return liberados;
 }
 
+/// Al empezar la temporada, algunos equipos de 2ª División fichan a un joven
+/// libre de su región como suplente (C3).
+///
+/// Reglas de seguridad:
+/// - Nunca ficha a un jugador representado por el agente: si es mío, la
+///   decisión debe llegar como oferta (o quedarse libre), no automática.
+/// - Solo acepta jóvenes de 21 años o menos.
+/// - Respeta el máximo de suplentes del equipo.
+/// - Marca el fichaje como reciente para que no se revenda en la temporada.
+///
+/// El parámetro [probabilidad] existe para poder forzar el fichaje en las
+/// pruebas; en el juego se usa [probSegundaDivisionFichaJoven].
+void ficharJovenesDeSegunda({
+  required EstadoPartida estado,
+  required Random rnd,
+  double probabilidad = probSegundaDivisionFichaJoven,
+}) {
+  for (final equipo in estado.equipos) {
+    if (equipo.division != 2) continue;
+    if (rnd.nextDouble() >= probabilidad) continue;
+
+    // No se puede superar el máximo de suplentes del equipo.
+    final suplentesActuales = estado.jugadores
+        .where((j) => j.equipoId == equipo.id && j.suplente)
+        .length;
+    if (suplentesActuales >= maxSuplentesPorEquipo) continue;
+
+    Jugador? joven;
+    for (final j in estado.jugadores) {
+      if (j.equipoId != null) continue;
+      if (j.representadoPorMi) continue;
+      if (j.edad > 21) continue;
+      if (j.juego != equipo.juego) continue;
+      if (j.region != equipo.region) continue;
+      if (j.bloqueadoTraspaso(estado.temporada)) continue;
+      joven = j;
+      break;
+    }
+    if (joven == null) continue;
+
+    joven.equipoId = equipo.id;
+    joven.suplente = true;
+    joven.semanasContrato = 52 + rnd.nextInt(53);
+    joven.semanasComoSuplente = 0;
+    // Recién fichado: no puede volver a cambiar de equipo esta temporada.
+    joven.temporadaUltimoTraspaso = estado.temporada;
+  }
+}
+
 /// Si un equipo perdió a su titular en un rol, genera un reemplazo ficticio
 /// acorde a su prestigio. Devuelve el jugador nuevo (ya añadido al estado) o
 /// null si el rol ya tiene titular.
@@ -196,6 +245,7 @@ ResultadoMercadoIA procesarMercadoIA({
       rnd: rnd,
       nuevoIdJugador: nuevoIdJugador,
       noticias: noticias,
+      ofertas: ofertas,
     );
   }
 
@@ -241,9 +291,15 @@ ResultadoMercadoIA procesarMercadoIA({
         tipo: TipoOferta.traspaso,
         jugadorId: elegido.id,
         equipoId: equipo.id,
+        equipoOrigenId: elegido.equipoId,
         monto: elegido.valorMercado,
         salarioAnual: calcularSalarioAnual(elegido.valorMercado),
         semanasRestantes: 2,
+        mejorasRealizadas: 0,
+        montoMaximo: topeMontoOferta(
+          valorMercado: elegido.valorMercado,
+          presupuesto: equipo.presupuesto,
+        ),
         temporada: estado.temporada,
         semana: estado.semana,
       );
@@ -268,8 +324,8 @@ ResultadoMercadoIA procesarMercadoIA({
       );
     }
 
-    // Se cierra el traspaso.
-    equipo.presupuesto = max(0, equipo.presupuesto - elegido.valorMercado);
+    // Se cierra el traspaso. El candidato ya se filtró por presupuesto.
+    equipo.presupuesto -= elegido.valorMercado;
     elegido.equipoId = equipo.id;
     elegido.suplente = false;
     elegido.semanasContrato = 52 + rnd.nextInt(53);
@@ -360,9 +416,9 @@ void _garantizarTitulares({
 /// en las últimas 5 temporadas pierden figuras a manos de equipos que no
 /// están en esa lista. Devuelve cuántos traspasos se cerraron.
 ///
-/// Solo se ejecuta una vez por temporada (semana 1) y no toca a los jugadores
-/// que representa el agente: sus traspasos dependen de una oferta y de su
-/// decisión, no de la IA del mercado.
+/// Solo se ejecuta una vez por temporada (semana 1). Si la figura elegida es
+/// un jugador representado por el agente, no se cambia de club: se genera una
+/// [Oferta] con el importe de la cláusula para que tú decidas (C3/C4).
 int _fichajesDeCampeones({
   required EstadoPartida estado,
   required Map<String, Equipo> indiceEquipos,
@@ -370,6 +426,7 @@ int _fichajesDeCampeones({
   required Random rnd,
   required String Function() nuevoIdJugador,
   required List<String> noticias,
+  required List<Oferta> ofertas,
 }) {
   if (estado.temporada < 2) return 0;
 
@@ -388,13 +445,10 @@ int _fichajesDeCampeones({
     ...estado.palmares
         .where(
           (r) =>
-              r.temporada == estado.temporada - 1 &&
-              r.tipo == TipoCampeon.liga,
+              r.temporada == estado.temporada - 1 && r.tipo == TipoCampeon.liga,
         )
         .map((r) => r.ganadorId),
-    ...titulosRecientes.entries
-        .where((e) => e.value >= 3)
-        .map((e) => e.key),
+    ...titulosRecientes.entries.where((e) => e.value >= 3).map((e) => e.key),
   };
   if (campeones.isEmpty) return 0;
 
@@ -417,15 +471,11 @@ int _fichajesDeCampeones({
     final rolesVendidos = <String>{};
     var robados = 0;
     while (robados < maxRobos && rnd.nextDouble() < probabilidad) {
-      final plantilla = (porEquipo[campeonId] ?? const <Jugador>[])
-          .where(
-            (j) =>
-                !j.representadoPorMi &&
-                !j.estaInactivo &&
-                !rolesVendidos.contains(j.rol),
-          )
-          .toList()
-        ..sort((a, b) => b.habilidad.compareTo(a.habilidad));
+      final plantilla =
+          (porEquipo[campeonId] ?? const <Jugador>[])
+              .where((j) => !j.estaInactivo && !rolesVendidos.contains(j.rol))
+              .toList()
+            ..sort((a, b) => b.habilidad.compareTo(a.habilidad));
 
       var cerrado = false;
       for (final jugador in plantilla) {
@@ -453,6 +503,51 @@ int _fichajesDeCampeones({
         final limite = compradores.length < 3 ? compradores.length : 3;
         final comprador = compradores[rnd.nextInt(limite)];
 
+        // Si la figura es mía, la dinastía no la ficha sola: me llega una
+        // oferta por el importe de la cláusula y decido si acepto o no.
+        if (jugador.representadoPorMi) {
+          final yaPendiente = estado.ofertas.any(
+            (o) =>
+                o.tipo == TipoOferta.traspaso &&
+                o.jugadorId == jugador.id &&
+                o.equipoId == comprador.id,
+          );
+          if (!yaPendiente) {
+            final oferta = Oferta(
+              id:
+                  'of_dinastia_${jugador.id}_${comprador.id}_'
+                  '${estado.temporada}_${estado.semana}',
+              tipo: TipoOferta.traspaso,
+              jugadorId: jugador.id,
+              equipoId: comprador.id,
+              equipoOrigenId: campeon.id,
+              monto: precioClausula,
+              salarioAnual: calcularSalarioAnual(jugador.valorMercado),
+              semanasRestantes: 2,
+              mejorasRealizadas: 0,
+              montoMaximo: topeMontoOferta(
+                valorMercado: jugador.valorMercado,
+                presupuesto: comprador.presupuesto,
+              ),
+              temporada: estado.temporada,
+              semana: estado.semana,
+            );
+            ofertas.add(oferta);
+            estado.ofertas.add(oferta);
+            noticias.add(
+              '${comprador.nombre} ofrece pagar la cláusula de salida de '
+              '${jugador.nick}, figura de ${campeon.nombre}, por '
+              '${formatearDinero(precioClausula)}. La decisión es tuya.',
+            );
+          }
+          // El rol ya está ocupado por esta tentativa; no se insiste con otro
+          // jugador del mismo rol en la misma dinastía.
+          rolesVendidos.add(jugador.rol);
+          robados++;
+          cerrado = true;
+          break;
+        }
+
         // El jugador desplazado en ese rol pasa a suplente.
         for (final otro in estado.jugadores) {
           if (otro.id != jugador.id &&
@@ -468,7 +563,7 @@ int _fichajesDeCampeones({
           );
         }
 
-        comprador.presupuesto = max(0, comprador.presupuesto - precioClausula);
+        comprador.presupuesto -= precioClausula;
         jugador.equipoId = comprador.id;
         jugador.suplente = false;
         jugador.semanasContrato = 52 + rnd.nextInt(53);

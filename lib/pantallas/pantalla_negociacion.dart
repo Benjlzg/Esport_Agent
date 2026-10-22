@@ -38,6 +38,8 @@ class _PantallaNegociacionState extends State<PantallaNegociacion> {
     if (jugador == null) return;
     _precio.text = jugador.valorMercado.toString();
     for (final equipo in widget.motor.equiposDeJuego(jugador.juego)) {
+      // El club actual no puede comprar a su propio jugador (C6).
+      if (equipo.id == jugador.equipoId) continue;
       final hayInteres =
           widget.motor.interesDe(jugador, equipo) != NivelInteres.sinInteres;
       if (hayInteres && !widget.motor.bloqueado(jugador, equipo)) {
@@ -56,6 +58,14 @@ class _PantallaNegociacionState extends State<PantallaNegociacion> {
   Future<void> _enviar() async {
     final jugador = widget.motor.jugadorPorId(widget.jugadorId)!;
     final equipo = _equipo!;
+    if (jugador.equipoId == equipo.id) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No puedes ofrecer un jugador a su propio club.'),
+        ),
+      );
+      return;
+    }
     if (jugador.bloqueadoTraspaso(widget.motor.temporada)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -115,7 +125,22 @@ class _PantallaNegociacionState extends State<PantallaNegociacion> {
         body: Center(child: Text('Jugador no encontrado.')),
       );
     }
-    final equipos = motor.equiposDeJuego(jugador.juego);
+    final equipos = motor
+        .equiposDeJuego(jugador.juego)
+        .where((e) => e.id != jugador.equipoId)
+        .toList();
+    // El valor inicial debe ser exactamente uno de los equipos del
+    // desplegable. Si el club cambió o el equipo guardado ya no está en la
+    // lista (por ejemplo, su propio club), se deja vacío para no romper.
+    Equipo? equipoSeleccionado;
+    if (_equipo != null) {
+      for (final e in equipos) {
+        if (e.id == _equipo!.id) {
+          equipoSeleccionado = e;
+          break;
+        }
+      }
+    }
     final mercadoCerrado =
         !enVentanaFichajes(motor.semana) && jugador.equipoId != null;
     final recienFichado = jugador.bloqueadoTraspaso(motor.temporada);
@@ -203,7 +228,7 @@ class _PantallaNegociacionState extends State<PantallaNegociacion> {
 
           // Elegir equipo (solo del mismo videojuego).
           DropdownButtonFormField<Equipo>(
-            initialValue: _equipo,
+            initialValue: equipoSeleccionado,
             // Ocupa todo el ancho y recorta con puntos suspensivos los nombres
             // largos, para que no se salgan en pantallas estrechas.
             isExpanded: true,

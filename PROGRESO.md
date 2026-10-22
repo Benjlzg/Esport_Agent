@@ -376,4 +376,64 @@ Se corrigieron solo los dos problemas críticos de integridad de la partida de `
 - `flutter test` → **116 pasan, 2 saltan** (las pruebas `@Tags(['lento'])`).
 - `test/eventos_test.dart` actualizado para esperar `versionFormato` = **7**; la compatibilidad desde v3 se mantiene.
 
+## Auditoría — C3 a C6 (terminada, 2026-10-22)
+
+Se corrigieron solo los cuatro problemas críticos restantes de `AUDITORIA.md` (C3–C6) y el mecanismo anti-dinastía ahora genera una oferta cuando quiere fichar a un jugador representado. Los problemas importantes (I1–I15) y menores siguen pendientes.
+
+### C3 — Fichajes juveniles y anti-dinastía
+
+- Nuevo `ficharJovenesDeSegunda` en `lib/logica/mercado.dart` (el motor lo llama al empezar la temporada):
+  - **Nunca ficha a un representado**; si es mío, se queda libre o recibe una oferta.
+  - Solo ficha jugadores de **21 años o menos**.
+  - Respeta el **máximo de 2 suplentes** por equipo.
+  - Marca `temporadaUltimoTraspaso` para que no se revenda en la misma temporada.
+- **Anti-dinastía con oferta:** `_fichajesDeCampeones` ya no ignora a los representados. Si la figura elegida es mía, crea una `Oferta` con el importe de la **cláusula de salida (40 %)** y el jugador **sigue en su club** hasta que yo decida. No se duplican ofertas del mismo comprador por el mismo jugador.
+- El comprador no paga nada hasta que se acepta la oferta.
+
+### C4 — Validación de ofertas entrantes
+
+- `Oferta` tiene tres campos nuevos con valores por defecto para partidas viejas: `equipoOrigenId`, `mejorasRealizadas` y `montoMaximo`.
+- Nuevo `_motivoTraspasoInvalido` centraliza las comprobaciones al aceptar un traspaso o una contraoferta:
+  - la oferta sigue existiendo en `estado.ofertas`;
+  - el jugador sigue representado;
+  - sigue en el **club de origen** de la oferta;
+  - el comprador es de **otro club** y del **mismo videojuego**;
+  - el mercado está abierto (salvo agentes libres);
+  - el jugador no está bloqueado por un traspaso reciente;
+  - el comprador tiene `presupuesto >= monto`.
+- Si la oferta no es válida se elimina y no se paga comisión. Las renovaciones también comprueban representación, club y contrato vigente, así que un **doble toque cobra una sola comisión**.
+- Las ofertas de `fuga_informacion` solo se generan con rivales que pueden pagar.
+- Se sustituyó `max(0, presupuesto - precio)` por resta directa: la validación previa garantiza que no hay sobregiro.
+
+### C5 — “Pedir más” con tope
+
+- Máximo **2 mejoras** por oferta (`maxMejorasOferta`).
+- El importe se acota a `min(valorMercado × 1,40, presupuesto del comprador)` con `topeMontoOferta`.
+- **No se reinicia `semanasRestantes`** al pedir más: la oferta conserva su plazo real.
+- Una oferta obsoleta (jugador cambiado de club, ya no representado o bloqueado) se elimina y no se puede mejorar.
+
+### C6 — No vender al propio club
+
+- `ofrecer` y `aceptarContraoferta` rechazan al club actual del jugador.
+- `PantallaNegociacion` excluye el club actual del desplegable y tampoco lo preselecciona.
+- El valor inicial del desplegable se busca en la lista filtrada para evitar excepciones si el club cambia.
+
+### Pruebas nuevas
+
+- `test/anti_dinastia_test.dart` (**6 pruebas**): oferta de la dinastía por la cláusula sin cambiar al representado, no duplicar ofertas, y fichajes juveniles con representado, edad, suplentes y marcado de traspaso.
+- `test/ofertas_dinero_test.dart` (**11 pruebas**): oferta al propio club y contraoferta al propio club, desplegable sin el club actual, presupuesto 0, oferta obsoleta por cambio de club, jugador no representado, doble aceptación de renovación, serialización tolerante, tope de mejoras, tope por presupuesto y plazo sin reinicio.
+
+### Verificación
+
+- `flutter analyze` → **No issues found!**
+- `flutter test` → **133 pasan, 2 saltan** (las pruebas `@Tags(['lento'])`). Las 17 pruebas nuevas pasan.
+- No se ejecutaron `test/balance_test.dart` ni `test/robot_test.dart` (lentos), por la misma indicación de las correcciones anteriores.
+- `versionFormato` sigue en **7**; los campos nuevos de `Oferta` tienen valores por defecto y las partidas viejas cargan sin cambios.
+
+### Pendiente
+
+- **I2 e I7:** acreditar al club vendedor y aplicar el salario de la oferta siguen sin tocarse porque no forman parte de C3–C6.
+- Regenerar `INFORME_BALANCE.md` y ejecutar las pruebas lentas para medir el efecto de C3–C6 en el robot y en el mercado.
+
+
 

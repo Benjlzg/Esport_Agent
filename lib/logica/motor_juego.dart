@@ -480,6 +480,16 @@ class MotorJuego extends ChangeNotifier {
         mensaje: 'El jugador y el equipo deben ser del mismo videojuego.',
       );
     }
+    // No tiene sentido "vender" a un jugador a su propio club: generaría una
+    // comisión y reputación sin ningún traspaso real (C6).
+    if (jugador.equipoId == equipo.id) {
+      return ResultadoOferta(
+        respuesta: RespuestaEquipo.sinInteres,
+        mensaje:
+            '${equipo.nombre} ya tiene a ${jugador.nick}: no puedes venderlo '
+            'a su propio club.',
+      );
+    }
     // Un jugador recién traspasado no puede volver a venderse hasta la
     // próxima temporada (corrección 2.5 A2).
     if (jugador.bloqueadoTraspaso(estado!.temporada)) {
@@ -540,6 +550,22 @@ class MotorJuego extends ChangeNotifier {
     );
 
     if (resultado.respuesta == RespuestaEquipo.acepta) {
+      // Validación final antes de mover dinero: el comprador debe poder pagar
+      // el precio aceptado y el jugador debe seguir en su club (C4/C6).
+      final motivo = _motivoTraspasoInvalido(
+        jugador: jugador,
+        equipo: equipo,
+        precio: precioPedido,
+        // `ofrecer` ya se usa desde la pantalla, que controla la ventana.
+        // Aquí solo se valida el dinero y la situación del jugador.
+        comprobarVentana: false,
+      );
+      if (motivo != null) {
+        return ResultadoOferta(
+          respuesta: RespuestaEquipo.sinPresupuesto,
+          mensaje: motivo,
+        );
+      }
       await _cerrarTrato(jugador, equipo, precioPedido);
     } else {
       if (resultado.respuesta == RespuestaEquipo.rechaza &&
@@ -557,15 +583,69 @@ class MotorJuego extends ChangeNotifier {
     required Equipo equipo,
     required int precio,
   }) async {
-    if (jugador.bloqueadoTraspaso(estado!.temporada)) {
-      return ResultadoAccion(
-        false,
-        '${jugador.nick} acaba de cambiar de equipo: podrá negociar de nuevo '
-        'la próxima temporada.',
-      );
-    }
+    // Las mismas reglas que al aceptar una oferta entrante (C4/C6): el
+    // jugador debe seguir siendo mío, no puede irse a su propio club y el
+    // comprador debe poder pagar.
+    final motivo = _motivoTraspasoInvalido(
+      jugador: jugador,
+      equipo: equipo,
+      precio: precio,
+    );
+    if (motivo != null) return ResultadoAccion(false, motivo);
     await _cerrarTrato(jugador, equipo, precio);
     return ResultadoAccion(true, 'Trato cerrado con ${equipo.nombre}.');
+  }
+
+  /// Devuelve el motivo por el que un traspaso ya no se puede cerrar, o null
+  /// si es válido. Centraliza las comprobaciones de C4 y C6:
+  /// - la oferta (si existe) sigue pendiente;
+  /// - el jugador sigue representado y en el club de origen;
+  /// - el comprador es de otro club y del mismo videojuego;
+  /// - el mercado está abierto (salvo agentes libres);
+  /// - el jugador no está bloqueado por un traspaso reciente;
+  /// - el comprador tiene presupuesto para pagar el precio.
+  String? _motivoTraspasoInvalido({
+    Oferta? oferta,
+    required Jugador jugador,
+    required Equipo equipo,
+    required int precio,
+    bool comprobarVentana = true,
+  }) {
+    final est = estado!;
+    if (oferta != null && !est.ofertas.contains(oferta)) {
+      return 'La oferta ya no está disponible.';
+    }
+    if (!jugador.representadoPorMi) {
+      return 'Ya no representas a ${jugador.nick}.';
+    }
+    if (equipo.id == jugador.equipoId) {
+      return '${equipo.nombre} ya tiene a ${jugador.nick}: no puedes venderlo '
+          'a su propio club.';
+    }
+    if (equipo.juego != jugador.juego) {
+      return 'El jugador y el equipo deben ser del mismo videojuego.';
+    }
+    final origen = oferta?.equipoOrigenId;
+    if (origen != null && jugador.equipoId != origen) {
+      return '${jugador.nick} ya no está en el club de origen de la oferta.';
+    }
+    if (comprobarVentana &&
+        jugador.equipoId != null &&
+        !enVentanaFichajes(est.semana)) {
+      return 'El mercado está cerrado. ${proximaVentanaTexto(est.semana)}';
+    }
+    if (jugador.bloqueadoTraspaso(est.temporada)) {
+      return '${jugador.nick} acaba de cambiar de equipo: podrá negociar de '
+          'nuevo la próxima temporada.';
+    }
+    if (precio <= 0) {
+      return 'El importe de la oferta no es válido.';
+    }
+    if (equipo.presupuesto < precio) {
+      return '${equipo.nombre} no tiene presupuesto suficiente para pagar '
+          '${formatearDinero(precio)}.';
+    }
+    return null;
   }
 
   /// Cierra la transferencia: paga la comisión, actualiza el equipo, etc.
@@ -596,7 +676,8 @@ class MotorJuego extends ChangeNotifier {
 
     final comision = _comisionNeta(comisionPorTransferencia(precio));
     ag.dinero += comision;
-    equipo.presupuesto = max(0, equipo.presupuesto - precio);
+    // La validación previa garantiza que el comprador tiene este dinero.
+    equipo.presupuesto -= precio;
 
     jugador.equipoId = equipo.id;
     jugador.suplente = false;
@@ -799,6 +880,11 @@ class MotorJuego extends ChangeNotifier {
   /// Acepta una oferta: cierra el traspaso o aplica la renovación.
   Future<ResultadoAccion> aceptarOferta(Oferta oferta) async {
     final est = estado!;
+    // La oferta debe seguir pendiente. Esto también evita que un doble toque
+    // en "Aceptar" cobre dos comisiones por la misma renovación (C4).
+    if (!est.ofertas.contains(oferta)) {
+      return ResultadoAccion(false, 'La oferta ya no está disponible.');
+    }
     final jugador = _indiceJugadores[oferta.jugadorId];
     final equipo = _indiceEquipos[oferta.equipoId];
     if (jugador == null || equipo == null) {
@@ -807,22 +893,16 @@ class MotorJuego extends ChangeNotifier {
       return ResultadoAccion(false, 'La oferta ya no es válida.');
     }
     if (oferta.tipo == TipoOferta.traspaso) {
-      if (!enVentanaFichajes(est.semana)) {
-        return ResultadoAccion(
-          false,
-          'El mercado está cerrado. ${proximaVentanaTexto(est.semana)}',
-        );
-      }
-      // Un jugador recién traspasado no puede volver a venderse esta
-      // temporada, ni siquiera aceptando otra oferta pendiente (A2).
-      if (jugador.bloqueadoTraspaso(est.temporada)) {
+      final motivo = _motivoTraspasoInvalido(
+        oferta: oferta,
+        jugador: jugador,
+        equipo: equipo,
+        precio: oferta.monto,
+      );
+      if (motivo != null) {
         est.ofertas.remove(oferta);
         await _guardarYNotificar();
-        return ResultadoAccion(
-          false,
-          '${jugador.nick} acaba de cambiar de equipo: podrá negociar de '
-          'nuevo la próxima temporada.',
-        );
+        return ResultadoAccion(false, motivo);
       }
       await _cerrarTrato(jugador, equipo, oferta.monto);
       est.ofertas.remove(oferta);
@@ -833,7 +913,15 @@ class MotorJuego extends ChangeNotifier {
       );
     }
 
-    // Renovación de contrato.
+    // Renovación de contrato: el jugador debe seguir representado y en el
+    // mismo club, con contrato vigente.
+    if (!jugador.representadoPorMi ||
+        jugador.equipoId != oferta.equipoId ||
+        jugador.semanasContrato <= 0) {
+      est.ofertas.remove(oferta);
+      await _guardarYNotificar();
+      return ResultadoAccion(false, 'La oferta de renovación ya no es válida.');
+    }
     jugador.salarioAnual = oferta.monto;
     jugador.semanasContrato = 52 + _rnd.nextInt(53);
     final comision = _comisionNeta((oferta.monto * comisionRenovacion).round());
@@ -851,6 +939,9 @@ class MotorJuego extends ChangeNotifier {
   /// Rechaza una oferta. Si era de renovación, el jugador quedará libre.
   Future<ResultadoAccion> rechazarOferta(Oferta oferta) async {
     final est = estado!;
+    if (!est.ofertas.contains(oferta)) {
+      return ResultadoAccion(false, 'La oferta ya no está disponible.');
+    }
     final jugador = _indiceJugadores[oferta.jugadorId];
     final equipo = _indiceEquipos[oferta.equipoId];
     est.ofertas.remove(oferta);
@@ -873,9 +964,12 @@ class MotorJuego extends ChangeNotifier {
   }
 
   /// Pide más dinero por una oferta de traspaso. El equipo puede subirla o
-  /// retirarla.
+  /// retirarla, pero hay un máximo de mejoras y un tope de importe (C5).
   Future<ResultadoAccion> pedirMasOferta(Oferta oferta) async {
     final est = estado!;
+    if (!est.ofertas.contains(oferta)) {
+      return ResultadoAccion(false, 'La oferta ya no está disponible.');
+    }
     if (oferta.tipo != TipoOferta.traspaso) {
       return ResultadoAccion(
         false,
@@ -889,6 +983,31 @@ class MotorJuego extends ChangeNotifier {
       await _guardarYNotificar();
       return ResultadoAccion(false, 'La oferta ya no es válida.');
     }
+
+    // Oferta obsoleta: el jugador cambió de club, dejó de ser mío o el
+    // comprador ya no puede pagar. No se mejora una oferta irreal (C4).
+    final origen = oferta.equipoOrigenId;
+    final obsoleta =
+        !jugador.representadoPorMi ||
+        equipo.id == jugador.equipoId ||
+        equipo.juego != jugador.juego ||
+        (origen != null && jugador.equipoId != origen) ||
+        jugador.bloqueadoTraspaso(est.temporada);
+    if (obsoleta) {
+      est.ofertas.remove(oferta);
+      await _guardarYNotificar();
+      return ResultadoAccion(false, 'La oferta ya no es válida.');
+    }
+
+    // Tope de mejoras: después de dos subidas el equipo ya no ofrece más y
+    // la oferta mantiene su plazo original.
+    if (oferta.mejorasRealizadas >= maxMejorasOferta) {
+      return ResultadoAccion(
+        false,
+        '${equipo.nombre} ya no mejorará más su oferta por ${jugador.nick}.',
+      );
+    }
+
     if (_rnd.nextDouble() < probRetiradaPedirMas) {
       est.ofertas.remove(oferta);
       _agregarNoticia(
@@ -898,10 +1017,30 @@ class MotorJuego extends ChangeNotifier {
       await _guardarYNotificar();
       return ResultadoAccion(true, '${equipo.nombre} retiró la oferta.');
     }
+
+    // El tope no puede superar ni el 140 % del valor ni el presupuesto del
+    // comprador. Si una oferta vieja no lo guardó, se calcula ahora.
+    final topeGuardado = oferta.montoMaximo > 0
+        ? oferta.montoMaximo
+        : topeMontoOferta(
+            valorMercado: jugador.valorMercado,
+            presupuesto: equipo.presupuesto,
+          );
+    final tope = min(topeGuardado, equipo.presupuesto);
     final factor =
         1 + pedirMasMin + _rnd.nextDouble() * (pedirMasMax - pedirMasMin);
-    oferta.monto = ((oferta.monto * factor) / 1000).round() * 1000;
-    oferta.semanasRestantes = 2;
+    final propuesto = ((oferta.monto * factor) / 1000).round() * 1000;
+    final nuevoMonto = min(propuesto, tope);
+    if (nuevoMonto <= oferta.monto) {
+      return ResultadoAccion(
+        false,
+        '${equipo.nombre} no puede subir más la oferta por ${jugador.nick}.',
+      );
+    }
+
+    oferta.monto = nuevoMonto;
+    oferta.mejorasRealizadas++;
+    // No se reinicia `semanasRestantes`: la oferta conserva su plazo real.
     _agregarNoticia(
       '${equipo.nombre} sube su oferta por ${jugador.nick} a ${formatearDinero(oferta.monto)}.',
       TipoNoticia.evento,
@@ -1519,23 +1658,18 @@ class MotorJuego extends ChangeNotifier {
       ...est.palmares
           .where(
             (r) =>
-                r.temporada == temporadaAnterior &&
-                r.tipo == TipoCampeon.liga,
+                r.temporada == temporadaAnterior && r.tipo == TipoCampeon.liga,
           )
           .map((r) => r.ganadorId),
       // Una dinastía con 3 o más títulos recientes también arrastra desgaste.
-      ...titulosRecientes.entries
-          .where((e) => e.value >= 3)
-          .map((e) => e.key),
+      ...titulosRecientes.entries.where((e) => e.value >= 3).map((e) => e.key),
     };
     // Desgaste competitivo: cada título reciente por encima de 2 resta un 4 %
     // al poder del equipo, con un tope del 20 %. Se recalcula cada temporada,
     // así que un equipo que deja de ganar recupera su nivel.
     for (final equipo in est.equipos) {
       final titulos = titulosRecientes[equipo.id] ?? 0;
-      final descuento = titulos <= 2
-          ? 0.0
-          : min(0.20, (titulos - 2) * 0.04);
+      final descuento = titulos <= 2 ? 0.0 : min(0.20, (titulos - 2) * 0.04);
       equipo.factorPoder = 1.0 - descuento;
     }
 
@@ -1550,25 +1684,9 @@ class MotorJuego extends ChangeNotifier {
 
   /// Al empezar la temporada, algunos equipos de 2ª División fichan a un
   /// joven libre de su región (como suplente, sin romper la plantilla).
+  /// La lógica vive en `mercado.dart` para poder probarla con casos C3.
   void _ficharJovenesDeSegunda() {
-    final est = estado!;
-    for (final equipo in est.equipos) {
-      if (equipo.division != 2) continue;
-      if (_rnd.nextDouble() >= probSegundaDivisionFichaJoven) continue;
-      Jugador? joven;
-      for (final j in est.jugadores) {
-        if (j.equipoId == null &&
-            j.juego == equipo.juego &&
-            j.region == equipo.region) {
-          joven = j;
-          break;
-        }
-      }
-      if (joven == null) continue;
-      joven.equipoId = equipo.id;
-      joven.suplente = true;
-      joven.semanasContrato = 52 + _rnd.nextInt(53);
-    }
+    ficharJovenesDeSegunda(estado: estado!, rnd: _rnd);
   }
 
   /// Recalcula el valor de mercado de todos los jugadores.

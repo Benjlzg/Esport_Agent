@@ -46,6 +46,11 @@ class _PantallaPrincipalState extends State<PantallaPrincipal> {
     return ListenableBuilder(
       listenable: widget.motor,
       builder: (context, _) {
+        // Si no hay partida (por ejemplo, después de borrarla), se muestra el
+        // inicio en vez de leer getters que necesitan el estado (C2).
+        if (!widget.motor.hayPartida) {
+          return PantallaInicio(motor: widget.motor);
+        }
         // Si el juego terminó por bancarrota, muestro la pantalla final.
         if (widget.motor.finDelJuego) {
           return _PantallaFinDelJuego(motor: widget.motor);

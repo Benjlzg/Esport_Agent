@@ -11,11 +11,12 @@ import 'torneo.dart';
 
 /// Versión del formato de guardado. Si algún día cambia el formato,
 /// se sube este número para poder actualizar partidas antiguas.
-const int versionFormato = 6;
+const int versionFormato = 7;
 
-/// Versión más antigua que todavía se puede cargar. Las partidas de la
-/// versión 3, 4 o 5 se actualizan a la 6 con los eventos y efectos
-/// temporales vacíos; las de la versión 1 o 2 siguen siendo incompatibles.
+/// Versión más antigua que todavía se puede cargar. Las partidas de las
+/// versiones 3 a 6 se actualizan a la 7: los campos nuevos quedan vacíos o
+/// con su valor por defecto y el contador de ids se reconstruye al cargar.
+/// Las de la versión 1 o 2 siguen siendo incompatibles.
 const int versionMinimaCompatible = 3;
 
 /// Contiene todos los datos de la partida en curso.
@@ -40,6 +41,7 @@ class EstadoPartida {
     this.ceremoniaPendiente = false,
     this.semana = 1,
     this.temporada = 1,
+    this.siguienteIdJugador = 0,
     Map<String, int>? rondasNegociacion,
     List<String>? paresBloqueados,
     this.ingresosUltimaSemana = 0,
@@ -116,6 +118,11 @@ class EstadoPartida {
   /// Temporada actual. Empieza en 1.
   int temporada;
 
+  /// Siguiente número que se usará para generar un id `p####` de jugador.
+  /// Se guarda para que, al cargar una partida, los jugadores nuevos no
+  /// repitan ids ya existentes (corrección C1 de la auditoría).
+  int siguienteIdJugador;
+
   /// Cuántas rondas de negociación se han usado por cada par
   /// jugador+equipo. La clave es "jugadorId|equipoId".
   Map<String, int> rondasNegociacion;
@@ -160,6 +167,7 @@ class EstadoPartida {
       'ceremoniaPendiente': ceremoniaPendiente,
       'semana': semana,
       'temporada': temporada,
+      'siguienteIdJugador': siguienteIdJugador,
       'rondasNegociacion': rondasNegociacion,
       'paresBloqueados': paresBloqueados,
       'ingresosUltimaSemana': ingresosUltimaSemana,
@@ -219,6 +227,9 @@ class EstadoPartida {
       ceremoniaPendiente: json['ceremoniaPendiente'] as bool? ?? false,
       semana: json['semana'] as int,
       temporada: json['temporada'] as int,
+      // En partidas v3–v6 este campo no existe. Queda en 0 y el motor lo
+      // reconstruye al cargar a partir del mayor id `p####` encontrado.
+      siguienteIdJugador: (json['siguienteIdJugador'] as num?)?.toInt() ?? 0,
       rondasNegociacion:
           (json['rondasNegociacion'] as Map?)?.map(
             (k, v) => MapEntry(k as String, v as int),

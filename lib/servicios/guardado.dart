@@ -49,10 +49,10 @@ Future<CargaPartida> cargarPartida() async {
   try {
     final mapa = jsonDecode(texto) as Map<String, dynamic>;
     final version = (mapa['version'] as num?)?.toInt() ?? 1;
-    // Las partidas de las versiones 1 y 2 son incompatibles. Las v3, v4 y v5
-    // se actualizan a la v6 al cargarlas: los campos nuevos (torneos,
-    // palmarés, premios, eventos, frecuencia y efectos temporales) quedan
-    // vacíos o con su valor por defecto.
+    // Las partidas de las versiones 1 y 2 son incompatibles. Las v3–v6 se
+    // actualizan a la v7 al cargarlas: los campos nuevos (torneos, palmarés,
+    // premios, eventos, frecuencia, efectos temporales y el contador de ids)
+    // quedan vacíos, con su valor por defecto o se reconstruyen.
     if (version < versionMinimaCompatible) {
       return const CargaPartida(ResultadoCarga.incompatible);
     }

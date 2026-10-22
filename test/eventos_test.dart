@@ -351,7 +351,7 @@ void main() {
         expect(estado.semana, 7);
         expect(estado.temporada, 2);
         expect(estado.toJson()['version'], versionFormato);
-        expect(versionFormato, 6);
+        expect(versionFormato, 7);
         expect(versionMinimaCompatible, 3);
       },
     );

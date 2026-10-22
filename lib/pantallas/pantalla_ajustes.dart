@@ -18,6 +18,11 @@ class PantallaAjustes extends StatelessWidget {
     return ListenableBuilder(
       listenable: motor,
       builder: (context, _) {
+        // Si la partida se borró, no se pueden leer sus datos: se muestra la
+        // pantalla de inicio en vez de dejar que un getter falle (C2).
+        if (!motor.hayPartida) {
+          return PantallaInicio(motor: motor);
+        }
         final agente = motor.agente;
         return Scaffold(
           appBar: AppBar(title: const Text('Ajustes')),

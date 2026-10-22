@@ -12,7 +12,7 @@ Resumen. El detalle completo de 2A–2D está en `HISTORIAL_FASE2.md`.
 
 ## Decisiones que afectan al trabajo futuro
 
-- **Guardado:** `versionFormato` = **6**; `versionMinimaCompatible` = **3**. Las v3/v4/v5 cargan con los campos nuevos vacíos y se reguardan como v6; v1/v2 son incompatibles.
+- **Guardado:** `versionFormato` = **7**; `versionMinimaCompatible` = **3**. Las v3–v6 cargan con los campos nuevos vacíos, reconstruyen el contador de ids y se reguardan como v7; v1/v2 son incompatibles.
 - **Ventanas de fichajes:** semanas **1–4, 23–26 y 47–52**; fuera de ellas solo se pueden fichar agentes libres. Las renovaciones se revisan todas las semanas.
 - **Botón de depuración:** "Avanzar 10 semanas" solo visible con `kDebugMode`.
 - **5 pestañas:** Resumen, Mi agencia, Mercado, Equipos y Competición (Noticias se eliminó; su historial se abre desde Resumen con "Ver todas").
@@ -352,4 +352,28 @@ Se corrigieron los 3 problemas de balance con **3 rondas** de ajuste, todas anot
 - `flutter analyze` → **No issues found!**
 - Capturas de `capturas/` regeneradas porque la simulación del fixture cambió.
 - Sin violaciones duras; salto máximo de habilidad **2,86**; progresión juvenil **4,4**; tiempo T10/T1 **1,22×**; guardado final **3.591,7 KB**.
+
+## Auditoría — C1 y C2 (terminada, 2026-10-22)
+
+Se corrigieron solo los dos problemas críticos de integridad de la partida de `AUDITORIA.md`. C3–C6 y los problemas importantes/menores no se tocaron.
+
+### C1 — IDs de jugador duplicados al cargar
+
+- `EstadoPartida` tiene un campo nuevo `siguienteIdJugador` (por defecto **0**) que se guarda en el JSON. `versionFormato` sube a **7**; `versionMinimaCompatible` sigue en **3**.
+- `MotorJuego._nuevoId()` ya no usa un contador solo en memoria: lee y avanza `estado.siguienteIdJugador`, así el valor viaja con la partida.
+- `_reconstruirIndices()` recupera el contador al cargar a partir del mayor id `p####` encontrado (y conserva el guardado si ya era mayor). Esto repara partidas v3–v6 sin el campo y evita que el siguiente jugador repita `p0000`.
+- Prueba nueva `test/guardado_test.dart`: 50 jugadores `p0000`–`p0049` → guardar → cargar → generar un reemplazo; todos los ids son únicos y el siguiente es `p0050`. También carga versiones 3, 4, 5 y 6 y comprueba que reconstruyen el contador.
+
+### C2 — Excepción al borrar la partida
+
+- `MotorJuego.borrar()` ya no llama a `notifyListeners()` después de dejar `estado = null`; las pantallas que borran navegan al inicio justo después.
+- `finDelJuego` es seguro (`estado?.finDelJuego ?? false`) y `PantallaAjustes`/`PantallaPrincipal` muestran `PantallaInicio` si no hay partida, en vez de leer getters que necesitan el estado.
+- Prueba nueva `test/borrado_test.dart`: monta Ajustes y borra con las dos confirmaciones; monta la pantalla de bancarrota y pulsa "Empezar de nuevo". En ambos casos no hay excepción y se llega al inicio.
+
+### Verificación
+
+- `flutter analyze` → **No issues found!**
+- `flutter test` → **116 pasan, 2 saltan** (las pruebas `@Tags(['lento'])`).
+- `test/eventos_test.dart` actualizado para esperar `versionFormato` = **7**; la compatibilidad desde v3 se mantiene.
+
 

@@ -89,10 +89,16 @@ class MotorJuego extends ChangeNotifier {
   final Map<String, Equipo> _indiceEquipos = {};
 
   /// Contador para crear identificadores únicos.
-  int _contador = 0;
-
-  /// Genera un id único para un jugador.
-  String _nuevoId() => 'p${(_contador++).toString().padLeft(4, '0')}';
+  ///
+  /// El valor real vive en `EstadoPartida.siguienteIdJugador` para que se
+  /// guarde con la partida. Antes era solo memoria y, al cargar, volvía a 0:
+  /// el siguiente jugador repetía un id ya usado (corrección C1).
+  String _nuevoId() {
+    final est = estado!;
+    final id = 'p${est.siguienteIdJugador.toString().padLeft(4, '0')}';
+    est.siguienteIdJugador++;
+    return id;
+  }
 
   // ------------------- CONSULTAS BÁSICAS -------------------
 
@@ -104,7 +110,7 @@ class MotorJuego extends ChangeNotifier {
   List<Competicion> get competiciones => estado!.competiciones;
   int get semana => estado!.semana;
   int get temporada => estado!.temporada;
-  bool get finDelJuego => estado!.finDelJuego;
+  bool get finDelJuego => estado?.finDelJuego ?? false;
 
   /// ¿Hay una ceremonia de premios pendiente de mostrar?
   bool get ceremoniaPendiente => estado?.ceremoniaPendiente ?? false;
@@ -284,15 +290,26 @@ class MotorJuego extends ChangeNotifier {
 
   /// Reconstruye los índices de jugadores y equipos por id.
   void _reconstruirIndices() {
+    final est = estado!;
     // Además corrige nicks repetidos de partidas viejas o de datos iniciales:
     // el primero conserva el nombre y los demás reciben un número.
-    asegurarNicksUnicos(estado!.jugadores);
+    asegurarNicksUnicos(est.jugadores);
     _indiceJugadores.clear();
     _indiceEquipos.clear();
-    for (final j in estado!.jugadores) {
+    var siguiente = est.siguienteIdJugador;
+    for (final j in est.jugadores) {
       _indiceJugadores[j.id] = j;
+      // Recupera el contador en partidas v3–v6, que no lo guardaban, o si el
+      // valor guardado se quedó atrás. Así el próximo id `p####` no repite.
+      if (j.id.startsWith('p')) {
+        final numero = int.tryParse(j.id.substring(1));
+        if (numero != null && numero >= siguiente) {
+          siguiente = numero + 1;
+        }
+      }
     }
-    for (final e in estado!.equipos) {
+    est.siguienteIdJugador = siguiente;
+    for (final e in est.equipos) {
       _indiceEquipos[e.id] = e;
     }
   }
@@ -328,7 +345,6 @@ class MotorJuego extends ChangeNotifier {
     required String nombre,
     required String pais,
   }) async {
-    _contador = 0;
     final mundo = await CargadorMundo(_rnd).cargar();
     estado = EstadoPartida(
       agente: Agente(nombre: nombre, pais: pais),
@@ -354,8 +370,8 @@ class MotorJuego extends ChangeNotifier {
     estado = carga.estado;
     _reconstruirIndices();
     _recalcularValores();
-    // Al cargar se guarda de nuevo: así una partida de la versión 3 se
-    // actualiza a la 4 (con torneos, palmarés y premios vacíos).
+    // Al cargar se guarda de nuevo: así una partida vieja se actualiza al
+    // formato actual (v7) con el contador de ids ya reconstruido.
     await guardarPartida(estado!);
     notifyListeners();
     return ResultadoCarga.ok;
@@ -367,7 +383,9 @@ class MotorJuego extends ChangeNotifier {
     estado = null;
     _indiceJugadores.clear();
     _indiceEquipos.clear();
-    notifyListeners();
+    // No se avisa a las pantallas después de dejar `estado` a null: sus
+    // getters necesitan una partida y podían lanzar una excepción (C2).
+    // Las pantallas que borran navegan al inicio justo después.
   }
 
   // ------------------- ACCIONES DEL AGENTE -------------------

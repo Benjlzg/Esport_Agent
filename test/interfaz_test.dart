@@ -12,6 +12,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:esport_agent/logica/formulas.dart';
 import 'package:esport_agent/logica/motor_juego.dart';
 import 'package:esport_agent/logica/ojeadores.dart';
 import 'package:esport_agent/modelos/equipo.dart';
@@ -511,7 +512,7 @@ void main() {
     await _pintarPestana(tester, PestanaMisJugadores(motor: motor));
     expect(tester.takeException(), isNull);
     expect(find.textContaining('Gasto fijo semanal:'), findsOneWidget);
-    expect(find.textContaining('Academia'), findsOneWidget);
+    expect(find.textContaining('Academia'), findsWidgets);
     expect(find.text('Staff'), findsOneWidget);
   });
 
@@ -574,6 +575,42 @@ void main() {
     await tester.tap(find.text('Ir a la Academia'));
     await tester.pumpAndSettle();
     expect(find.text('Cantera de la agencia'), findsOneWidget);
+  });
+
+  testWidgets('3E: Mi agencia separa la academia de la cartera normal', (
+    tester,
+  ) async {
+    final joven = motor.candidatosAcademia.first;
+    final resultado = await motor.reclutarJovenAcademia(joven);
+    expect(resultado.ok, isTrue);
+
+    await _pintarPestana(
+      tester,
+      PestanaMisJugadores(motor: motor),
+      tamano: _pantallaPequena,
+    );
+    expect(tester.takeException(), isNull);
+    expect(find.text('Academia'), findsWidgets);
+    expect(find.textContaining('1 joven'), findsOneWidget);
+    expect(find.textContaining('3 plazas libres'), findsOneWidget);
+    expect(find.text(joven.nick), findsNothing);
+  });
+
+  testWidgets('3E: Resumen avisa de los jóvenes listos para colocar', (
+    tester,
+  ) async {
+    final joven = motor.candidatosAcademia.first;
+    await motor.reclutarJovenAcademia(joven);
+    joven.edad = 17;
+    joven.habilidad = 45;
+    joven.potencial = 70;
+    joven.semanasEnAcademia = 4;
+    joven.valorMercado = valorMercadoDe(joven);
+
+    await _pintarPestana(tester, PestanaResumen(motor: motor));
+    expect(tester.takeException(), isNull);
+    expect(find.text('Tienes jóvenes listos para colocar'), findsOneWidget);
+    expect(find.textContaining('2ª División'), findsOneWidget);
   });
 }
 

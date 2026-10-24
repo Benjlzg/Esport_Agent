@@ -10,6 +10,7 @@ import '../modelos/staff.dart';
 import '../tema/tema_app.dart';
 import '../widgets/tarjeta_jugador.dart';
 import 'pantalla_agentes.dart';
+import 'pantalla_academia.dart';
 import 'pantalla_detalle_jugador.dart';
 import 'pantalla_ofertas.dart';
 import 'pantalla_ojeadores.dart';
@@ -65,14 +66,15 @@ class _PestanaMisJugadoresState extends State<PestanaMisJugadores> {
     );
   }
 
-  /// Accesos a ojeadores y staff, con la línea del gasto fijo semanal.
+  /// Accesos a ojeadores, staff y academia, con la línea del gasto fijo.
   ///
-  /// El gasto total suma oficina + ojeadores + staff + academia. La academia
-  /// todavía no existe (Parte 3E), así que su hueco vale 0 por ahora.
+  /// El gasto total suma oficina + ojeadores + staff + academia.
   Widget _accesosAgencia(BuildContext context) {
     final motor = widget.motor;
     final cantidadOjeadores = motor.ojeadores.length;
     final resumenStaff = _resumenStaff();
+    final jovenesAcademia = motor.jovenesAcademia.length;
+    final plazasLibres = motor.plazasLibresAcademia;
     return Padding(
       padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
       child: Card(
@@ -132,6 +134,37 @@ class _PestanaMisJugadoresState extends State<PestanaMisJugadores> {
                 Navigator.of(context).push(
                   MaterialPageRoute(
                     builder: (_) => PantallaStaff(motor: motor),
+                  ),
+                );
+              },
+            ),
+            const Divider(height: 1),
+            ListTile(
+              leading: const Icon(Icons.school, color: AppColores.dorado),
+              title: const Text(
+                'Academia',
+                style: TextStyle(
+                  color: AppColores.textoPrincipal,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              subtitle: Text(
+                jovenesAcademia == 0
+                    ? 'Sin jóvenes · $plazasLibres plazas libres · '
+                          '${formatearDinero(motor.gastoAcademiaSemanal)}/semana'
+                    : '$jovenesAcademia joven${jovenesAcademia == 1 ? '' : 'es'} · '
+                          '$plazasLibres plaza${plazasLibres == 1 ? '' : 's'} libre${plazasLibres == 1 ? '' : 's'} · '
+                          '${formatearDinero(motor.gastoAcademiaSemanal)}/semana',
+                style: const TextStyle(
+                  color: AppColores.textoSecundario,
+                  fontSize: 12,
+                ),
+              ),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => PantallaAcademia(motor: motor),
                   ),
                 );
               },
@@ -264,6 +297,7 @@ class _PestanaMisJugadoresState extends State<PestanaMisJugadores> {
           );
 
     if (jugadores.isEmpty) {
+      final tieneAcademia = motor.jovenesAcademia.isNotEmpty;
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(24),
@@ -271,12 +305,15 @@ class _PestanaMisJugadoresState extends State<PestanaMisJugadores> {
             mainAxisSize: MainAxisSize.min,
             children: [
               if (acceso != null) ...[acceso, const SizedBox(height: 16)],
-              _accesosAgencia(context),
               const SizedBox(height: 16),
-              const Text(
-                'Aún no representas a nadie. Ve al Mercado para reclutar tu primer jugador.',
+              Text(
+                tieneAcademia
+                    ? 'Tus jóvenes están entrenando en la Academia. Abre su '
+                          'pantalla desde la tarjeta de arriba.'
+                    : 'Aún no representas a nadie. Ve al Mercado para reclutar '
+                          'tu primer jugador.',
                 textAlign: TextAlign.center,
-                style: TextStyle(color: AppColores.textoSecundario),
+                style: const TextStyle(color: AppColores.textoSecundario),
               ),
             ],
           ),

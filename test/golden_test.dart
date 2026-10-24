@@ -19,6 +19,7 @@ import 'package:esport_agent/modelos/jugador.dart';
 import 'package:esport_agent/modelos/oferta.dart';
 import 'package:esport_agent/modelos/staff.dart';
 import 'package:esport_agent/pantallas/pantalla_ajustes.dart';
+import 'package:esport_agent/pantallas/pantalla_academia.dart';
 import 'package:esport_agent/pantallas/pantalla_ceremonia_premios.dart';
 import 'package:esport_agent/pantallas/pantalla_crear_agente.dart';
 import 'package:esport_agent/pantallas/pantalla_detalle_agente_rival.dart';
@@ -44,6 +45,7 @@ late MotorJuego _conEvento;
 late MotorJuego _conOferta;
 late MotorJuego _conCeremonia;
 late MotorJuego _conStaff;
+late MotorJuego _conAcademia;
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -56,6 +58,7 @@ void main() {
     _conEvento = await _prepararEvento();
     _conOferta = await _prepararOferta();
     _conStaff = await _prepararStaff();
+    _conAcademia = await _prepararAcademia();
     // La ceremonia usa la misma partida avanzada: ya tiene premios reales.
     _conCeremonia = _base;
   });
@@ -109,6 +112,10 @@ void main() {
 
   testWidgets('staff', (tester) async {
     await _capturar(tester, PantallaStaff(motor: _conStaff), 'staff');
+  });
+
+  testWidgets('academia', (tester) async {
+    await _capturar(tester, PantallaAcademia(motor: _conAcademia), 'academia');
   });
 
   testWidgets('mercado', (tester) async {
@@ -381,6 +388,33 @@ Future<MotorJuego> _prepararStaff() async {
   await motor.mejorarStaff(rp); // Nivel 3.
 
   await motor.contratarStaff(RolStaff.preparador); // Nivel 1.
+  return motor;
+}
+
+/// Partida con dos jóvenes en la academia para la captura de Academia.
+Future<MotorJuego> _prepararAcademia() async {
+  final motor = await crearPartidaSembrada(dinero: 50000000);
+  motor.agente.reputacion = 100;
+
+  final candidatos = List<Jugador>.of(motor.candidatosAcademia);
+  final primero = candidatos.first;
+  primero.edad = 17;
+  primero.habilidad = 47;
+  primero.potencial = 78;
+  primero.semanasEnAcademia = 6;
+  primero.valorMercado = valorMercadoDe(primero);
+  await motor.reclutarJovenAcademia(primero);
+
+  final segundo = candidatos[1];
+  segundo.edad = 16;
+  segundo.habilidad = 38;
+  segundo.potencial = 72;
+  segundo.semanasEnAcademia = 3;
+  segundo.valorMercado = valorMercadoDe(segundo);
+  await motor.reclutarJovenAcademia(segundo);
+
+  // La ventana de la semana 1 permite mostrar el botón de colocación activo.
+  motor.estado!.semana = 1;
   return motor;
 }
 

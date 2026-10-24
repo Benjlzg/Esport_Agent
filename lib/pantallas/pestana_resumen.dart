@@ -9,6 +9,7 @@ import '../widgets/barra_satisfaccion.dart';
 import '../widgets/escudo_equipo.dart';
 import '../widgets/tarjeta_jugador.dart';
 import 'pantalla_detalle_jugador.dart';
+import 'pantalla_academia.dart';
 import 'pantalla_previa_partido.dart';
 import 'pestana_noticias.dart';
 
@@ -87,6 +88,9 @@ class PestanaResumen extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 20),
+
+        // Aviso de jóvenes de la academia listos para colocar (Parte 3E).
+        ..._avisoAcademia(context),
 
         // Salud de la agencia (Parte 3B).
         ..._saludAgencia(),
@@ -174,7 +178,51 @@ class PestanaResumen extends StatelessWidget {
     );
   }
 
-  /// Tarjeta con la satisfacción media y los representados más descontentos.
+  /// Aviso destacado si hay jóvenes que ya cumplen los requisitos de
+  /// colocación. La ventana se indica aparte para no confundir "listo" con
+  /// "el mercado está abierto".
+  List<Widget> _avisoAcademia(BuildContext context) {
+    final listos = motor.jovenesListosParaColocar;
+    if (listos.isEmpty) return const [];
+    final abierta = motor.ventanaAcademiaAbierta;
+    return [
+      Card(
+        child: ListTile(
+          leading: const Icon(Icons.school, color: AppColores.dorado),
+          title: const Text(
+            'Tienes jóvenes listos para colocar',
+            style: TextStyle(
+              color: AppColores.textoPrincipal,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          subtitle: Text(
+            abierta
+                ? '${listos.length} joven${listos.length == 1 ? '' : 'es'} '
+                      'puede${listos.length == 1 ? '' : 'n'} fichar por un '
+                      'equipo de 2ª División. Abre la Academia para colocarlo.'
+                : '${listos.length} joven${listos.length == 1 ? '' : 'es'} '
+                      'cumple${listos.length == 1 ? '' : 'n'} los requisitos. '
+                      'El mercado está cerrado; podrás colocarlo en la '
+                      'próxima ventana.',
+            style: const TextStyle(
+              color: AppColores.textoSecundario,
+              fontSize: 12,
+            ),
+          ),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => PantallaAcademia(motor: motor)),
+            );
+          },
+        ),
+      ),
+      const SizedBox(height: 20),
+    ];
+  }
+
+  /// Tarjeta con satisfacción media y los representados más descontentos.
   List<Widget> _saludAgencia() {
     final jugadores = motor.misJugadores;
     if (jugadores.isEmpty) return const [];

@@ -41,7 +41,11 @@ Jugador _jugadorGenerado(String id) => Jugador(
 );
 
 /// Añade 50 jugadores p0000…p0049, como una partida que ya generó jóvenes.
+///
+/// La partida nueva ya usa ids p#### para los 8 candidatos de la academia, así
+/// que se retiran antes de añadir los ids controlados de esta prueba.
 void _anadirGenerados(EstadoPartida estado) {
+  estado.jugadores.removeWhere((j) => j.candidatoAcademia);
   for (var i = 0; i < 50; i++) {
     estado.jugadores.add(_jugadorGenerado('p${i.toString().padLeft(4, '0')}'));
   }
@@ -178,7 +182,7 @@ void main() {
       }
     }
 
-    expect(versionFormato, 13);
+    expect(versionFormato, 14);
     expect(versionMinimaCompatible, 3);
   });
 
@@ -232,7 +236,7 @@ void main() {
     final jugadorLibre = est.jugadores.firstWhere((j) => j.id == libre.id);
     // Puede haber quedado sin agente o con uno, pero nunca representado por mí.
     expect(jugadorLibre.representadoPorMi, isFalse);
-    expect(est.toJson()['version'], 13);
+    expect(est.toJson()['version'], 14);
   });
 
   test(
@@ -262,7 +266,7 @@ void main() {
 
       expect(est.ojeadores, isEmpty);
       expect(est.staff, isEmpty);
-      expect(est.toJson()['version'], 13);
+      expect(est.toJson()['version'], 14);
       for (final jugador in est.jugadores) {
         expect(
           jugador.errorPotencial,
@@ -295,13 +299,68 @@ void main() {
     final cargado = MotorJuego(semilla: _semilla);
     expect(await cargado.cargar(), ResultadoCarga.ok);
     expect(cargado.estado!.staff, isEmpty);
-    expect(cargado.estado!.toJson()['version'], 13);
+    expect(cargado.estado!.toJson()['version'], 14);
 
     // El motor recién creado no ha usado su RNG al cargar una v12 válida.
     final esperado = Random(_semilla);
     for (var i = 0; i < 5; i++) {
       expect(cargado.rnd.nextDouble(), esperado.nextDouble());
     }
+  });
+
+  test('una partida v13 carga con los campos de academia en false y sin RNG',
+      () async {
+    final motor = await _partidaNueva();
+    final mapa = Map<String, dynamic>.from(motor.estado!.toJson());
+    mapa['version'] = 13;
+    // Una v13 no tenía los campos de la academia.
+    mapa['jugadores'] = (mapa['jugadores'] as List).map((j) {
+      final jugador = Map<String, dynamic>.from(j as Map);
+      jugador.remove('enAcademia');
+      jugador.remove('semanasEnAcademia');
+      jugador.remove('candidatoAcademia');
+      return jugador;
+    }).toList();
+    SharedPreferences.setMockInitialValues({clavePartida: jsonEncode(mapa)});
+
+    final cargado = MotorJuego(semilla: _semilla);
+    expect(await cargado.cargar(), ResultadoCarga.ok);
+    expect(cargado.estado!.toJson()['version'], 14);
+    expect(cargado.jovenesAcademia, isEmpty);
+    expect(cargado.candidatosAcademia, isEmpty);
+    for (final jugador in cargado.estado!.jugadores) {
+      expect(jugador.enAcademia, isFalse);
+      expect(jugador.semanasEnAcademia, 0);
+      expect(jugador.candidatoAcademia, isFalse);
+    }
+
+    // Cargar una v13 no debe generar candidatos ni gastar RNG.
+    final esperado = Random(_semilla);
+    for (var i = 0; i < 5; i++) {
+      expect(cargado.rnd.nextDouble(), esperado.nextDouble());
+    }
+  });
+
+  test('los campos de academia solo se escriben cuando no son por defecto',
+      () async {
+    final motor = await _partidaNueva();
+    final normal = motor.jugadores.firstWhere(
+      (j) => !j.enAcademia && !j.candidatoAcademia,
+    );
+    final mapaNormal = normal.toJson();
+    expect(mapaNormal.containsKey('enAcademia'), isFalse);
+    expect(mapaNormal.containsKey('semanasEnAcademia'), isFalse);
+    expect(mapaNormal.containsKey('candidatoAcademia'), isFalse);
+
+    final candidato = motor.candidatosAcademia.first;
+    expect(candidato.toJson()['candidatoAcademia'], isTrue);
+    final resultado = await motor.reclutarJovenAcademia(candidato);
+    expect(resultado.ok, isTrue);
+    expect(candidato.toJson()['enAcademia'], isTrue);
+    expect(candidato.toJson().containsKey('semanasEnAcademia'), isFalse);
+    candidato.semanasEnAcademia = 3;
+    expect(candidato.toJson()['semanasEnAcademia'], 3);
+    expect(candidato.toJson().containsKey('candidatoAcademia'), isFalse);
   });
 
   test('guarda en un archivo con respaldo .bak y sin temporales', () async {

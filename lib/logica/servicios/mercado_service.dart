@@ -35,6 +35,13 @@ class MercadoService {
   Future<ResultadoAccion> reclutar(Jugador jugador) async {
     final est = motor.estado!;
     final ag = motor.agente;
+    if (jugador.enAcademia || jugador.candidatoAcademia) {
+      return ResultadoAccion(
+        false,
+        '${jugador.nick} pertenece a la academia y no se recluta desde el '
+        'Mercado.',
+      );
+    }
     if (jugador.representadoPorMi) {
       return ResultadoAccion(false, 'Ya representas a ${jugador.nick}.');
     }
@@ -138,6 +145,13 @@ class MercadoService {
 
   /// Deja de representar a un jugador.
   Future<ResultadoAccion> dejarDeRepresentar(Jugador jugador) async {
+    if (jugador.enAcademia) {
+      return ResultadoAccion(
+        false,
+        'Usa la opción Soltar en la pantalla Academia para dejar libre a '
+        '${jugador.nick}.',
+      );
+    }
     jugador.representadoPorMi = false;
     jugador.agenteId = null;
     jugador.semanasRepresentado = 0;
@@ -279,6 +293,13 @@ class MercadoService {
     final est = motor.estado!;
     final motivos = <String>[];
 
+    if (jugador.enAcademia) {
+      motivos.add(
+        '${jugador.nick} está en la academia. Debes colocarlo desde '
+        'la pantalla Academia.',
+      );
+      return motivos;
+    }
     if (!jugador.representadoPorMi) {
       motivos.add('Solo puedes ofrecer jugadores de tu agencia.');
     }
@@ -331,6 +352,14 @@ class MercadoService {
     required int precioPedido,
   }) async {
     final est = motor.estado!;
+    if (jugador.enAcademia) {
+      return ResultadoOferta(
+        respuesta: RespuestaEquipo.rechaza,
+        mensaje:
+            '${jugador.nick} está en la academia. Debes colocarlo desde la '
+            'pantalla Academia.',
+      );
+    }
     if (!jugador.representadoPorMi) {
       return ResultadoOferta(
         respuesta: RespuestaEquipo.rechaza,
@@ -493,6 +522,9 @@ class MercadoService {
     if (!jugador.representadoPorMi) {
       return 'Ya no representas a ${jugador.nick}.';
     }
+    if (jugador.enAcademia) {
+      return '${jugador.nick} está en la academia: colócalo desde su pantalla.';
+    }
     if (equipo.id == jugador.equipoId) {
       return '${equipo.nombre} ya tiene a ${jugador.nick}: no puedes venderlo '
           'a su propio club.';
@@ -636,6 +668,7 @@ class MercadoService {
       final jugador = motor.indices.jugadores[oferta.jugadorId];
       if (jugador == null) return true;
       if (!jugador.representadoPorMi) return true;
+      if (jugador.enAcademia) return true;
       final equipo = motor.indices.equipos[oferta.equipoId];
       if (equipo == null) return true;
 

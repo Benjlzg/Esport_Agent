@@ -63,9 +63,14 @@ ResultadoGeneracionEventos generarEventosSemana({
   int totalEventos() => eventos.length + noticias.length;
   int numeroEvento() => estado.eventosPendientes.length + totalEventos() + 1;
 
-  // 1) Un intento por cada jugador representado, en orden aleatorio.
+  // 1) Un intento por cada jugador representado, en orden aleatorio. Los
+  // jóvenes de la academia están aislados: no reciben eventos de jugador
+  // (fuga, retiro, lesión, ofertas...) mientras entrenan.
   final representados =
-      estado.jugadores.where((j) => j.representadoPorMi).toList()..shuffle(rnd);
+      estado.jugadores
+          .where((j) => j.representadoPorMi && !j.enAcademia)
+          .toList()
+        ..shuffle(rnd);
   for (final jugador in representados) {
     if (totalEventos() >= maxEventosSemana) break;
     if (jugador.estaInactivo) continue;

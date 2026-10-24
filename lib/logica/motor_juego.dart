@@ -23,6 +23,7 @@ import '../modelos/staff.dart';
 import '../modelos/torneo.dart';
 import '../servicios/guardado.dart';
 import 'agentes_rivales.dart' as rivales;
+import 'academia.dart' as academia;
 import 'calendario.dart';
 import 'eventos.dart' as eventos;
 import 'formulas.dart';
@@ -262,9 +263,39 @@ class MotorJuego extends ChangeNotifier {
   /// Gasto semanal de todos los miembros del staff.
   int get gastoStaffSemanal => staff_logica.gastoSemanalStaff(staff);
 
-  /// Gasto semanal de la academia. La Parte 3E todavía no existe: se deja el
-  /// hueco preparado para que el total lo sume sin cambiar la interfaz.
-  int get gastoAcademiaSemanal => 0;
+  /// Gasto semanal de la academia (Parte 3E): $150 por cada joven.
+  int get gastoAcademiaSemanal =>
+      estado == null ? 0 : academia.gastoSemanalAcademia(estado!);
+
+  /// Jóvenes que están entrenando en la academia.
+  List<Jugador> get jovenesAcademia =>
+      estado == null ? const [] : academia.jovenesEnAcademia(estado!);
+
+  /// Candidatos de la academia que todavía no he reclutado.
+  List<Jugador> get candidatosAcademia =>
+      estado == null ? const [] : academia.candidatosDeAcademia(estado!);
+
+  /// Plazas libres de la academia.
+  int get plazasLibresAcademia => estado == null
+      ? academia.capacidadAcademia
+      : academia.plazasLibresAcademia(estado!);
+
+  /// Jóvenes que ya pueden colocarse si el mercado está abierto.
+  List<Jugador> get jovenesListosParaColocar =>
+      estado == null ? const [] : academia.jovenesListosParaColocar(estado!);
+
+  /// true si la ventana actual permite colocar jóvenes.
+  bool get ventanaAcademiaAbierta =>
+      estado != null && academia.ventanaDeColocacionAbierta(estado!);
+
+  /// Motivos por los que no se puede colocar a un joven ahora mismo.
+  List<String> motivosParaColocarJoven(Jugador jugador) => estado == null
+      ? const ['No hay partida.']
+      : academia.motivosParaColocar(estado!, jugador);
+
+  /// Equipos de 2ª División que pueden pagar al joven.
+  List<Equipo> equiposParaColocar(Jugador jugador) =>
+      estado == null ? const [] : academia.equiposParaColocar(estado!, jugador);
 
   /// Gasto fijo semanal total de la agencia: oficina + ojeadores + staff +
   /// academia. Es la línea que se muestra en Mi agencia.
@@ -406,14 +437,19 @@ class MotorJuego extends ChangeNotifier {
     return null;
   }
 
-  /// Los jugadores que yo represento.
-  List<Jugador> get misJugadores =>
-      estado!.jugadores.where((j) => j.representadoPorMi).toList();
+  /// Los jugadores que yo represento de forma normal. Los jóvenes de la
+  /// academia viven en su propia pantalla y no cuentan para la cartera.
+  List<Jugador> get misJugadores => estado!.jugadores
+      .where((j) => j.representadoPorMi && !j.enAcademia)
+      .toList();
 
   /// Mis 3 jugadores más valiosos (para el resumen).
   List<Jugador> get misMejoresJugadores {
-    final lista = estado!.jugadores.where((j) => j.representadoPorMi).toList()
-      ..sort((a, b) => b.valorMercado.compareTo(a.valorMercado));
+    final lista =
+        estado!.jugadores
+            .where((j) => j.representadoPorMi && !j.enAcademia)
+            .toList()
+          ..sort((a, b) => b.valorMercado.compareTo(a.valorMercado));
     return lista.take(3).toList();
   }
 
@@ -781,6 +817,8 @@ class MotorJuego extends ChangeNotifier {
     ojeadores_logica.inicializarPotencialPartidaNueva(estado!, _rnd);
     // La primera temporada también tiene talentos ocultos que descubrir.
     ojeadores_logica.generarTalentosOcultos(estado!, _rnd);
+    // La academia empieza con sus 8 candidatos de la temporada 1.
+    academia.generarCandidatosAcademia(estado!, _rnd, _nuevoId);
     _reconstruirIndices();
     _agregarNoticia(
       '¡Bienvenido, $nombre! Tu carrera como agente comienza hoy.',
@@ -800,6 +838,9 @@ class MotorJuego extends ChangeNotifier {
     // miembro por puesto. Una v12 no trae la lista y queda vacía sin gastar
     // RNG (Parte 3D).
     staff_logica.normalizarStaff(estado!);
+    // La academia se normaliza sin gastar RNG. Una partida v13 no genera
+    // candidatos aquí: los recibirá al empezar la próxima temporada.
+    academia.normalizarAcademia(estado!);
     _reconstruirIndices();
     // Las plantillas solo se reparan en partidas anteriores al formato
     // actual: en una partida v9 válida no hace falta gastar RNG ni alterar
@@ -1045,6 +1086,154 @@ class MotorJuego extends ChangeNotifier {
     );
     await _guardarYNotificar();
     return ResultadoAccion(true, '${miembro.nombre} ya no trabaja contigo.');
+  }
+
+  // ------------------- ACADEMIA (PARTE 3E) -------------------
+
+  /// Recluta a un candidato para la academia. Cuesta $500 y ocupa una plaza.
+  Future<ResultadoAccion> reclutarJovenAcademia(Jugador jugador) async {
+    final est = estado!;
+    if (!jugador.candidatoAcademia || jugador.enAcademia) {
+      return ResultadoAccion(
+        false,
+        '${jugador.nick} no es un candidato libre.',
+      );
+    }
+    if (academia.jovenesEnAcademia(est).length >=
+        academia.capacidadAcademia) {
+      return ResultadoAccion(
+        false,
+        'La academia está llena (${academia.capacidadAcademia} plazas).',
+      );
+    }
+    if (agente.dinero < academia.costoFichajeAcademia) {
+      return ResultadoAccion(
+        false,
+        'No tienes dinero suficiente (necesitas '
+        '${formatearDinero(academia.costoFichajeAcademia)}).',
+      );
+    }
+
+    agente.dinero -= academia.costoFichajeAcademia;
+    registrarGasto(academia.costoFichajeAcademia);
+    jugador.candidatoAcademia = false;
+    jugador.enAcademia = true;
+    jugador.semanasEnAcademia = 0;
+    jugador.representadoPorMi = true;
+    jugador.agenteId = 'yo';
+    jugador.semanasRepresentado = 0;
+    jugador.satisfaccion = 70;
+    jugador.expectativas = [];
+    jugador.quiereHablar = false;
+    jugador.semanasPromesaPendiente = 0;
+    jugador.semanasContratoRepresentacion = 52;
+    jugador.comisionSalarioContrato = 0.05;
+    jugador.semanasEnfriamientoAgente = 0;
+    jugador.semanasEsperaConvencer = 0;
+    _indices.actualizar(jugador);
+    _agregarNoticia(
+      'Fichaste a ${jugador.nick} para tu academia por '
+      '${formatearDinero(academia.costoFichajeAcademia)}.',
+      TipoNoticia.fichaje,
+    );
+    await _guardarYNotificar();
+    return ResultadoAccion(true, '${jugador.nick} se une a la academia.');
+  }
+
+  /// Coloca a un joven de la academia en un equipo de 2ª División.
+  ///
+  /// El equipo paga el valor de mercado completo y la agencia recibe los
+  /// derechos de formación. No hay club vendedor ni comisión de traspaso.
+  Future<ResultadoAccion> colocarJovenAcademia(
+    Jugador jugador,
+    Equipo equipo,
+  ) async {
+    final est = estado!;
+    final motivos = academia.motivosParaColocar(est, jugador);
+    if (motivos.isNotEmpty) return ResultadoAccion(false, motivos.first);
+    if (!academia
+        .equiposParaColocar(est, jugador)
+        .any((e) => e.id == equipo.id)) {
+      return ResultadoAccion(
+        false,
+        '${equipo.nombre} no puede pagar el valor de mercado de ${jugador.nick}.',
+      );
+    }
+
+    final valor = jugador.valorMercado;
+    final derechos = (valor * academia.porcentajeDerechosFormacion).round();
+    equipo.presupuesto -= valor;
+    agente.dinero += derechos;
+    registrarIngreso(derechos);
+
+    // Si el rol ya estaba ocupado, el titular baja a suplente. Si sobran
+    // suplentes, el más débil queda libre, como en cualquier traspaso.
+    for (final otro in est.jugadores) {
+      if (otro.id != jugador.id &&
+          otro.equipoId == equipo.id &&
+          otro.rol == jugador.rol &&
+          !otro.suplente) {
+        otro.suplente = true;
+        _indices.actualizar(otro);
+      }
+    }
+    for (final sobrante in recortarSuplentes(est, equipo)) {
+      _indices.actualizar(sobrante);
+      _agregarNoticia(
+        '${sobrante.nick} quedó libre para hacer sitio en ${equipo.nombre}.',
+        TipoNoticia.evento,
+      );
+    }
+
+    jugador.enAcademia = false;
+    jugador.candidatoAcademia = false;
+    jugador.semanasEnAcademia = 0;
+    jugador.equipoId = equipo.id;
+    jugador.suplente = false;
+    jugador.semanasComoSuplente = 0;
+    jugador.semanasContrato = 52;
+    jugador.semanasContratoRepresentacion = 52;
+    jugador.comisionSalarioContrato = 0.05;
+    jugador.representadoPorMi = true;
+    jugador.agenteId = 'yo';
+    jugador.semanasRepresentado = 0;
+    jugador.satisfaccion = 70;
+    jugador.quiereHablar = false;
+    jugador.semanasPromesaPendiente = 0;
+    jugador.temporadaUltimoTraspaso = est.temporada;
+    jugador.salarioAnual = calcularSalarioAnual(valor);
+    jugador.expectativas = sat.generarExpectativas(
+      jugador: jugador,
+      equipo: equipo,
+    );
+    _indices.actualizar(jugador);
+    _mercado.invalidarOfertasObsoletas();
+    _agregarNoticia(
+      'Colocaste a ${jugador.nick} en ${equipo.nombre}. Derechos de '
+      'formación: ${formatearDinero(derechos)}.',
+      TipoNoticia.venta,
+    );
+    await _guardarYNotificar();
+    return ResultadoAccion(
+      true,
+      '${jugador.nick} ficha por ${equipo.nombre}. Cobras '
+      '${formatearDinero(derechos)} en derechos de formación.',
+    );
+  }
+
+  /// Deja libre a un joven que sigue en la academia.
+  Future<ResultadoAccion> soltarJovenAcademia(Jugador jugador) async {
+    if (!jugador.enAcademia) {
+      return ResultadoAccion(false, '${jugador.nick} no está en la academia.');
+    }
+    academia.liberarJovenDeAcademia(jugador);
+    _indices.actualizar(jugador);
+    _agregarNoticia(
+      '${jugador.nick} deja la academia y queda como agente libre.',
+      TipoNoticia.evento,
+    );
+    await _guardarYNotificar();
+    return ResultadoAccion(true, '${jugador.nick} queda libre.');
   }
 
   // ------------------- NEGOCIACIÓN -------------------

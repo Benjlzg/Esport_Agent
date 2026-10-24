@@ -33,6 +33,9 @@ class Jugador {
     this.comisionSalarioContrato = 0.05,
     this.semanasEnfriamientoAgente = 0,
     this.semanasEsperaConvencer = 0,
+    this.enAcademia = false,
+    this.semanasEnAcademia = 0,
+    this.candidatoAcademia = false,
     this.esReal = false,
     this.suplente = false,
     this.region,
@@ -155,6 +158,19 @@ class Jugador {
   /// Semanas que faltan para poder volver a intentar convencerlo tras un
   /// intento fallido (Parte 3A).
   int semanasEsperaConvencer;
+
+  /// true si el jugador pertenece a mi academia (Parte 3E). Mientras esté en
+  /// ella no cuenta como representado normal: no paga comisión, no tiene
+  /// expectativas y no puede ser robado ni recibir ofertas.
+  bool enAcademia;
+
+  /// Semanas de entrenamiento dentro de la academia. Se usa para estrechar su
+  /// rango de potencial y se reinicia al colocarlo o dejarlo libre.
+  int semanasEnAcademia;
+
+  /// true si es un candidato de la academia todavía no reclutado. No aparece
+  /// en el Mercado y los rivales y la IA no lo consideran.
+  bool candidatoAcademia;
 
   /// true si no tiene ningún agente (ni yo ni un rival). Es el "agente libre"
   /// que se puede reclutar o disputar.
@@ -288,6 +304,11 @@ class Jugador {
       'comisionSalarioContrato': comisionSalarioContrato,
       'semanasEnfriamientoAgente': semanasEnfriamientoAgente,
       'semanasEsperaConvencer': semanasEsperaConvencer,
+      // Los campos de la academia solo se escriben cuando no tienen su valor
+      // por defecto. Así el guardado no crece con cientos de "false" y "0".
+      if (enAcademia) 'enAcademia': true,
+      if (semanasEnAcademia != 0) 'semanasEnAcademia': semanasEnAcademia,
+      if (candidatoAcademia) 'candidatoAcademia': true,
       'esReal': esReal,
       'suplente': suplente,
       'region': region,
@@ -359,6 +380,9 @@ class Jugador {
           (json['semanasEnfriamientoAgente'] as num?)?.toInt() ?? 0,
       semanasEsperaConvencer:
           (json['semanasEsperaConvencer'] as num?)?.toInt() ?? 0,
+      enAcademia: json['enAcademia'] as bool? ?? false,
+      semanasEnAcademia: (json['semanasEnAcademia'] as num?)?.toInt() ?? 0,
+      candidatoAcademia: json['candidatoAcademia'] as bool? ?? false,
       esReal: json['esReal'] as bool,
       suplente: json['suplente'] as bool? ?? false,
       region: json['region'] as String?,

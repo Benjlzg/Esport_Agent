@@ -54,6 +54,19 @@ class MetricasSimulacion {
   /// Promesas incumplidas acumuladas (criterio 3B: máximo 2).
   int promesasIncumplidas = 0;
 
+  /// Jóvenes que se marcharon de la academia por su cuenta en la temporada.
+  int salidasAcademia = 0;
+
+  /// Salidas de la academia acumuladas desde el inicio de la partida.
+  int salidasAcademiaTotales = 0;
+
+  /// Anota una salida de la academia (joven que cumple 18 sin colocación).
+  void registrarSalidaAcademia(int cantidad) {
+    if (cantidad <= 0) return;
+    salidasAcademia += cantidad;
+    salidasAcademiaTotales += cantidad;
+  }
+
   /// Anota los robos de una semana en los contadores de temporada y total.
   void registrarRobos(int cantidad) {
     if (cantidad <= 0) return;
@@ -92,6 +105,7 @@ class MetricasSimulacion {
     robos = 0;
     renuncias = 0;
     contratosVencidos = 0;
+    salidasAcademia = 0;
     reiniciarVentana();
   }
 

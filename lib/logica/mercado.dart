@@ -127,7 +127,7 @@ List<Jugador> candidatosPara({
   final lista = grupo.where((j) {
     if (j.equipoId == equipo.id) return false;
     // Los talentos ocultos no existen para la IA mientras sigan ocultos.
-    if (j.oculto) return false;
+    if (j.oculto || j.candidatoAcademia || j.enAcademia) return false;
     // Recién fichado: la IA tampoco puede comprarlo esta temporada (A2).
     if (j.bloqueadoTraspaso(temporadaActual)) return false;
     if (j.habilidad < umbralHabilidad) return false;
@@ -207,7 +207,7 @@ void ficharJovenesDeSegunda({
     for (final j in estado.jugadores) {
       if (j.equipoId != null) continue;
       if (j.representadoPorMi) continue;
-      if (j.oculto) continue;
+      if (j.oculto || j.candidatoAcademia || j.enAcademia) continue;
       if (j.edad > 21) continue;
       if (j.juego != equipo.juego) continue;
       if (j.region != equipo.region) continue;

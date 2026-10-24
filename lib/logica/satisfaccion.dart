@@ -69,10 +69,7 @@ Equipo? equipoDe(EstadoPartida estado, Jugador jugador) {
 }
 
 /// Genera entre una y dos expectativas según la situación del jugador.
-List<String> generarExpectativas({
-  required Jugador jugador,
-  Equipo? equipo,
-}) {
+List<String> generarExpectativas({required Jugador jugador, Equipo? equipo}) {
   final expectativas = <String>[];
 
   void agregar(String clave) {
@@ -131,7 +128,8 @@ bool expectativaCumplida({
     case expectativaCobrarLoQueVale:
       if (jugador.equipoId == null) return false;
       final salarioMercado = calcularSalarioAnual(valorMercadoDe(jugador));
-      return jugador.salarioAnual >= salarioMercado * porcentajeSalarioAceptable;
+      return jugador.salarioAnual >=
+          salarioMercado * porcentajeSalarioAceptable;
   }
   return false;
 }
@@ -335,12 +333,11 @@ int aplicarEfectoSuplenteSplit(Jugador jugador) =>
     aplicarSatisfaccion(jugador, -efectoSuplenteSplitSatisfaccion);
 
 /// Premia al jugador que gana un título.
-int aplicarEfectoTitulo(Jugador jugador, {required bool mundial}) => (
-  aplicarSatisfaccion(
-    jugador,
-    mundial ? efectoMundialSatisfaccion : efectoTituloSatisfaccion,
-  )
-);
+int aplicarEfectoTitulo(Jugador jugador, {required bool mundial}) =>
+    (aplicarSatisfaccion(
+      jugador,
+      mundial ? efectoMundialSatisfaccion : efectoTituloSatisfaccion,
+    ));
 
 // ------------------- ASEGURAR DATOS -------------------
 
@@ -348,8 +345,12 @@ int aplicarEfectoTitulo(Jugador jugador, {required bool mundial}) => (
 /// reclutar, al convencer a un jugador y al migrar partidas antiguas.
 void asegurarExpectativasYContrato(Jugador jugador, {Equipo? equipo}) {
   if (!jugador.representadoPorMi) return;
+  if (jugador.enAcademia) return;
   if (jugador.expectativas.isEmpty) {
-    jugador.expectativas = generarExpectativas(jugador: jugador, equipo: equipo);
+    jugador.expectativas = generarExpectativas(
+      jugador: jugador,
+      equipo: equipo,
+    );
   }
   if (jugador.comisionSalarioContrato < comisionRepresentacionMin ||
       jugador.comisionSalarioContrato > comisionRepresentacionMax) {
@@ -364,10 +365,7 @@ void asegurarExpectativasYContrato(Jugador jugador, {Equipo? equipo}) {
 void asegurarRepresentados(EstadoPartida estado) {
   for (final jugador in estado.jugadores) {
     if (!jugador.representadoPorMi) continue;
-    asegurarExpectativasYContrato(
-      jugador,
-      equipo: equipoDe(estado, jugador),
-    );
+    asegurarExpectativasYContrato(jugador, equipo: equipoDe(estado, jugador));
   }
 }
 
@@ -395,6 +393,7 @@ ResultadoSemanaSatisfaccion procesarSemanaRepresentado({
 }) {
   final resultado = ResultadoSemanaSatisfaccion();
   if (!jugador.representadoPorMi) return resultado;
+  if (jugador.enAcademia) return resultado;
 
   final equipo = equipoDe(estado, jugador);
 
@@ -438,7 +437,10 @@ ResultadoSemanaSatisfaccion procesarSemanaRepresentado({
 
   // 2) Variación semanal por expectativas y por querer hablar.
   if (jugador.expectativas.isEmpty) {
-    jugador.expectativas = generarExpectativas(jugador: jugador, equipo: equipo);
+    jugador.expectativas = generarExpectativas(
+      jugador: jugador,
+      equipo: equipo,
+    );
   }
   final incumplidas = expectativasIncumplidas(jugador: jugador, equipo: equipo);
   final quiereHablarAntes = jugador.quiereHablar;

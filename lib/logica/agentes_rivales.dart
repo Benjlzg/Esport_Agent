@@ -114,7 +114,9 @@ const String idMiAgencia = 'yo';
 /// Jugadores que pertenecen a la cartera de un rival.
 List<Jugador> carteraDeRival(EstadoPartida estado, AgenteRival rival) {
   return estado.jugadores
-      .where((j) => !j.representadoPorMi && j.agenteId == rival.id)
+      .where(
+        (j) => !j.representadoPorMi && !j.enAcademia && j.agenteId == rival.id,
+      )
       .toList();
 }
 
@@ -130,10 +132,11 @@ int valorCarteraDeRival(EstadoPartida estado, AgenteRival rival) {
   ).fold(0, (suma, j) => suma + j.valorMercado);
 }
 
-/// Valor de mi cartera: todos mis representados.
+/// Valor de mi cartera normal. La academia no cuenta hasta que el joven se
+/// coloca en un equipo.
 int valorCarteraMia(EstadoPartida estado) {
   return estado.jugadores
-      .where((j) => j.representadoPorMi)
+      .where((j) => j.representadoPorMi && !j.enAcademia)
       .fold(0, (suma, j) => suma + j.valorMercado);
 }
 
@@ -190,7 +193,9 @@ class FilaRankingAgente {
 /// por nombre para que el orden sea estable.
 List<FilaRankingAgente> rankingAgentes(EstadoPartida estado) {
   final filas = <FilaRankingAgente>[];
-  final misJugadores = estado.jugadores.where((j) => j.representadoPorMi);
+  final misJugadores = estado.jugadores.where(
+    (j) => j.representadoPorMi && !j.enAcademia,
+  );
   filas.add(
     FilaRankingAgente(
       esYo: true,
@@ -288,7 +293,7 @@ List<Jugador> _candidatosCarteraInicial(
 
   for (final j in estado.jugadores) {
     if (!j.sinAgente) continue;
-    if (j.oculto) continue;
+    if (j.oculto || j.candidatoAcademia || j.enAcademia) continue;
     if (!aceptaRepresentacion(
       reputacion: rival.reputacion,
       habilidad: j.habilidad,
@@ -638,8 +643,9 @@ List<Jugador> _candidatos(
   if (!puedeFicharRival(estado, rival)) return const [];
   final lista = estado.jugadores.where((j) {
     if (!j.sinAgente) return false;
-    // Los rivales no ven ni fichan talentos ocultos.
-    if (j.oculto) return false;
+    // Los rivales no ven ni fichan talentos ocultos, candidatos de la
+    // academia ni jóvenes que ya entrenan en ella.
+    if (j.oculto || j.candidatoAcademia || j.enAcademia) return false;
     if (rival.dinero < costoFichajeRival(j)) return false;
     return condicion(j);
   }).toList()..sort(ordenar);
@@ -892,6 +898,7 @@ bool _intentarRobo(
   if (!puedeFicharRival(estado, rival)) return false;
   final objetivos = estado.jugadores.where((j) {
     if (!j.representadoPorMi) return false;
+    if (j.enAcademia) return false;
     if (j.satisfaccion >= satisfaccionMinimaRobo) return false;
     if (j.semanasEnfriamientoAgente > 0) return false;
     return true;

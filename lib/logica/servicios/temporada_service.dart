@@ -8,6 +8,7 @@ import '../../modelos/juego.dart';
 import '../../modelos/jugador.dart';
 import '../../modelos/noticia.dart';
 import '../ascensos.dart';
+import '../academia.dart' as academia;
 import '../agentes_rivales.dart' as rivales;
 import '../calendario.dart';
 import '../formulas.dart';
@@ -72,6 +73,8 @@ class TemporadaService {
     gastos += ojeadores.gastoSemanalOjeadores(est.ojeadores);
     // El staff (Parte 3D) cobra su salario semanal en el mismo punto.
     gastos += staff_logica.gastoSemanalStaff(est.staff);
+    // La academia cobra $150 por cada joven (Parte 3E).
+    gastos += academia.gastoSemanalAcademia(est);
     for (final ojeador in est.ojeadores) {
       ojeador.semanasContratado++;
     }
@@ -80,8 +83,9 @@ class TemporadaService {
     final equiposPorId = {for (final equipo in est.equipos) equipo.id: equipo};
     final huecosPorContrato = <({String equipoId, String rol})>[];
     for (final j in est.jugadores) {
-      // 4.0) Suma una semana de representación (corrección I1).
-      if (j.representadoPorMi) j.semanasRepresentado++;
+      // 4.0) Suma una semana de representación (corrección I1). Los jóvenes de
+      // la academia no tienen contrato de representación corriendo.
+      if (j.representadoPorMi && !j.enAcademia) j.semanasRepresentado++;
 
       // 4.0b) Enfriamientos de la Parte 3A: cambian de agente y espera de
       // "Convencer". Se descuentan en el mismo recorrido para no añadir otro
@@ -92,7 +96,7 @@ class TemporadaService {
       // 4.0c) Satisfacción, promesas, contrato de representación y posible
       // renuncia (Parte 3B). Se procesa antes de cobrar la comisión para que
       // un jugador que se marcha esta semana no genere ingresos.
-      if (j.representadoPorMi) {
+      if (j.representadoPorMi && !j.enAcademia) {
         final resultadoSatisfaccion = sat.procesarSemanaRepresentado(
           estado: est,
           jugador: j,
@@ -115,14 +119,15 @@ class TemporadaService {
       // 4.1) Comisión por el salario de mis jugadores con equipo. La comisión
       // sale del contrato de representación (Parte 3B); el 5 % es el valor
       // inicial de las partidas antiguas.
-      if (j.representadoPorMi && j.equipoId != null) {
+      if (j.representadoPorMi && !j.enAcademia && j.equipoId != null) {
         final semanal = calcularSalarioSemanal(j.salarioAnual);
         final comision = (semanal * j.comisionSalarioContrato).round();
         ingresos += motor.comisionNeta(comision);
       }
 
-      // 4.2) Baja el contrato; si llega a 0, el jugador queda libre.
-      if (j.equipoId != null && j.semanasContrato > 0) {
+      // 4.2) Baja el contrato; si llega a 0, el jugador queda libre. La
+      // academia no tiene contrato de equipo.
+      if (!j.enAcademia && j.equipoId != null && j.semanasContrato > 0) {
         j.semanasContrato--;
         if (j.semanasContrato <= 0) {
           final equipoId = j.equipoId!;
@@ -149,12 +154,23 @@ class TemporadaService {
 
       // 4.3b) Observación de ojeadores dentro del mismo recorrido (R1). Si
       // el jugador no está cubierto, conserva el rango que ya descubrió.
-      final nivelOjeador = ojeadores.nivelDeCoberturaDeJugador(
-        jugador: j,
-        cobertura: coberturaOjeadores,
-        equipos: equiposPorId,
-      );
-      ojeadores.observarJugadorSemanal(j, nivelMejor: nivelOjeador);
+      // Los jóvenes de la academia se entrenan aparte: su rango se estrecha
+      // con las semanas de academia y no se apilan aquí los ojeadores.
+      if (j.enAcademia) {
+        final noticia = academia.procesarSemanaJovenAcademia(est, j, motor.rnd);
+        if (noticia != null) {
+          motor.agregarNoticia(noticia.texto, noticia.tipo);
+          motor.metricas.registrarSalidaAcademia(1);
+          motor.indices.actualizar(j);
+        }
+      } else {
+        final nivelOjeador = ojeadores.nivelDeCoberturaDeJugador(
+          jugador: j,
+          cobertura: coberturaOjeadores,
+          equipos: equiposPorId,
+        );
+        ojeadores.observarJugadorSemanal(j, nivelMejor: nivelOjeador);
+      }
 
       // 4.4) Baja la semana de inactividad (lesión o descanso).
       if (j.semanasInactivo > 0) j.semanasInactivo--;
@@ -346,12 +362,11 @@ class TemporadaService {
 
   /// Aplica el progreso semanal de un jugador (mejora o empeora).
   void _progresarJugador(Jugador j) {
-    // El preparador se aplica dentro del recorrido único por jugador (R1).
-    // La guarda `enAcademia` de la Parte 3E se pasará aquí cuando exista.
-    final multiplicador = staff_logica.multiplicadorProgresionPreparador(
-      motor.estado!,
-      j,
-    );
+    // Los jóvenes de la academia ya tienen su propio bonus ×1.5 y no apilan
+    // el preparador (Parte 3E).
+    final multiplicador = j.enAcademia
+        ? academia.bonusProgresionAcademia
+        : staff_logica.multiplicadorProgresionPreparador(motor.estado!, j);
     aplicarProgresoSemanal(
       j,
       motor.rnd,
@@ -377,6 +392,16 @@ class TemporadaService {
       motor.agregarNoticia(
         'Los talentos que nadie reclutó salen al mercado: '
         '$talentosDestapados jugadores nuevos disponibles.',
+        TipoNoticia.evento,
+      );
+    }
+    // Los candidatos de la academia que nadie reclutó pasan a ser agentes
+    // libres normales antes de generar los de la nueva temporada.
+    final candidatosDestapados = academia.destaparCandidatos(est);
+    if (candidatosDestapados > 0) {
+      motor.agregarNoticia(
+        'Los jóvenes que no encontraron plaza en la academia salen al '
+        'mercado: $candidatosDestapados jugadores disponibles.',
         TipoNoticia.evento,
       );
     }
@@ -440,6 +465,10 @@ class TemporadaService {
     // Después de destapar los viejos, se generan los talentos ocultos de la
     // nueva temporada (uno por región y videojuego).
     ojeadores.generarTalentosOcultos(est, motor.rnd);
+
+    // La academia genera sus 8 candidatos nuevos (2 por videojuego) después
+    // de destapar a los que nadie reclutó.
+    academia.generarCandidatosAcademia(est, motor.rnd, motor.nuevoId);
 
     // Se recargan los presupuestos de los equipos.
     for (final equipo in est.equipos) {

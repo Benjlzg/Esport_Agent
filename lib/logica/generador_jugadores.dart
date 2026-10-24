@@ -142,6 +142,48 @@ Jugador generarJovenDeRegion(
   return jugador;
 }
 
+/// Genera un candidato para la academia (Parte 3E).
+///
+/// Edad 15–17, habilidad 25–45 y potencial 60–95. Nace marcado como candidato
+/// para que solo se vea en la pantalla Academia y para que la IA, los rivales
+/// y el mantenimiento no lo confundan con un agente libre normal.
+Jugador generarCandidatoAcademia(
+  Random rnd, {
+  required String id,
+  required Juego juego,
+  String? region,
+  required Set<String> nicksUsados,
+}) {
+  final perfil = perfilDeRegion(region ?? 'General');
+  final edad = 15 + rnd.nextInt(3); // 15..17
+  final habilidad = 25 + rnd.nextInt(21); // 25..45
+  final potencial = max(habilidad, 60 + rnd.nextInt(36)); // 60..95
+
+  final jugador = Jugador(
+    id: id,
+    nick: generarNickUnico(rnd, nicksUsados),
+    nombreReal:
+        '${_elegir(rnd, perfil.nombres)} ${_elegir(rnd, perfil.apellidos)}',
+    pais: _elegir(rnd, perfil.paises),
+    edad: edad,
+    juego: juego,
+    rol: _elegir(rnd, juego.roles),
+    habilidad: habilidad,
+    potencial: potencial,
+    moral: 70,
+    equipoId: null,
+    salarioAnual: 0,
+    semanasContrato: 0,
+    representadoPorMi: false,
+    esReal: false,
+    region: region,
+    candidatoAcademia: true,
+  );
+  _calcularEconomia(jugador);
+  inicializarPotencialJugador(jugador, rnd);
+  return jugador;
+}
+
 /// Genera un jugador para rellenar el rol que falta en un equipo.
 /// La habilidad se basa en el prestigio del equipo (±8) y los nombres
 /// se eligen según la región del equipo.

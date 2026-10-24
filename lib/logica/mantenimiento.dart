@@ -57,13 +57,20 @@ void _limpiarOfertasVencidas(EstadoPartida estado) {
 }
 
 /// Reduce la lista de agentes libres al máximo permitido. No toca a los
-/// jugadores representados por mí ni por un rival: la cartera de un agente
-/// rival no puede vaciarse por una limpieza de mantenimiento.
+/// jugadores representados por mí ni por un rival, a los candidatos de la
+/// academia ni a los jóvenes que entrenan en ella.
 void _limpiarAgentesLibres(EstadoPartida estado, int limite) {
   // Los talentos ocultos no cuentan para el tope: son candidatos especiales
   // que solo deben desaparecer cuando se destapan o los recluta el jugador.
   final libres = estado.jugadores
-      .where((j) => j.equipoId == null && j.sinAgente && !j.oculto)
+      .where(
+        (j) =>
+            j.equipoId == null &&
+            j.sinAgente &&
+            !j.oculto &&
+            !j.candidatoAcademia &&
+            !j.enAcademia,
+      )
       .toList();
   if (libres.length <= limite) return;
 

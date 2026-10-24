@@ -34,8 +34,11 @@ List<Jugador> filtrarJugadoresMercado({
 }) {
   final lista = jugadores.where((jugador) {
     // Los talentos ocultos se muestran aparte, solo si hay un ojeador en su
-    // región; nunca se mezclan con el mercado normal.
-    if (jugador.oculto) return false;
+    // región; nunca se mezclan con el mercado normal. Los candidatos de la
+    // academia y sus jóvenes tampoco aparecen en el Mercado.
+    if (jugador.oculto || jugador.candidatoAcademia || jugador.enAcademia) {
+      return false;
+    }
     if (juego != null && jugador.juego != juego) return false;
     if (soloLibres && jugador.equipoId != null) return false;
     if (region != null && regionDeJugador(jugador, equipos) != region) {

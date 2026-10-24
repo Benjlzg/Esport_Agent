@@ -545,6 +545,36 @@ void main() {
     expect(find.textContaining('Límite de aceptación:'), findsOneWidget);
     expect(find.textContaining('115 % del valor'), findsOneWidget);
   });
+
+  testWidgets('3E: el detalle de un joven de academia oculta la agencia', (
+    tester,
+  ) async {
+    final joven = motor.candidatosAcademia.first;
+    final resultado = await motor.reclutarJovenAcademia(joven);
+    expect(resultado.ok, isTrue);
+    await _pintarPantalla(
+      tester,
+      PantallaDetalleJugador(motor: motor, jugadorId: joven.id),
+      tamano: _pantallaPequena,
+    );
+
+    expect(find.text('En la academia'), findsOneWidget);
+    expect(find.text('Satisfacción'), findsNothing);
+    expect(find.text('Contrato de representación'), findsNothing);
+    expect(find.text('Hablar con él'), findsNothing);
+    expect(find.text('Ofrecer a un equipo'), findsNothing);
+    expect(find.text('Renegociar contrato'), findsNothing);
+    expect(find.text('Dejar de representar'), findsNothing);
+
+    await tester.scrollUntilVisible(
+      find.text('Ir a la Academia'),
+      400,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(find.text('Ir a la Academia'));
+    await tester.pumpAndSettle();
+    expect(find.text('Cantera de la agencia'), findsOneWidget);
+  });
 }
 
 /// Pinta un botón que abre la ventana de eventos pendientes.

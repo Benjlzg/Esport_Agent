@@ -14,15 +14,16 @@ import 'torneo.dart';
 
 /// Versión del formato de guardado. Si algún día cambia el formato,
 /// se sube este número para poder actualizar partidas antiguas.
-const int versionFormato = 13;
+const int versionFormato = 14;
 
 /// Versión más antigua que todavía se puede cargar. Las partidas de las
-/// versiones 3 a 12 se actualizan a la 13: los campos nuevos quedan vacíos o
+/// versiones 3 a 13 se actualizan a la 14: los campos nuevos quedan vacíos o
 /// con su valor por defecto, el contador de ids se reconstruye al cargar,
 /// se generan los agentes rivales, las expectativas de mis representados, se
 /// asigna el error de potencial a las partidas antiguas, el staff queda vacío
-/// y las competiciones/plantillas que falten se reparan. Las de la versión 1
-/// o 2 siguen siendo incompatibles.
+/// y las competiciones/plantillas que falten se reparan. Los campos de la
+/// academia quedan en false hasta que el jugador reclute o empiece la
+/// siguiente temporada. Las de la versión 1 o 2 siguen siendo incompatibles.
 const int versionMinimaCompatible = 3;
 
 /// Contiene todos los datos de la partida en curso.

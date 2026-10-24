@@ -13,6 +13,7 @@ import '../widgets/barra_satisfaccion.dart';
 import '../widgets/dialogo_confirmacion.dart';
 import '../widgets/escudo_equipo.dart';
 import '../widgets/estrellas_forma.dart';
+import 'pantalla_academia.dart';
 import 'pantalla_negociacion.dart';
 import 'pantalla_renegociacion_representacion.dart';
 
@@ -175,11 +176,47 @@ class PantallaDetalleJugador extends StatelessWidget {
                 ),
               if (agenteRival != null) const SizedBox(height: 16),
 
-              // Satisfacción y contrato de representación (Parte 3B).
-              if (jugador.representadoPorMi) ...[
+              // Satisfacción y contrato de representación (Parte 3B). Los
+              // jóvenes de la academia no tienen contrato corriendo ni
+              // satisfacción: se gestionan desde su propia pantalla.
+              if (jugador.representadoPorMi && !jugador.enAcademia) ...[
                 _bloqueSatisfaccion(jugador),
                 const SizedBox(height: 16),
                 _bloqueContrato(jugador),
+                const SizedBox(height: 20),
+              ],
+              if (jugador.enAcademia) ...[
+                Card(
+                  child: ListTile(
+                    leading: const Icon(
+                      Icons.school,
+                      color: AppColores.acento2,
+                    ),
+                    title: const Text(
+                      'En la academia',
+                      style: TextStyle(
+                        color: AppColores.textoPrincipal,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    subtitle: Text(
+                      'Lleva ${jugador.semanasEnAcademia} semanas entrenando. '
+                      'Gestiona su colocación o su salida desde la academia.',
+                      style: const TextStyle(
+                        color: AppColores.textoSecundario,
+                        fontSize: 12,
+                      ),
+                    ),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => PantallaAcademia(motor: motor),
+                        ),
+                      );
+                    },
+                  ),
+                ),
                 const SizedBox(height: 20),
               ],
 
@@ -228,7 +265,7 @@ class PantallaDetalleJugador extends StatelessWidget {
                         '${formatearDinero(jugador.salarioAnual)} al año',
                         AppColores.textoPrincipal,
                       ),
-                      if (jugador.representadoPorMi) ...[
+                      if (jugador.representadoPorMi && !jugador.enAcademia) ...[
                         const SizedBox(height: 8),
                         _fila(
                           'Tiempo como representado',
@@ -521,6 +558,19 @@ class PantallaDetalleJugador extends StatelessWidget {
   }
 
   List<Widget> _acciones(BuildContext context, Jugador jugador) {
+    if (jugador.enAcademia) {
+      return [
+        ElevatedButton.icon(
+          icon: const Icon(Icons.school),
+          label: const Text('Ir a la Academia'),
+          onPressed: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => PantallaAcademia(motor: motor)),
+            );
+          },
+        ),
+      ];
+    }
     if (!jugador.representadoPorMi) {
       final agenteRival = motor.agenteRivalDe(jugador);
       if (agenteRival != null) {

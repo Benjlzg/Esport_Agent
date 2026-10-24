@@ -209,8 +209,10 @@ class ContextoEventos {
     jugador.semanasInactivo = max(jugador.semanasInactivo, semanas);
   }
 
-  /// Deja libre a un jugador. Si era titular, su club repone el hueco.
+  /// Deja libre a un jugador. Si era titular, su club repone el hueco. Los
+  /// jóvenes de la academia no se ven afectados por eventos.
   void liberarJugador(Jugador jugador) {
+    if (jugador.enAcademia) return;
     final equipoId = jugador.equipoId;
     final rol = jugador.rol;
     final eraTitular = !jugador.suplente;
@@ -225,6 +227,7 @@ class ContextoEventos {
 
   /// Retira a un jugador del mundo. Si tenía equipo, se repone su titular.
   void retirarJugador(Jugador jugador) {
+    if (jugador.enAcademia) return;
     final equipoId = jugador.equipoId;
     final rol = jugador.rol;
     final eraTitular = !jugador.suplente;
@@ -1161,6 +1164,7 @@ List<DefinicionEvento> _crearCatalogo() {
 List<Jugador> _candidatosFuga(ContextoEventos contexto) {
   return contexto.estado.jugadores.where((j) {
     if (!j.representadoPorMi || j.equipoId == null) return false;
+    if (j.enAcademia) return false;
     // Recién fichado: no puede volver a cambiar de equipo esta temporada.
     if (j.bloqueadoTraspaso(contexto.estado.temporada)) return false;
     return !contexto.estado.ofertas.any(

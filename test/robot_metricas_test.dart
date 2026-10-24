@@ -403,7 +403,7 @@ void main() {
         filas: [
           _fila(
             temporada: 1,
-            jovenesReclutados: 2,
+            jovenesReclutados: 4,
             jovenesColocados: 1,
             jovenesSalidosLibres: 0,
             sumaHabilidadColocaciones: 45,
@@ -426,14 +426,27 @@ void main() {
             relacionesPublicasNivel: 2,
           ),
         ],
+        ingresos: {
+          ingresoSalarios: 500000,
+          ingresoTraspasos: 500000,
+          ingresoRenovaciones: 250000,
+          ingresoEventos: 0,
+          ingresoAcademia: 250000,
+        },
       );
 
-      expect(resultado.jovenesReclutadosT1, 2);
+      expect(resultado.jovenesReclutadosT1, 4);
       expect(resultado.colocacionesTotales, 2);
       expect(resultado.colocacionesAntesFinT2, 2);
       expect(resultado.saldoAcademia, 241000);
       expect(resultado.habilidadMediaColocacion, 45.5);
       expect(resultado.ingresoAcademiaT3, 0);
+      expect(resultado.ingresosAcademiaTotales, 250000);
+      expect(resultado.ingresosTotales, 1500000);
+      expect(
+        resultado.porcentajeIngresoAcademiaAcumulado,
+        closeTo(250000 / 1500000, 1e-9),
+      );
       expect(resultado.cumpleCriterioJovenesT1, isTrue);
       expect(resultado.cumpleCriterioColocacionT2, isTrue);
       expect(resultado.cumpleCriterioSaldoAcademia, isTrue);
@@ -443,9 +456,10 @@ void main() {
 
       final texto = seccionRobotMarkdown(resultado);
       expect(texto, contains('### Academia (3E)'));
-      expect(texto, contains('Jóvenes reclutados en la T1: 2'));
+      expect(texto, contains('Jóvenes reclutados en la T1: 4'));
       expect(texto, contains('Saldo neto de la academia'));
-      expect(texto, contains('Ingreso de academia de la T3'));
+      expect(texto, contains('Ingreso acumulado de la academia'));
+      expect(texto, contains('Ingreso de academia de la T3 (informativo)'));
     });
 
     test('los criterios 3E fallan fuera de rango', () {
@@ -467,6 +481,13 @@ void main() {
             ingresos: 100000,
           ),
         ],
+        ingresos: {
+          ingresoSalarios: 100000,
+          ingresoTraspasos: 100000,
+          ingresoRenovaciones: 0,
+          ingresoEventos: 0,
+          ingresoAcademia: 61000,
+        },
         academiaEnRivales: 1,
       );
 

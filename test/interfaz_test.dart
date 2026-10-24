@@ -602,7 +602,7 @@ void main() {
     final joven = motor.candidatosAcademia.first;
     await motor.reclutarJovenAcademia(joven);
     joven.edad = 17;
-    joven.habilidad = 45;
+    joven.habilidad = 50;
     joven.potencial = 70;
     joven.semanasEnAcademia = 4;
     joven.valorMercado = valorMercadoDe(joven);

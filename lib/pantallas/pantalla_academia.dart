@@ -451,13 +451,15 @@ class PantallaAcademia extends StatelessWidget {
     if (equipo == null || !context.mounted) return;
 
     final derechos = (joven.valorMercado * porcentajeDerechosFormacion).round();
+    final porcentaje = (porcentajeDerechosFormacion * 100).round();
     final confirmado = await mostrarConfirmacion(
       context,
       titulo: 'Confirmar colocación',
       mensaje:
           '${equipo.nombre} pagará ${formatearDinero(joven.valorMercado)} por '
-          '${joven.nick}. Cobrarás ${formatearDinero(derechos)} como derechos '
-          'de formación. El joven firmará 52 semanas con su nuevo equipo.',
+          '${joven.nick}. Cobrarás ${formatearDinero(derechos)} '
+          '($porcentaje % de su valor) como derechos de formación. El joven '
+          'firmará 52 semanas con su nuevo equipo.',
       textoConfirmar: 'Colocar',
     );
     if (!confirmado || !context.mounted) return;

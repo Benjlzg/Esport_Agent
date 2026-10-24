@@ -394,7 +394,7 @@ Constantes: `deltaSatisfaccionSemanalCumplida = 0.5`, `deltaSatisfaccionSemanalI
 - **Nueva pantalla "Academia"** (botón en Mi agencia):
   - Lista de tus jóvenes (edad, habilidad, rango de potencial, semanas entrenando, costo semanal $150).
   - Botón **Reclutar joven**: lista de candidatos de 15–17 años (2 por videojuego, nuevos cada temporada) con su rango de potencial y costo de $500; respeta la capacidad (4 plazas).
-  - Botón **Colocar en un equipo** (si cumple los requisitos): lista de equipos de 2ª División del mismo videojuego que pueden pagarlo. El equipo paga su valor de mercado y tú cobras el **100 % como derechos de formación** (no hay club vendedor).
+  - Botón **Colocar en un equipo** (si cumple los requisitos): lista de equipos de 2ª División del mismo videojuego que pueden pagarlo. El equipo paga su valor de mercado y tú cobras el **40 % como derechos de formación** (no hay club vendedor).
   - Botón **Soltar** (confirmación).
 - **Resumen:** aviso "Tienes jóvenes listos para colocar" cuando corresponde.
 - **Noticias:** fichaje de un joven de tu academia y su traspaso a un equipo.
@@ -417,7 +417,7 @@ Constantes: `deltaSatisfaccionSemanalCumplida = 0.5`, `deltaSatisfaccionSemanalI
 
 - Requisitos: `edad ≥ edadMinimaColocacion = 17`, `semanasEnAcademia ≥ semanasEntrenamientoMinimo = 4` y `habilidad ≥ habilidadMinimaColocar = 45`. Un joven de 15–16 años no se puede colocar aunque cumpla lo demás.
 - Destino: equipos de **2ª División** del mismo videojuego (cualquier región) con `presupuesto ≥ valorMercado`. Si ninguno puede pagar, no se puede colocar esta semana (mensaje).
-- **Flujo del dinero:** al confirmar, el equipo paga el **valor de mercado completo** del joven y la agencia recibe el **100 %** como **derechos de formación** (`porcentajeDerechosFormacion = 1.0`). **No hay club vendedor**: el joven nunca perteneció a un equipo, así que no se reparte dinero con ningún club. El joven queda con contrato de 52 semanas con su nuevo equipo, `enAcademia = false`, contrato de representación de 52 semanas y noticia.
+- **Flujo del dinero:** al confirmar, el equipo paga el **valor de mercado completo** del joven y la agencia recibe el **40 %** como **derechos de formación** (`porcentajeDerechosFormacion = 0.4`). **No hay club vendedor**: el joven nunca perteneció a un equipo, así que no se reparte dinero con ningún club. El joven queda con contrato de 52 semanas con su nuevo equipo, `enAcademia = false`, contrato de representación de 52 semanas y noticia.
 - En `INFORME_BALANCE.md`, estos ingresos se registran en la fila **Academia** de la tabla de ingresos del robot (no como comisión de traspaso).
 
 **Salida por edad o soltar:**
@@ -441,8 +441,8 @@ Constantes: `deltaSatisfaccionSemanalCumplida = 0.5`, `deltaSatisfaccionSemanalI
 - Generación de candidatos: 8 por temporada, edades 15–17, 2 por videojuego.
 - Reclutar respeta capacidad y cobra $500; mantenimiento semanal de $150 por joven.
 - Progresión con bonus: con semilla fija, un joven en academia sube más que uno sin equipo equivalente.
-- Colocación: solo 2ª División, edad ≥ 17, el equipo paga el valor de mercado completo, cobro el 100 % como derechos de formación, no hay club vendedor y el joven sale de la academia con contrato 52 semanas.
-- Un joven de 16 años no se puede colocar aunque tenga habilidad ≥ 45 y 4 semanas de academia.
+- Colocación: solo 2ª División, edad ≥ 17, el equipo paga el valor de mercado completo, cobro el 40 % como derechos de formación, no hay club vendedor y el joven sale de la academia con contrato 52 semanas.
+- Un joven de 16 años no se puede colocar aunque tenga habilidad ≥ 50 y 4 semanas de academia.
 - El ingreso de la colocación se contabiliza en la fila **Academia** de la tabla de ingresos del robot.
 - A los 18 sin colocar puede irse (semilla fija); soltar funciona.
 - Rivales y mantenimiento no tocan candidatos ni académicos.
@@ -450,8 +450,9 @@ Constantes: `deltaSatisfaccionSemanalCumplida = 0.5`, `deltaSatisfaccionSemanalI
 
 ## 3E.5 Criterios de balance (robot e informe)
 
-- El robot recluta **2 jóvenes en la T1** y coloca **al menos 1 antes de terminar la T2**.
+- El robot recluta **hasta llenar las 4 plazas en cada temporada (T1, T2 y T3)** y coloca **al menos 1 antes de terminar la T2**.
 - El saldo neto de la academia (derechos de formación − costos) al final de la T3 es **≥ $0** o la pérdida no supera **$30.000**.
+- El ingreso acumulado de la academia (T1–T3) no supera el **20 %** de los ingresos totales del robot.
 - La habilidad media al colocar queda en **45–65** (nada de niños de 80+ saliendo de la academia).
 - **El 100 % de los jóvenes de la academia los coloca el jugador o se van como agentes libres**: los rivales nunca tocan la academia (medido en el informe).
 
@@ -523,7 +524,7 @@ Constantes: `deltaSatisfaccionSemanalCumplida = 0.5`, `deltaSatisfaccionSemanalI
 
 ### 3E
 - [ ] Puedo reclutar jóvenes de 15–17 hasta llenar las 4 plazas.
-- [ ] Un joven de 17 años, entrenado y con habilidad ≥ 45, se puede colocar en un equipo de 2ª División: el equipo paga su valor completo y cobro el 100 % como derechos de formación.
+- [ ] Un joven de 17 años, entrenado y con habilidad ≥ 50, se puede colocar en un equipo de 2ª División: el equipo paga su valor completo y cobro el 40 % como derechos de formación.
 - [ ] Un joven de 16 años no se puede colocar aunque cumpla lo demás.
 - [ ] El ingreso de una colocación aparece como **Academia** en la tabla de ingresos del robot.
 - [ ] Un joven que cumple 18 sin colocar puede irse.

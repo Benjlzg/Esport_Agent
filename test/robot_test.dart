@@ -176,7 +176,7 @@ void main() {
       isTrue,
       reason:
           'El robot reclutó ${resultado.jovenesReclutadosT1} jóvenes en la T1 '
-          '(meta $robotJovenesT1).',
+          '(meta $robotJovenesPorTemporada).',
     );
     expect(
       resultado.cumpleCriterioColocacionT2,
@@ -211,8 +211,8 @@ void main() {
       resultado.cumpleCriterioIngresoAcademia,
       isTrue,
       reason:
-          'El ingreso de academia de la T3 fue '
-          '${(resultado.porcentajeIngresoAcademiaT3 * 100).toStringAsFixed(1)} '
+          'El ingreso acumulado de la academia (T1–T3) fue '
+          '${(resultado.porcentajeIngresoAcademiaAcumulado * 100).toStringAsFixed(1)} '
           '% de los ingresos (meta ≤ 20 %).',
     );
   }, timeout: const Timeout(Duration(minutes: 10)));

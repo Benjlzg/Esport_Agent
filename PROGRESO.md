@@ -928,6 +928,8 @@ Se corrigieron **I13, I14, todos los problemas menores M1–M19** y los duplicad
 
 ## Fase 3E — Academia (terminada, 2026-10-24)
 
+> **Nota:** esta es la primera medición de 3E. El balance final, con la política de 4 plazas por temporada y el criterio acumulado, está en «Fase 3 — balance final de la academia».
+
 ### Implementación
 
 - **Nuevos campos de `Jugador`:** `enAcademia`, `semanasEnAcademia` y `candidatoAcademia`. Se serializan **solo cuando no valen su valor por defecto**, así el guardado no crece con cientos de `false` y `0`.
@@ -984,5 +986,76 @@ Se corrigieron **I13, I14, todos los problemas menores M1–M19** y los duplicad
 - `versionFormato` = **14**; `versionMinimaCompatible` = **3**.
 - Capturas regeneradas; se añadió `capturas/academia.png`.
 - Commits de la parte: **635b389** (modelo, lógica y migración v14), **356d3e5** (interfaz de Academia y capturas) y el commit de cierre de 3E (robot, criterios 3E e informe de balance).
+
+## Fase 3 — balance final de la academia (2026-10-24)
+
+Esta sección sustituye los valores de la primera medición de 3E. El criterio anterior («ingreso de academia de la T3 ≤ 20 %») no medía nada: el robot solo reclutaba en la T1 y la T3 daba **$0**. La academia debe medirse con el ingreso **acumulado de T1–T3** frente a los ingresos totales del robot.
+
+### Qué cambió
+
+- **Política del robot:** en cada temporada (T1, T2 y T3) recluta **hasta llenar las 4 plazas** de la academia, solo si tiene reserva para **30 semanas del gasto fijo total**, y coloca en cuanto hay ventana y un equipo puede pagar el valor de mercado. La selección es por **mayor habilidad y punto medio del rango visible**, sin filtro de edad. Se mantiene la política de **hasta 2 ventas por semana** y no se tocó ninguna otra decisión del robot.
+- **Criterio nuevo:** ingreso acumulado de la academia (T1–T3) **≤ 20 %** de los ingresos totales del robot. Se mantienen el **saldo neto ≥ $0** (o pérdida ≤ $30.000) y la **habilidad media al colocar entre 45 y 65**. La línea de la T3 queda solo como dato informativo.
+- **Constantes finales:** `porcentajeDerechosFormacion = 0.4` y `habilidadMinimaColocar = 50`. La interfaz muestra el porcentaje real en la confirmación de colocación y el plan ya no habla del 100 %.
+
+### Antes y después (misma semilla 20251019)
+
+| Medición | Antes (cierre 3E) | Después (balance final) | Meta |
+| --- | --- | --- | --- |
+| Política de academia | 2 jóvenes solo en la T1 | Hasta 4 plazas en T1, T2 y T3 | Llenar según reserva |
+| Jóvenes reclutados por temporada | 2 / 0 / 0 | 4 / 2 / 3 | Hasta 4 por temporada |
+| Jóvenes colocados | 2 | 3 | ≥ 1 antes de T2 |
+| Ingreso de academia T1–T3 | $349.000 | $277.600 | — |
+| Ingreso acumulado / ingresos totales | 13,9 % ($349.000 de $2.506.738) | **17,8 %** ($277.600 de $1.558.222) | **≤ 20 %** |
+| Ingreso de academia de la T3 (informativo) | $0 de $1.057.083 (0,0 %) | $76.400 de $931.942 (8,2 %) | Dato informativo |
+| Saldo neto de la academia | $333.600 | $183.700 | ≥ $0 o pérdida ≤ $30.000 |
+| Habilidad media al colocar | 46,5 | 53,0 | 45–65 |
+| `porcentajeDerechosFormacion` | 1,0 | **0,4** | Ajustable |
+| `habilidadMinimaColocar` | 45 | **50** | 45–65 al colocar |
+
+### Rondas de ajuste (máximo 3)
+
+1. **3E-1 — derechos 1,0 → 0,6.** El ingreso acumulado bajó de **34,5 %** a **15,2 %** y el criterio pasó, pero 3B retrocedió: **3 pérdidas** por insatisfacción/robo y **3 promesas incumplidas** en la T3.
+2. **3E-2 — derechos 0,6 → 0,4.** El ingreso acumulado quedó en **18,9 %** y 3B volvió a cumplir, pero 3A retrocedió con **2 robos** en la T3.
+3. **3E-3 — habilidad mínima 45 → 50 y selección sin filtro de edad.** La academia elige al mejor candidato por habilidad y punto medio. La corrida final cierra con **17,8 %** acumulado, **53,0** de habilidad media y **3A–3E verdes**.
+
+Las tres rondas están anotadas en la tabla «Ajustes de constantes» de `INFORME_BALANCE.md`.
+
+### Criterios 3A–3D tras el cambio
+
+| Criterio | Antes | Después | Meta |
+| --- | --- | --- | --- |
+| 3A · robos máximos por temporada | 0 | 0 | ≤ 1 |
+| 3A · reclutamientos mínimos por temporada | 17 | 15 | ≥ 5 |
+| 3A · jugadores sin agente inicial en rivales | 7,2 % | 7,1 % | ≤ 40 % |
+| 3A · reputación final del robot | 45 | **41** | 30–45 |
+| 3B · pérdidas máximas por insatisfacción o robo | 1 | 1 | ≤ 2 |
+| 3B · satisfacción media final | 80,1 | 77,6 | 55–85 |
+| 3B · comisión media | 5,0 % | 4,9 % | 4–6 % |
+| 3B · promesas incumplidas | 1 | 1 | ≤ 2 |
+| 3C · ojeadores nivel 2 | 2 | 2 | 2 |
+| 3C · semiancho medio T1 → T3 | 13,7 → 1,6 | 14,8 → 3,7 | Baja |
+| 3C · gasto de ojeadores de la T3 | 2,0 % | 2,2 % | ≤ 15 % |
+| 3C · top 20 de potencial real con rivales | 4 de 20 | 2 de 20 (10,0 %) | ≤ 40 % |
+| 3D · abogado nivel 2 en T2 / RP nivel 2 en T3 | 2 / 2 | 2 / 2 | 2 / 2 |
+| 3D · gasto de staff de la T3 | 1,7 % | 1,9 % | ≤ 20 % |
+| 3D · ventas por temporada | 13 / 14 / 10 | 14 / 11 / 13 | Mínimo con abogado |
+| 3D · dinero final de la T3 | $720.289 | **$277.894** | ≥ $30.000 |
+| Invariantes · violaciones duras | 0 | 0 | 0 |
+| Guardado final | 4.875,9 KB | 4.875,9 KB | ≤ 5.000 KB |
+
+### Tiempo T10 / T1
+
+- Medición final estable: **1,28×** (meta ≤ 1,5×). Antes: **1,33×**.
+- En dos corridas secuenciales previas dio **1,31×** y **1,33×**, ambas por encima de 1,3×. Se perfiló por fases en esa ventana: el tiempo sube de forma **proporcional en todas las fases** (T1 → T10: +33 % de tiempo con +9,7 % de jugadores), no se concentra en una fase concreta. El bloque medio de semanas 27–46 aporta la mayor subida absoluta (+595 ms) por ser el más largo; las ventanas y el cierre suben en la misma proporción.
+- **No se optimizó** porque nunca superó **1,5×**. La corrida con la suite lenta en paralelo dio 1,04× por contención; la medición secuencial es la que se reporta.
+
+### Verificación final
+
+- `flutter analyze` → **No issues found!**
+- `flutter test` → **297 pasan, 2 saltan** (las `@Tags(['lento'])`).
+- `flutter test --tags lento --run-skipped` → **2 pasan** (`balance_test.dart` y `robot_test.dart`).
+- `flutter test -j 1 --tags lento --run-skipped` → **2 pasan**; es la corrida secuencial usada para el tiempo estable del informe.
+- Expectativas actualizadas solo donde dependen de la constante: `test/academia_test.dart` (habilidad mínima 50), `test/interfaz_test.dart` (joven listo con 50) y `capturas/academia.png` regenerada.
+- `versionFormato` = **14**; `versionMinimaCompatible` = **3**. No hubo migración nueva.
 
 Fase 3 terminada

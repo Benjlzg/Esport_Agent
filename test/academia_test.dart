@@ -45,7 +45,7 @@ Future<Jugador> _reclutarAcademia(MotorJuego motor, Jugador candidato) async {
 /// Deja al joven listo para colocarse salvo la condición que pruebe el test.
 void _prepararParaColocar(Jugador joven) {
   joven.edad = 17;
-  joven.habilidad = 45;
+  joven.habilidad = 50;
   joven.potencial = max(60, joven.habilidad);
   joven.semanasEnAcademia = semanasEntrenamientoMinimo;
   joven.valorMercado = valorMercadoDe(joven);
@@ -331,7 +331,7 @@ void main() {
 
   group('colocación', () {
     test(
-      'solo permite equipos de 2ª División y cobra los derechos completos',
+      'solo permite equipos de 2ª División y cobra los derechos de formación',
       () async {
         final motor = await _motor();
         motor.estado!.semana = 1;
@@ -409,7 +409,7 @@ void main() {
       expect(joven.enAcademia, isTrue);
     });
 
-    test('exige 4 semanas y habilidad 45', () async {
+    test('exige 4 semanas y habilidad 50', () async {
       final motor = await _motor();
       motor.estado!.semana = 1;
       final joven = await _reclutarAcademia(
@@ -420,9 +420,9 @@ void main() {
       joven.semanasEnAcademia = 3;
       expect(cumpleRequisitosColocacion(joven), isFalse);
       joven.semanasEnAcademia = 4;
-      joven.habilidad = 44;
+      joven.habilidad = 49;
       expect(cumpleRequisitosColocacion(joven), isFalse);
-      joven.habilidad = 45;
+      joven.habilidad = 50;
       expect(cumpleRequisitosColocacion(joven), isTrue);
     });
 

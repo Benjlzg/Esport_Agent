@@ -648,6 +648,33 @@ String _escribirInforme({
                 '${decimal(robot.filas.isEmpty || robot.filas.last.ingresosTemporada == 0 ? 0 : robot.filas.last.gastoOjeadores / robot.filas.last.ingresosTemporada * 100, 1)} % '
                 'de los ingresos. Criterios 3A–3D verdes.',
           ],
+          [
+            '3E-1',
+            '`porcentajeDerechosFormacion`',
+            '1,0',
+            '0,6',
+            'Ingreso acumulado de la academia 34,5 % → 15,2 % (cumple), pero '
+                '3B retrocede: 3 pérdidas y 3 promesas incumplidas en la T3.',
+          ],
+          [
+            '3E-2',
+            '`porcentajeDerechosFormacion`',
+            '0,6',
+            '0,4',
+            'Ingreso acumulado 18,9 % (cumple) y 3B vuelve a cumplir; 3A '
+                'retrocede con 2 robos en la T3.',
+          ],
+          [
+            '3E-3',
+            '`habilidadMinimaColocar` y selección de candidatos',
+            '45 · prioriza 16–17 años',
+            '50 · mejor habilidad y punto medio',
+            'Habilidad media al colocar '
+                '${decimal(robot.habilidadMediaColocacion, 1)}; ingreso '
+                'acumulado '
+                '${decimal(robot.porcentajeIngresoAcademiaAcumulado * 100, 1)} '
+                '%. Criterios 3A–3E verdes.',
+          ],
         ],
       ),
     )
@@ -666,10 +693,18 @@ String _escribirInforme({
       'hay reserva para 30 semanas del gasto fijo total.',
     )
     ..writeln(
-      'La Parte 3E **no necesitó ninguna ronda de ajuste**: el ingreso de la '
-      'academia en la T3 fue del 0,0 % de los ingresos totales, por debajo '
-      'del tope del 20 %. Se mantiene `porcentajeDerechosFormacion` en 1,0 y '
-      '`habilidadMinimaColocar` en 45.',
+      'La Parte 3E **necesitó tres rondas de ajuste**. El criterio anterior '
+      '(solo la T3) no medía nada porque el robot solo reclutaba en la T1 y la '
+      'T3 daba \$0. El criterio válido es el ingreso acumulado de la academia '
+      '(T1–T3) ≤ 20 % de los ingresos totales. Con la política nueva de llenar '
+      'las 4 plazas cada temporada, la primera medición dio 34,5 %. La ronda '
+      '3E-1 bajó `porcentajeDerechosFormacion` a 0,6 (15,2 % acumulado), pero '
+      '3B retrocedió; la 3E-2 lo bajó a 0,4 (18,9 %) y 3B volvió, pero 3A '
+      'retrocedió; la 3E-3 subió `habilidadMinimaColocar` a 50 y eligió a los '
+      'candidatos por habilidad y punto medio, sin filtro de edad. La corrida '
+      'final cierra con '
+      '${decimal(robot.porcentajeIngresoAcademiaAcumulado * 100, 1)} % '
+      'acumulado y todos los criterios 3A–3E verdes.',
     )
     ..writeln(
       'La **ronda 3D-1** es un ajuste de política del robot, no de las '
@@ -1151,9 +1186,16 @@ String _escribirInforme({
 
   // Criterios de la Parte 3E (academia).
   final jovenesT1 = robot.jovenesReclutadosT1;
+  final jovenesPorTemporada = robot.jovenesReclutadosPorTemporada
+      .asMap()
+      .entries
+      .map((e) => 'T${e.key + 1}: ${e.value}')
+      .join(' · ');
   final colocacionesT2 = robot.colocacionesAntesFinT2;
   final saldoAcademia = robot.saldoAcademia;
   final habilidadMediaColocacion = robot.habilidadMediaColocacion;
+  final porcentajeAcademiaAcumulado =
+      robot.porcentajeIngresoAcademiaAcumulado * 100;
   final porcentajeAcademiaT3 = robot.porcentajeIngresoAcademiaT3 * 100;
   buffer
     ..writeln('## Criterios de la Fase 3E (academia)')
@@ -1165,7 +1207,7 @@ String _escribirInforme({
           [
             'Jóvenes reclutados en la T1 / colocados antes de terminar la T2',
             '$jovenesT1 / $colocacionesT2',
-            '2 / ≥ 1',
+            '$robotJovenesPorTemporada / ≥ 1',
             robot.cumpleCriterioJovenesT1 && robot.cumpleCriterioColocacionT2
                 ? 'cumple'
                 : 'no cumple',
@@ -1189,10 +1231,10 @@ String _escribirInforme({
             robot.cumpleCriterioAcademiaSinRivales ? 'cumple' : 'no cumple',
           ],
           [
-            'Ingreso de academia de la T3 / ingresos de la T3',
-            '${formatearDinero(robot.ingresoAcademiaT3)} de '
-                '${formatearDinero(robot.ingresosT3)} '
-                '(${decimal(porcentajeAcademiaT3, 1)} %)',
+            'Ingreso acumulado de la academia (T1–T3) / ingresos totales',
+            '${formatearDinero(robot.ingresosAcademiaTotales)} de '
+                '${formatearDinero(robot.ingresosTotales)} '
+                '(${decimal(porcentajeAcademiaAcumulado, 1)} %)',
             '≤ 20 %',
             robot.cumpleCriterioIngresoAcademia ? 'cumple' : 'no cumple',
           ],
@@ -1200,6 +1242,18 @@ String _escribirInforme({
       ),
     )
     ..writeln()
+    ..writeln(
+      '- **Reparto de reclutamientos:** $jovenesPorTemporada (hasta '
+      '$robotJovenesPorTemporada por temporada; en T2 y T3 la reserva de '
+      '$robotSemanasReservaAcademia semanas del gasto fijo puede limitar las '
+      'plazas).',
+    )
+    ..writeln(
+      '- **Dato informativo:** el ingreso de academia de la T3 fue '
+      '${formatearDinero(robot.ingresoAcademiaT3)} de '
+      '${formatearDinero(robot.ingresosT3)} '
+      '(${decimal(porcentajeAcademiaT3, 1)} % de los ingresos de la T3).',
+    )
     ..writeln(
       '- **Medición informativa del robot conservador:** con 1 venta por '
       'semana terminó la T3 con ${formatearDinero(robotConservador.dineroFinal)} '
@@ -1420,8 +1474,13 @@ String _escribirInforme({
       '**${robot.cumpleCriterioGastoStaff ? 'cumple' : 'no cumple'}**.',
     )
     ..writeln(
-      '- Jóvenes reclutados en la T1: $jovenesT1 (meta 2): '
+      '- Jóvenes reclutados en la T1: $jovenesT1 '
+      '(meta $robotJovenesPorTemporada): '
       '**${robot.cumpleCriterioJovenesT1 ? 'cumple' : 'no cumple'}**.',
+    )
+    ..writeln(
+      '- Reparto de reclutamientos: $jovenesPorTemporada (hasta '
+      '$robotJovenesPorTemporada por temporada).',
     )
     ..writeln(
       '- Colocaciones antes de terminar la T2: $colocacionesT2 (meta ≥ 1): '
@@ -1444,8 +1503,8 @@ String _escribirInforme({
       '**${robot.cumpleDineroMinimoFinal ? 'cumple' : 'no cumple'}**.',
     )
     ..writeln(
-      '- Ingreso de academia de la T3: '
-      '${decimal(porcentajeAcademiaT3, 1)} % de los ingresos '
+      '- Ingreso acumulado de la academia (T1–T3): '
+      '${decimal(porcentajeAcademiaAcumulado, 1)} % de los ingresos '
       '(meta ≤ 20 %): '
       '**${robot.cumpleCriterioIngresoAcademia ? 'cumple' : 'no cumple'}**.',
     )

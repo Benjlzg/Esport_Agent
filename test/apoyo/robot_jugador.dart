@@ -55,12 +55,12 @@ const int robotSemanasReservaOjeadores = 30;
 const int robotNivelStaff = 2;
 const int robotSemanasReservaStaff = 30;
 
-/// Política de academia del robot (Parte 3E): recluta 2 jóvenes en la T1 y
-/// coloca a los que estén listos en cuanto se abra una ventana. Solo recluta
-/// si tiene reserva para 30 semanas del gasto fijo total.
-const int robotJovenesT1 = 2;
+/// Política de academia del robot (Parte 3E): en cada temporada (T1, T2 y T3)
+/// recluta hasta llenar las 4 plazas y coloca a los que estén listos en cuanto
+/// se abra una ventana. Solo recluta si tiene reserva para 30 semanas del gasto
+/// fijo total.
+const int robotJovenesPorTemporada = capacidadAcademia;
 const int robotSemanasReservaAcademia = 30;
-const int robotHabilidadMinimaJoven = 45;
 
 /// Dinero mínimo con el que debe terminar el robot la T3 tras pagar el staff.
 /// Si baja de esta cifra, se ajusta la política del robot (no las constantes
@@ -365,6 +365,10 @@ class ResultadoRobot {
   int get jovenesReclutadosT1 =>
       filas.isEmpty ? 0 : filas.first.jovenesReclutados;
 
+  /// Jóvenes reclutados por temporada, en orden T1, T2 y T3.
+  List<int> get jovenesReclutadosPorTemporada =>
+      [for (final fila in filas) fila.jovenesReclutados];
+
   /// Jóvenes colocados en total.
   int get colocacionesTotales =>
       filas.fold(0, (suma, fila) => suma + fila.jovenesColocados);
@@ -393,12 +397,18 @@ class ResultadoRobot {
   /// Saldo neto de la academia en las tres temporadas.
   int get saldoAcademia => ingresosAcademiaTotales - gastosAcademiaTotales;
 
-  /// Ingresos de la academia en la T3.
+  /// Ingresos de la academia en la T3. Dato informativo: la academia puede
+  /// reclutar en cualquier temporada, así que el criterio se mide acumulado.
   int get ingresoAcademiaT3 => filas.isEmpty ? 0 : filas.last.ingresoAcademia;
 
   /// Porcentaje de los ingresos de la T3 que vino de la academia.
   double get porcentajeIngresoAcademiaT3 =>
       ingresosT3 == 0 ? 0 : ingresoAcademiaT3 / ingresosT3;
+
+  /// Porcentaje de todos los ingresos del robot (T1–T3) que vino de la
+  /// academia. Es el criterio 3E: la academia no debe ser más del 20 %.
+  double get porcentajeIngresoAcademiaAcumulado =>
+      ingresosTotales == 0 ? 0 : ingresosAcademiaTotales / ingresosTotales;
 
   /// Gasto fijo de la T3: oficina (52 semanas) + ojeadores + staff + academia.
   int get gastoFijoT3 => filas.isEmpty
@@ -412,8 +422,9 @@ class ResultadoRobot {
   double get porcentajeGastoFijoT3 =>
       ingresosT3 == 0 ? 0 : gastoFijoT3 / ingresosT3;
 
-  /// Criterio 3E: 2 jóvenes reclutados en la T1.
-  bool get cumpleCriterioJovenesT1 => jovenesReclutadosT1 >= robotJovenesT1;
+  /// Criterio 3E: las 4 plazas de la academia cubiertas en la T1.
+  bool get cumpleCriterioJovenesT1 =>
+      jovenesReclutadosT1 >= robotJovenesPorTemporada;
 
   /// Criterio 3E: al menos 1 colocación antes de terminar la T2.
   bool get cumpleCriterioColocacionT2 => colocacionesAntesFinT2 >= 1;
@@ -431,8 +442,10 @@ class ResultadoRobot {
   /// Criterio 3E: ningún joven de la academia acaba con un rival.
   bool get cumpleCriterioAcademiaSinRivales => academiaEnRivales == 0;
 
-  /// Criterio 3E: el ingreso de la academia en la T3 no supera el 20 %.
-  bool get cumpleCriterioIngresoAcademia => porcentajeIngresoAcademiaT3 <= 0.20;
+  /// Criterio 3E: el ingreso acumulado de la academia (T1–T3) no supera el
+  /// 20 % de los ingresos totales del robot.
+  bool get cumpleCriterioIngresoAcademia =>
+      porcentajeIngresoAcademiaAcumulado <= 0.20;
 
   /// Pérdidas por robo sumadas a todas las temporadas.
   int get perdidasPorRobo =>
@@ -597,7 +610,6 @@ class RobotJugador {
   /// Jóvenes que pasaron por la academia y sus ids, para comprobar al final
   /// que ninguno acabó representado por un rival.
   final Set<String> _idsAcademia = {};
-  int _jovenesReclutadosAcademia = 0;
 
   /// Dinero mínimo y semana en que se alcanzó (B1).
   int _dineroMinimo = robotDineroInicial;
@@ -636,7 +648,6 @@ class RobotJugador {
         .map((j) => j.id)
         .toSet();
     _idsAcademia.clear();
-    _jovenesReclutadosAcademia = 0;
 
     // Política fija de 3C: dos ojeadores nivel 2 si hay reserva para 30
     // semanas de su salario total.
@@ -1000,9 +1011,14 @@ class RobotJugador {
   }
 
   /// Intenta cumplir la política de academia de la Parte 3E.
+  ///
+  /// En cada temporada recluta hasta llenar las 4 plazas. No recluta en la
+  /// semana 52 si el rollover ya cambió de temporada, para no adelantar los
+  /// candidatos de la temporada siguiente.
   Future<void> _gestionarAcademia(int temporada) async {
-    if (temporada == 1) {
-      while (_jovenesReclutadosAcademia < robotJovenesT1) {
+    if (motor.temporada == temporada) {
+      while (_jovenesReclutadosTemporada < robotJovenesPorTemporada &&
+          motor.jovenesAcademia.length < capacidadAcademia) {
         final candidato = _candidatoAcademiaRobot();
         if (candidato == null) break;
         final gastoProyectado =
@@ -1019,7 +1035,6 @@ class RobotJugador {
         _sumarGasto(gastoAcademia, gasto);
         _gastoAcademiaTemporada += gasto;
         _idsAcademia.add(candidato.id);
-        _jovenesReclutadosAcademia++;
         _jovenesReclutadosTemporada++;
       }
     }
@@ -1043,21 +1058,20 @@ class RobotJugador {
     }
   }
 
-  /// Mejor candidato de 16–17 años: mayor habilidad y, a igualdad, mayor
-  /// punto medio del rango visible del potencial. No mira el potencial real.
+  /// Mejor candidato disponible: mayor habilidad y, a igualdad, mayor punto
+  /// medio del rango visible del potencial. No filtra por edad y no mira el
+  /// potencial real.
   Jugador? _candidatoAcademiaRobot() {
-    final candidatos =
-        motor.candidatosAcademia
-            .where((j) => j.edad == 16 || j.edad == 17)
-            .toList()
-          ..sort((a, b) {
-            final porHabilidad = b.habilidad.compareTo(a.habilidad);
-            if (porHabilidad != 0) return porHabilidad;
-            final porPotencial = puntoMedioPotencial(b)
-                .compareTo(puntoMedioPotencial(a));
-            if (porPotencial != 0) return porPotencial;
-            return b.edad.compareTo(a.edad);
-          });
+    final candidatos = motor.candidatosAcademia.toList()
+      ..sort((a, b) {
+        final porHabilidad = b.habilidad.compareTo(a.habilidad);
+        if (porHabilidad != 0) return porHabilidad;
+        final porPotencial = puntoMedioPotencial(
+          b,
+        ).compareTo(puntoMedioPotencial(a));
+        if (porPotencial != 0) return porPotencial;
+        return b.edad.compareTo(a.edad);
+      });
     return candidatos.isEmpty ? null : candidatos.first;
   }
 
@@ -1493,11 +1507,11 @@ String seccionRobotMarkdown(ResultadoRobot resultado) {
       '$semanasCostoMejoraStaff semanas.',
     )
     ..writeln(
-      '- Academia (3E): recluta $robotJovenesT1 jóvenes de 16–17 años en la '
-      'T1, con la mayor habilidad y punto medio del rango visible, solo si '
-      'tiene reserva para $robotSemanasReservaAcademia semanas del gasto fijo '
-      'total. Coloca en cuanto hay ventana y el equipo puede pagar el valor '
-      'de mercado.',
+      '- Academia (3E): en cada temporada (T1, T2 y T3) recluta hasta llenar '
+      'las $robotJovenesPorTemporada plazas con los mejores candidatos por '
+      'habilidad y punto medio del rango visible, solo si tiene reserva para '
+      '$robotSemanasReservaAcademia semanas del gasto fijo total. Coloca en '
+      'cuanto hay ventana y el equipo puede pagar el valor de mercado.',
     )
     ..writeln(
       '- Ficha usando el punto medio del rango visible del potencial, no el '
@@ -1684,8 +1698,10 @@ String seccionRobotMarkdown(ResultadoRobot resultado) {
     )
     ..writeln()
     ..writeln(
-      '- Jóvenes reclutados en la T1: ${resultado.jovenesReclutadosT1} '
-      '(meta $robotJovenesT1).',
+      '- Jóvenes reclutados por temporada: '
+      '${resultado.jovenesReclutadosPorTemporada.asMap().entries.map((e) => 'T${e.key + 1}: ${e.value}').join(' · ')} '
+      '(hasta $robotJovenesPorTemporada por temporada; la reserva de '
+      '$robotSemanasReservaAcademia semanas puede limitar T2 y T3).',
     )
     ..writeln(
       '- Colocaciones antes de terminar la T2: '
@@ -1705,11 +1721,17 @@ String seccionRobotMarkdown(ResultadoRobot resultado) {
       '${resultado.academiaEnRivales} (meta 0).',
     )
     ..writeln(
-      '- Ingreso de academia de la T3: '
+      '- Ingreso acumulado de la academia (T1–T3): '
+      '${formatearDinero(resultado.ingresosAcademiaTotales)} de '
+      '${formatearDinero(resultado.ingresosTotales)} '
+      '(${decimal(resultado.porcentajeIngresoAcademiaAcumulado * 100, 1)} %, '
+      'meta ≤ 20 %).',
+    )
+    ..writeln(
+      '- Ingreso de academia de la T3 (informativo): '
       '${formatearDinero(resultado.ingresoAcademiaT3)} de '
       '${formatearDinero(resultado.ingresosT3)} '
-      '(${decimal(resultado.porcentajeIngresoAcademiaT3 * 100, 1)} %, '
-      'meta ≤ 20 %).',
+      '(${decimal(resultado.porcentajeIngresoAcademiaT3 * 100, 1)} %).',
     );
 
   final principal = resultado.fuentePrincipalIngresos;
@@ -1897,7 +1919,7 @@ String seccionRobotMarkdown(ResultadoRobot resultado) {
     )
     ..writeln(
       '- Jóvenes reclutados en la T1: ${resultado.jovenesReclutadosT1} '
-      '(meta $robotJovenesT1): '
+      '(meta $robotJovenesPorTemporada): '
       '**${resultado.cumpleCriterioJovenesT1 ? 'cumple' : 'no cumple'}**.',
     )
     ..writeln(
@@ -1921,9 +1943,9 @@ String seccionRobotMarkdown(ResultadoRobot resultado) {
       '**${resultado.cumpleCriterioAcademiaSinRivales ? 'cumple' : 'no cumple'}**.',
     )
     ..writeln(
-      '- Ingreso de academia de la T3: '
-      '${decimal(resultado.porcentajeIngresoAcademiaT3 * 100, 1)} % de los '
-      'ingresos (meta ≤ 20 %): '
+      '- Ingreso acumulado de la academia (T1–T3): '
+      '${decimal(resultado.porcentajeIngresoAcademiaAcumulado * 100, 1)} % de '
+      'los ingresos (meta ≤ 20 %): '
       '**${resultado.cumpleCriterioIngresoAcademia ? 'cumple' : 'no cumple'}**.',
     )
     ..writeln(

@@ -35,18 +35,19 @@ const int jovenesAcademiaPorTemporada = 8;
 const int edadAcademiaMin = 15;
 const int edadAcademiaMax = 17;
 
-/// Requisitos para colocar a un joven en un equipo de 2ª División.
+/// Requisitos para colocar a un joven en un equipo de 2ª División. La
+/// habilidad mínima subió de 45 a 50 en el balance final de la 3E.
 const int edadMinimaColocacion = 17;
 const int semanasEntrenamientoMinimo = 4;
-const int habilidadMinimaColocar = 45;
+const int habilidadMinimaColocar = 50;
 
 /// Bonus de progresión mientras el joven entrena en la academia.
 const double bonusProgresionAcademia = 1.5;
 
 /// Porcentaje del valor de mercado que la agencia cobra como derechos de
-/// formación. Es una constante ajustable: si la academia se vuelve una fuente
-/// de dinero desproporcionada, el informe propone bajarla a 0,6.
-const double porcentajeDerechosFormacion = 1.0;
+/// formación. Es una constante ajustable: el balance final de la 3E la bajó
+/// por rondas (1,0 → 0,6 → 0,4) para que la academia no dominara los ingresos.
+const double porcentajeDerechosFormacion = 0.4;
 
 /// Edad a la que un joven sin colocar puede marcharse por su cuenta.
 const int edadSalidaAcademia = 18;

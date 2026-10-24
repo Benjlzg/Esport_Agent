@@ -160,7 +160,7 @@ class _PantallaNegociacionState extends State<PantallaNegociacion> {
                       child: Text(
                         'El mercado está cerrado. '
                         '${proximaVentanaTexto(motor.semana)} '
-                        'Los agentes libres sí se pueden fichar.',
+                        'Los jugadores sin equipo sí se pueden fichar.',
                         style: const TextStyle(
                           color: AppColores.peligro,
                           fontSize: 13,

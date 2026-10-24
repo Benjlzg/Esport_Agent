@@ -36,6 +36,7 @@ class PantallaDetalleJugador extends StatelessWidget {
         final equipo = jugador.equipoId == null
             ? null
             : motor.equipoPorId(jugador.equipoId!);
+        final agenteRival = motor.agenteRivalDe(jugador);
         // Sin partidos no hay promedio ni KDA: se muestra un guion en vez de
         // "0.00" para no confundirlo con una mala actuación.
         final sinPartidos = jugador.partidasTemporada == 0;
@@ -126,7 +127,7 @@ class PantallaDetalleJugador extends StatelessWidget {
                           color: AppColores.textoSecundario,
                         ),
                   title: Text(
-                    equipo?.nombre ?? 'Agente libre',
+                    equipo?.nombre ?? 'Jugador sin equipo',
                     style: const TextStyle(color: AppColores.textoPrincipal),
                   ),
                   subtitle: Text(
@@ -141,6 +142,34 @@ class PantallaDetalleJugador extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 16),
+
+              // Agente que lo representa (Parte 3A). Si no tiene agente, el
+              // botón de reclutar aparece más abajo.
+              if (agenteRival != null)
+                Card(
+                  child: ListTile(
+                    leading: const Icon(
+                      Icons.support_agent,
+                      color: AppColores.acento2,
+                    ),
+                    title: Text(
+                      'Representado por: «${agenteRival.nombre}» '
+                      '(${agenteRival.perfil.etiqueta})',
+                      style: const TextStyle(
+                        color: AppColores.textoPrincipal,
+                        fontSize: 13,
+                      ),
+                    ),
+                    subtitle: const Text(
+                      'Puedes intentar convencerlo para que firme contigo.',
+                      style: TextStyle(
+                        color: AppColores.textoSecundario,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ),
+                ),
+              if (agenteRival != null) const SizedBox(height: 16),
 
               // Barras.
               BarraHabilidad(valor: jugador.habilidad, etiqueta: 'Habilidad'),
@@ -330,6 +359,51 @@ class PantallaDetalleJugador extends StatelessWidget {
 
   List<Widget> _acciones(BuildContext context, Jugador jugador) {
     if (!jugador.representadoPorMi) {
+      final agenteRival = motor.agenteRivalDe(jugador);
+      if (agenteRival != null) {
+        // El jugador es de un rival: se puede intentar convencerlo.
+        final probabilidad = motor.probabilidadConvencer(jugador) ?? 0;
+        final espera = jugador.semanasEsperaConvencer;
+        final enfriamiento = jugador.semanasEnfriamientoAgente;
+        final bloqueado = espera > 0 || enfriamiento > 0;
+        return [
+          ElevatedButton.icon(
+            icon: const Icon(Icons.record_voice_over),
+            label: Text(
+              bloqueado
+                  ? 'Convencerlo'
+                  : 'Convencerlo (${(probabilidad * 100).round()} % de éxito)',
+            ),
+            onPressed: bloqueado
+                ? null
+                : () => _convencer(
+                    context,
+                    jugador,
+                    agenteRival.nombre,
+                    probabilidad,
+                  ),
+          ),
+          if (enfriamiento > 0) ...[
+            const SizedBox(height: 8),
+            Text(
+              '${jugador.nick} acaba de cambiar de agente: no podrá volver '
+              'a hacerlo hasta dentro de $enfriamiento semanas.',
+              style: const TextStyle(color: AppColores.dorado, fontSize: 12),
+            ),
+          ],
+          if (espera > 0) ...[
+            const SizedBox(height: 8),
+            Text(
+              'Podrás intentarlo de nuevo en $espera semanas.',
+              style: const TextStyle(
+                color: AppColores.textoSecundario,
+                fontSize: 12,
+              ),
+            ),
+          ],
+        ];
+      }
+
       final costo = costoRepresentar(jugador.valorMercado);
       return [
         ElevatedButton.icon(
@@ -390,6 +464,54 @@ class PantallaDetalleJugador extends StatelessWidget {
     );
     if (!confirmado || !context.mounted) return;
     final resultado = await motor.reclutar(jugador);
+    if (!context.mounted) return;
+
+    if (resultado.huboDisputa) {
+      await showDialog<void>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: Text('Disputa por ${jugador.nick}'),
+          content: Text(
+            resultado.ganoRival
+                ? '«${resultado.rivalNombre}» también quería representar a '
+                      '«${jugador.nick}» y se lo llevó.'
+                : '«${resultado.rivalNombre}» también quería representar a '
+                      '«${jugador.nick}», pero el jugador te eligió a ti.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('Entendido'),
+            ),
+          ],
+        ),
+      );
+      if (!context.mounted) return;
+    }
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(resultado.mensaje)));
+  }
+
+  /// Confirma y ejecuta un intento de convencer a un jugador de un rival.
+  Future<void> _convencer(
+    BuildContext context,
+    Jugador jugador,
+    String nombreRival,
+    double probabilidad,
+  ) async {
+    final porcentaje = (probabilidad * 100).round();
+    final confirmado = await mostrarConfirmacion(
+      context,
+      titulo: 'Convencer a ${jugador.nick}',
+      mensaje:
+          '${jugador.nick} está representado por $nombreRival.\n\n'
+          'Probabilidad de éxito: $porcentaje %.\n'
+          'No cuesta dinero, pero si fallas no podrás reintentarlo en '
+          '13 semanas.',
+      textoConfirmar: 'Intentar',
+    );
+    if (!confirmado || !context.mounted) return;
+    final resultado = await motor.convencer(jugador);
     if (!context.mounted) return;
     ScaffoldMessenger.of(context)
         .showSnackBar(SnackBar(content: Text(resultado.mensaje)));

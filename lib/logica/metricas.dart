@@ -31,6 +31,21 @@ class MetricasSimulacion {
   /// necesitan separarlas para no contarlas dos veces.
   int comisionesSalarioUltimaSemana = 0;
 
+  /// Representados míos robados por un rival en la temporada actual.
+  int robos = 0;
+
+  /// Robos acumulados desde el inicio de la partida. El robot usa la
+  /// diferencia entre temporadas para medir las pérdidas de cada una sin
+  /// depender del reinicio de [robos] al cambiar de temporada.
+  int robosTotales = 0;
+
+  /// Anota los robos de una semana en los contadores de temporada y total.
+  void registrarRobos(int cantidad) {
+    if (cantidad <= 0) return;
+    robos += cantidad;
+    robosTotales += cantidad;
+  }
+
   /// Si cambió la temporada, reinicia los contadores de temporada y ventana.
   void asegurarTemporada(int nuevaTemporada) {
     if (nuevaTemporada == temporada) return;
@@ -39,6 +54,7 @@ class MetricasSimulacion {
     ofertasIA = 0;
     eventosGenerados = 0;
     eventosConDecision = 0;
+    robos = 0;
     reiniciarVentana();
   }
 

@@ -8,6 +8,7 @@ import '../../modelos/juego.dart';
 import '../../modelos/jugador.dart';
 import '../../modelos/noticia.dart';
 import '../ascensos.dart';
+import '../agentes_rivales.dart' as rivales;
 import '../calendario.dart';
 import '../formulas.dart';
 import '../generador_jugadores.dart';
@@ -67,6 +68,15 @@ class TemporadaService {
     for (final j in est.jugadores) {
       // 4.0) Suma una semana de representación (corrección I1).
       if (j.representadoPorMi) j.semanasRepresentado++;
+
+      // 4.0b) Enfriamientos de la Parte 3A: cambian de agente y espera de
+      // "Convencer". Se descuentan en el mismo recorrido para no añadir otro
+      // bucle por todos los jugadores.
+      if (j.semanasEnfriamientoAgente > 0) j.semanasEnfriamientoAgente--;
+      if (j.semanasEsperaConvencer > 0) j.semanasEsperaConvencer--;
+
+      // 4.0c) Satisfacción provisional hasta la Parte 3B.
+      _actualizarSatisfaccionProvisional(j);
 
       // 4.1) Comisión por el salario de mis jugadores con equipo.
       if (j.representadoPorMi && j.equipoId != null) {
@@ -149,6 +159,9 @@ class TemporadaService {
     // 11) Recalculo los valores de mercado.
     recalcularValores();
 
+    // 11b) Los agentes rivales actúan al final de la semana (Parte 3A).
+    _procesarAgentesRivales();
+
     // 12) Bajan los temporizadores después de que la semana los haya usado.
     //     La inactividad de los jugadores ya bajó en la pasada del paso 4.
     if (est.semanasInversor > 0) est.semanasInversor--;
@@ -173,6 +186,46 @@ class TemporadaService {
     est.gastosSemanaEnCurso = 0;
 
     await motor.guardarYNotificar();
+  }
+
+  /// Satisfacción provisional de la Parte 3A. La Parte 3B la sustituirá por
+  /// expectativas y contratos; aquí solo reacciona a la moral y a la suplencia.
+  void _actualizarSatisfaccionProvisional(Jugador j) {
+    var ajuste = 0.0;
+    if (j.moral < 45 || (j.equipoId != null && j.suplente)) ajuste -= 0.5;
+    if (j.moral > 75) ajuste += 0.5;
+    if (ajuste == 0) return;
+    j.satisfaccion = (j.satisfaccion + ajuste).round().clamp(0, 100);
+  }
+
+  /// Ejecuta las acciones de los rivales y registra sus noticias y avisos.
+  void _procesarAgentesRivales() {
+    final est = motor.estado!;
+    final resultado = rivales.ejecutarSemanaRivales(
+      estado: est,
+      rnd: motor.rnd,
+    );
+    for (final noticia in resultado.noticias) {
+      motor.agregarNoticia(noticia.texto, noticia.tipo);
+    }
+    for (final aviso in resultado.avisosRobo) {
+      motor.registrarAvisoRival(aviso);
+    }
+    motor.metricas.registrarRobos(resultado.robos);
+    if (resultado.ventas > 0) {
+      // Un rival pudo vender a un titular: se repone el rol en el club
+      // vendedor para que todos los equipos sigan con 5 titulares.
+      for (final equipo in est.equipos) {
+        for (final rol in equipo.juego.roles) {
+          motor.reponerTitular(equipo.id, rol);
+        }
+      }
+    }
+    if (resultado.noticias.isNotEmpty || resultado.robos > 0) {
+      // Un rival pudo mover jugadores de equipo, fichar o robarme cartera.
+      motor.reconstruirIndices();
+      motor.mercadoService.invalidarOfertasObsoletas();
+    }
   }
 
   /// Suma una semana a los suplentes dentro de un split (o resetea fuera).
@@ -261,6 +314,9 @@ class TemporadaService {
   /// Cambio de temporada: envejecer, retiros, nuevos jóvenes y presupuestos.
   void _nuevaTemporada() {
     final est = motor.estado!;
+
+    // Los rivales que terminaron con dinero negativo pierden reputación.
+    rivales.penalizarRivalesArruinados(est);
 
     // Ascensos y descensos al cerrar la temporada (antes de reiniciar).
     final noticiasAscenso = procesarAscensosYDescensos(est);

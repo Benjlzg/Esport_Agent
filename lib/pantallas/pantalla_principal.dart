@@ -147,6 +147,8 @@ class _PantallaPrincipalState extends State<PantallaPrincipal> {
   Future<void> _avanzarSemana() async {
     await widget.motor.avanzarSemana();
     if (!mounted) return;
+    await _mostrarAvisosRivales();
+    if (!mounted) return;
     await _mostrarEventosPendientes();
     if (!mounted) return;
     await _mostrarCeremoniaSiPendiente();
@@ -164,6 +166,8 @@ class _PantallaPrincipalState extends State<PantallaPrincipal> {
   Future<void> _avanzarDiezSemanas() async {
     await widget.motor.avanzarSemanas(10);
     if (!mounted) return;
+    await _mostrarAvisosRivales();
+    if (!mounted) return;
     await _mostrarEventosPendientes();
     if (!mounted) return;
     await _mostrarCeremoniaSiPendiente();
@@ -173,6 +177,29 @@ class _PantallaPrincipalState extends State<PantallaPrincipal> {
         content: Text(
           'Avanzaste 10 semanas: temporada ${widget.motor.temporada} · semana ${widget.motor.semana}.',
         ),
+      ),
+    );
+  }
+
+  /// Muestra los avisos de robos de rivales que ocurrieron al avanzar.
+  /// Las noticias rojas quedan en el historial; este aviso es el destaque
+  /// inmediato y se consume una sola vez.
+  Future<void> _mostrarAvisosRivales() async {
+    final avisos = widget.motor.avisosRivales;
+    if (avisos.isEmpty || !mounted) return;
+    widget.motor.limpiarAvisosRivales();
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        icon: const Icon(Icons.warning_amber, color: AppColores.peligro),
+        title: const Text('Un rival te quitó un representado'),
+        content: Text(avisos.join('\n\n')),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('Entendido'),
+          ),
+        ],
       ),
     );
   }

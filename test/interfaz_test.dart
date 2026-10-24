@@ -126,7 +126,11 @@ void main() {
     tester,
   ) async {
     // "Mi agencia" solo muestra lista si hay al menos un representado.
-    final jugador = motor.jugadores.firstWhere((j) => j.equipoId == null);
+    final jugador = motor.jugadores.firstWhere(
+      (j) => j.equipoId == null && j.sinAgente,
+    );
+    // La prueba mide el margen de la lista, no las disputas de la Parte 3A.
+    motor.estado!.agentesRivales.clear();
     await motor.reclutar(jugador);
 
     final pestanas = <Type, Widget>{
@@ -305,7 +309,9 @@ void main() {
   testWidgets('2.5: un patrocinio se muestra como ingreso y sin aviso', (
     tester,
   ) async {
-    final jugador = motor.jugadores.firstWhere((j) => j.equipoId == null);
+    final jugador = motor.jugadores.firstWhere(
+      (j) => j.equipoId == null && j.sinAgente,
+    );
     motor.estado!.eventosPendientes.add(
       EventoPendiente(
         id: 'ev_prueba_ingreso',
@@ -340,7 +346,9 @@ void main() {
   testWidgets('2.5: el aviso del 30 % solo aparece si hay un costo', (
     tester,
   ) async {
-    final jugador = motor.jugadores.firstWhere((j) => j.equipoId == null);
+    final jugador = motor.jugadores.firstWhere(
+      (j) => j.equipoId == null && j.sinAgente,
+    );
     motor.estado!.eventosPendientes.add(
       EventoPendiente(
         id: 'ev_prueba_costo',

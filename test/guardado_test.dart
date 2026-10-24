@@ -1,12 +1,12 @@
-// Pruebas de guardado de la auditoría (C1): los ids de jugador generados
-// después de cargar una partida deben ser únicos, y las partidas v3–v7 sin
-// el contador guardado deben seguir cargando.
+// Pruebas de guardado: compatibilidad de versiones antiguas, contador de ids
+// y migración de los agentes rivales (Parte 3A).
 import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:esport_agent/logica/agentes_rivales.dart';
 import 'package:esport_agent/logica/motor_juego.dart';
 import 'package:esport_agent/modelos/estado_partida.dart';
 import 'package:esport_agent/modelos/juego.dart';
@@ -101,13 +101,13 @@ void main() {
     },
   );
 
-  test('las partidas v3–v8 sin contador cargan y lo reconstruyen', () async {
+  test('las partidas v3–v9 sin contador cargan y lo reconstruyen', () async {
     final motor = await _partidaNueva();
     final estado = motor.estado!;
     _anadirGenerados(estado);
     final mapaBase = estado.toJson();
 
-    for (final version in [3, 4, 5, 6, 7, 8]) {
+    for (final version in [3, 4, 5, 6, 7, 8, 9]) {
       final mapa = Map<String, dynamic>.from(mapaBase);
       mapa['version'] = version;
       // Una partida vieja no tiene el contador ni los campos de las fases
@@ -124,6 +124,7 @@ void main() {
         'palmares',
         'premios',
         'ofertas',
+        'agentesRivales',
         'fichajesVentana',
         'rondasNegociacion',
         'paresBloqueados',
@@ -135,10 +136,14 @@ void main() {
       ]) {
         mapa.remove(campo);
       }
-      // El campo de semanas de representación también es nuevo (I1).
+      // Los campos de representación y de la Parte 3A tampoco existían.
       mapa['jugadores'] = (mapa['jugadores'] as List).map((j) {
         final jugador = Map<String, dynamic>.from(j as Map);
         jugador.remove('semanasRepresentado');
+        jugador.remove('agenteId');
+        jugador.remove('satisfaccion');
+        jugador.remove('semanasEnfriamientoAgente');
+        jugador.remove('semanasEsperaConvencer');
         return jugador;
       }).toList();
       SharedPreferences.setMockInitialValues({clavePartida: jsonEncode(mapa)});
@@ -156,10 +161,62 @@ void main() {
             'El contador se reconstruye desde p0049 en la versión $version.',
       );
       expect(cargado.estado!.toJson()['version'], versionFormato);
+      if (version < 10) {
+        expect(
+          cargado.estado!.agentesRivales.length,
+          inInclusiveRange(agentesRivalesMin, agentesRivalesMax),
+          reason: 'La versión $version debe migrar con rivales generados.',
+        );
+      }
     }
 
-    expect(versionFormato, 9);
+    expect(versionFormato, 10);
     expect(versionMinimaCompatible, 3);
+  });
+
+  test('una partida v9 carga con rivales y mis jugadores intactos', () async {
+    final motor = await _partidaNueva();
+    final estado = motor.estado!;
+    // Un representado mío y un jugador sin agente para comprobar que la
+    // migración no toca a los míos y sí puede dar cartera a los rivales.
+    final mio = estado.jugadores.firstWhere(
+      (j) => j.equipoId != null && !j.representadoPorMi,
+    );
+    mio.representadoPorMi = true;
+    mio.agenteId = 'yo';
+    final libre = estado.jugadores.firstWhere((j) => j.equipoId == null);
+
+    final mapa = Map<String, dynamic>.from(estado.toJson());
+    mapa['version'] = 9;
+    mapa.remove('agentesRivales');
+    mapa['jugadores'] = (mapa['jugadores'] as List).map((j) {
+      final jugador = Map<String, dynamic>.from(j as Map);
+      jugador.remove('agenteId');
+      jugador.remove('satisfaccion');
+      jugador.remove('semanasEnfriamientoAgente');
+      jugador.remove('semanasEsperaConvencer');
+      return jugador;
+    }).toList();
+    SharedPreferences.setMockInitialValues({clavePartida: jsonEncode(mapa)});
+
+    final cargado = MotorJuego(semilla: _semilla);
+    expect(await cargado.cargar(), ResultadoCarga.ok);
+
+    final est = cargado.estado!;
+    expect(
+      est.agentesRivales.length,
+      inInclusiveRange(agentesRivalesMin, agentesRivalesMax),
+    );
+    expect(est.agentesRivales.map((r) => r.id).toSet().length,
+        est.agentesRivales.length);
+    final jugadorMio = est.jugadores.firstWhere((j) => j.id == mio.id);
+    expect(jugadorMio.representadoPorMi, isTrue);
+    expect(jugadorMio.agenteId, 'yo');
+    expect(jugadorMio.satisfaccion, 70);
+    final jugadorLibre = est.jugadores.firstWhere((j) => j.id == libre.id);
+    // Puede haber quedado sin agente o con uno, pero nunca representado por mí.
+    expect(jugadorLibre.representadoPorMi, isFalse);
+    expect(est.toJson()['version'], 10);
   });
 
   test('guarda en un archivo con respaldo .bak y sin temporales', () async {

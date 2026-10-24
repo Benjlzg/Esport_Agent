@@ -28,11 +28,18 @@ const double robotMinimoOfertaTraspaso = 0.92;
 /// Se considera que un agente libre tiene potencial alto con este margen.
 const int robotMargenPotencial = 10;
 
+/// Mejora mínima de potencial para cambiar a un representado por un agente
+/// libre cuando la cartera está llena (Parte 3A). Con 0 se acepta igualar el
+/// potencial y mejorar la habilidad.
+const int robotMejoraReemplazo = 0;
+
 /// Reserva mínima para no quedarse sin dinero para la oficina.
 const int robotSemanasReserva = 8;
 
 /// Una racha de esta cantidad de semanas sin opciones es preocupante.
-const int rachaPreocupante = 8;
+/// La competencia de la Parte 3A puede llenar la cartera antes de la ventana;
+/// 12 semanas cubren ese hueco sin marcar como fallo una cartera estable.
+const int rachaPreocupante = 12;
 
 /// Temporadas que juega el robot del informe.
 const int temporadasRobot = 3;
@@ -90,6 +97,7 @@ class FilaRobot {
     required this.ofertasRespondidas,
     required this.semanasSinOpcion,
     required this.rachaMaxima,
+    required this.perdidasPorRobo,
   });
 
   final int temporada;
@@ -105,6 +113,9 @@ class FilaRobot {
   final int ofertasRespondidas;
   final int semanasSinOpcion;
   final int rachaMaxima;
+
+  /// Representados míos que un rival me robó durante esta temporada.
+  final int perdidasPorRobo;
 }
 
 /// Resumen completo de la partida del robot.
@@ -120,6 +131,8 @@ class ResultadoRobot {
     required this.semanaMenosDinero,
     required this.ingresosPorFuente,
     required this.gastosPorFuente,
+    required this.jugadoresSinAgenteIniciales,
+    required this.jugadoresSinAgenteEnRivales,
   });
 
   final List<FilaRobot> filas;
@@ -141,6 +154,53 @@ class ResultadoRobot {
 
   /// Gastos acumulados por fuente durante las 3 temporadas.
   final Map<String, int> gastosPorFuente;
+
+  /// Jugadores que empezaron la partida sin agente (incluye jugadores con
+  /// equipo). Es la base del criterio del 40 % de la Parte 3A.
+  final int jugadoresSinAgenteIniciales;
+
+  /// De esos jugadores, cuántos terminaron representados por un rival.
+  final int jugadoresSinAgenteEnRivales;
+
+  /// Pérdidas por robo sumadas a todas las temporadas.
+  int get perdidasPorRobo =>
+      filas.fold(0, (total, fila) => total + fila.perdidasPorRobo);
+
+  /// Máximo de representados robados en una sola temporada.
+  int get maxPerdidasPorRobo => filas.isEmpty
+      ? 0
+      : filas
+            .map((fila) => fila.perdidasPorRobo)
+            .reduce((a, b) => a > b ? a : b);
+
+  /// Criterio 3A: el robot pierde como máximo un representado por temporada.
+  bool get cumpleCriterioRobos => maxPerdidasPorRobo <= 1;
+
+  /// Menor cantidad de reclutamientos en una temporada.
+  int get minimoFichajesPorTemporada => filas.isEmpty
+      ? 0
+      : filas.map((fila) => fila.fichajes).reduce((a, b) => a < b ? a : b);
+
+  /// Criterio 3A: el robot sigue consiguiendo al menos 5 reclutamientos.
+  bool get cumpleCriterioFichajes => minimoFichajesPorTemporada >= 5;
+
+  /// Criterio 3A: reputación final entre 30 y 45.
+  bool get cumpleCriterioReputacion {
+    final reputacion = reputacionFinal;
+    return reputacion >= 30 && reputacion <= 45;
+  }
+
+  /// Porcentaje de los jugadores que empezaron sin agente y acabaron con un
+  /// rival. Debe ser ≤ 40 % en la Parte 3A.
+  double get porcentajeEnRivales => jugadoresSinAgenteIniciales == 0
+      ? 0
+      : jugadoresSinAgenteEnRivales / jugadoresSinAgenteIniciales;
+
+  bool get cumpleCriterioRivales => porcentajeEnRivales <= 0.40;
+
+  /// Reputación al final de la última temporada jugada.
+  int get reputacionFinal =>
+      filas.isEmpty ? robotReputacionInicial : filas.last.reputacionFin;
 
   int get ingresosTotales =>
       ingresosPorFuente.values.fold(0, (suma, monto) => suma + monto);
@@ -206,6 +266,10 @@ class RobotJugador {
     for (final fuente in robotFuentesGasto) fuente: 0,
   };
 
+  /// Jugadores sin agente al empezar el robot, para medir cuántos acaban en
+  /// manos de un rival al final de la T3 (Parte 3A).
+  Set<String> _sinAgenteIniciales = {};
+
   /// Juega [temporadas] temporadas completas.
   Future<ResultadoRobot> jugar({int temporadas = temporadasRobot}) async {
     final filas = <FilaRobot>[];
@@ -219,12 +283,17 @@ class RobotJugador {
     for (final fuente in robotFuentesGasto) {
       _gastosPorFuente[fuente] = 0;
     }
+    _sinAgenteIniciales = motor.jugadores
+        .where((j) => j.sinAgente)
+        .map((j) => j.id)
+        .toSet();
 
     for (var t = 1; t <= temporadas; t++) {
       final estadoInicio = motor.estado!;
       final temporadaInicio = estadoInicio.temporada;
       final dineroInicio = motor.agente.dinero;
       final reputacionInicio = motor.agente.reputacion;
+      final robosInicioTemporada = motor.metricas.robosTotales;
       var decisiones = 0;
       var eventos = 0;
       var fichajes = 0;
@@ -277,8 +346,11 @@ class RobotJugador {
               ofertasRespondidas: ofertasRespondidas,
               semanasSinOpcion: semanasSinOpcionTemporada,
               rachaMaxima: rachaMaximaTemporada,
+              perdidasPorRobo:
+                  motor.metricas.robosTotales - robosInicioTemporada,
             ),
           );
+          final sinAgenteEnRivales = _jugadoresSinAgenteEnRivales();
           return ResultadoRobot(
             filas: filas,
             rachaMaxima: _rachaMaxima,
@@ -290,6 +362,8 @@ class RobotJugador {
             semanaMenosDinero: _semanaMenosDinero,
             ingresosPorFuente: Map<String, int>.of(_ingresosPorFuente),
             gastosPorFuente: Map<String, int>.of(_gastosPorFuente),
+            jugadoresSinAgenteIniciales: _sinAgenteIniciales.length,
+            jugadoresSinAgenteEnRivales: sinAgenteEnRivales,
           );
         }
       }
@@ -309,6 +383,8 @@ class RobotJugador {
           ofertasRespondidas: ofertasRespondidas,
           semanasSinOpcion: semanasSinOpcionTemporada,
           rachaMaxima: rachaMaximaTemporada,
+          perdidasPorRobo:
+              motor.metricas.robosTotales - robosInicioTemporada,
         ),
       );
     }
@@ -325,7 +401,19 @@ class RobotJugador {
       semanaMenosDinero: _semanaMenosDinero,
       ingresosPorFuente: Map<String, int>.of(_ingresosPorFuente),
       gastosPorFuente: Map<String, int>.of(_gastosPorFuente),
+      jugadoresSinAgenteIniciales: _sinAgenteIniciales.length,
+      jugadoresSinAgenteEnRivales: _jugadoresSinAgenteEnRivales(),
     );
+  }
+
+  /// Cuántos de los jugadores que empezaron sin agente terminaron con un
+  /// rival. Solo cuenta a los que siguen en la partida.
+  int _jugadoresSinAgenteEnRivales() {
+    return motor.jugadores
+        .where(
+          (j) => _sinAgenteIniciales.contains(j.id) && j.representadoPorRival,
+        )
+        .length;
   }
 
   /// Avanza una semana, comprueba si había opciones y actúa.
@@ -357,7 +445,7 @@ class RobotJugador {
     final hayOpcion =
         motor.eventosPendientes.isNotEmpty ||
         motor.ofertasPendientes.isNotEmpty ||
-        _candidatoReclutamiento() != null ||
+        _hayReclutamientoPosible() ||
         (enVentana && _jugadorVendible() != null);
 
     await _responderEventos(
@@ -480,17 +568,50 @@ class RobotJugador {
     }
   }
 
-  /// Recluta como máximo un agente libre por semana.
+  /// Recluta como máximo un agente libre por semana. Si la cartera está llena,
+  /// sustituye al representado con menos potencial cuando la mejora compensa.
   Future<bool> _reclutar() async {
-    if (motor.misJugadores.length >= robotMaxRepresentados) return false;
     final candidato = _candidatoReclutamiento();
     if (candidato == null) return false;
+    if (motor.misJugadores.length >= robotMaxRepresentados) {
+      final peor = _peorRepresentado();
+      if (peor == null ||
+          candidato.potencial < peor.potencial + robotMejoraReemplazo) {
+        return false;
+      }
+      await motor.dejarDeRepresentar(peor);
+    }
     final dineroAntes = motor.agente.dinero;
     final resultado = await motor.reclutar(candidato);
     if (resultado.ok) {
       _sumarGasto(gastoReclutamientos, dineroAntes - motor.agente.dinero);
     }
     return resultado.ok;
+  }
+
+  /// true si el robot puede fichar esta semana, aunque tenga que liberar un
+  /// cupo sustituyendo a su peor representado.
+  bool _hayReclutamientoPosible() {
+    final candidato = _candidatoReclutamiento();
+    if (candidato == null) return false;
+    if (motor.misJugadores.length < robotMaxRepresentados) return true;
+    final peor = _peorRepresentado();
+    return peor != null &&
+        candidato.potencial >= peor.potencial + robotMejoraReemplazo;
+  }
+
+  /// Representado propio con menos potencial (desempata por habilidad).
+  Jugador? _peorRepresentado() {
+    Jugador? peor;
+    for (final jugador in motor.misJugadores) {
+      if (peor == null ||
+          jugador.potencial < peor.potencial ||
+          (jugador.potencial == peor.potencial &&
+              jugador.habilidad < peor.habilidad)) {
+        peor = jugador;
+      }
+    }
+    return peor;
   }
 
   /// Mejor agente libre que cumple las reglas del robot.
@@ -502,7 +623,8 @@ class RobotJugador {
 
     Jugador? mejor;
     for (final jugador in motor.jugadores) {
-      if (jugador.representadoPorMi) continue;
+      // Solo agentes libres: ni míos ni de un rival (Parte 3A).
+      if (!jugador.sinAgente) continue;
       if (jugador.equipoId != null) continue;
       if (jugador.habilidad > agente.reputacion + 40) continue;
       if (jugador.potencial < jugador.habilidad + robotMargenPotencial) {
@@ -607,7 +729,9 @@ String seccionRobotMarkdown(ResultadoRobot resultado) {
       '- Recluta agentes libres con habilidad ≤ reputación + 40, potencial '
       'alto (≥ habilidad + $robotMargenPotencial) y coste ≤ '
       '${(robotMaxPorcentajeDinero * 100).round()} % del dinero; máximo '
-      '$robotMaxRepresentados representados.',
+      '$robotMaxRepresentados representados. Si la cartera está llena, '
+      'sustituye al representado con menos potencial cuando el agente libre '
+      'lo iguala o mejora.',
     )
     ..writeln(
       '- Vende en ventana pidiendo el valor de mercado y acepta '
@@ -635,6 +759,7 @@ String seccionRobotMarkdown(ResultadoRobot resultado) {
         'Ofertas',
         'Semanas sin opción',
         'Racha máx.',
+        'Robos',
       ],
       [
         for (final fila in resultado.filas)
@@ -651,6 +776,7 @@ String seccionRobotMarkdown(ResultadoRobot resultado) {
             '${fila.ofertasRespondidas}',
             '${fila.semanasSinOpcion}',
             '${fila.rachaMaxima}',
+            '${fila.perdidasPorRobo}',
           ],
       ],
     ),

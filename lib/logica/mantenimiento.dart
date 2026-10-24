@@ -56,10 +56,12 @@ void _limpiarOfertasVencidas(EstadoPartida estado) {
   );
 }
 
-/// Reduce la lista de agentes libres al máximo permitido.
+/// Reduce la lista de agentes libres al máximo permitido. No toca a los
+/// jugadores representados por mí ni por un rival: la cartera de un agente
+/// rival no puede vaciarse por una limpieza de mantenimiento.
 void _limpiarAgentesLibres(EstadoPartida estado, int limite) {
   final libres = estado.jugadores
-      .where((j) => j.equipoId == null && !j.representadoPorMi)
+      .where((j) => j.equipoId == null && j.sinAgente)
       .toList();
   if (libres.length <= limite) return;
 

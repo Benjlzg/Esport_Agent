@@ -10,6 +10,7 @@ import '../../modelos/estado_partida.dart';
 import '../../modelos/jugador.dart';
 import '../../modelos/noticia.dart';
 import '../../modelos/oferta.dart';
+import '../agentes_rivales.dart';
 import '../calendario.dart';
 import '../eventos.dart' as eventos;
 import '../formulas.dart';
@@ -25,10 +26,22 @@ class MercadoService {
   final MotorJuego motor;
 
   /// Recluta (representa) a un jugador. Cobra el 5 % de su valor.
+  ///
+  /// Si hay agentes rivales cerca, puede aparecer una disputa (Parte 3A):
+  /// se compara el atractivo de las dos agencias y solo paga la que gana.
   Future<ResultadoAccion> reclutar(Jugador jugador) async {
+    final est = motor.estado!;
     final ag = motor.agente;
     if (jugador.representadoPorMi) {
       return ResultadoAccion(false, 'Ya representas a ${jugador.nick}.');
+    }
+    final rivalActual = rivalDeJugador(est, jugador);
+    if (rivalActual != null) {
+      return ResultadoAccion(
+        false,
+        '${jugador.nick} ya está representado por ${rivalActual.nombre}. '
+        'Puedes intentar convencerlo desde su ficha.',
+      );
     }
     if (!aceptaRepresentacion(
       reputacion: ag.reputacion,
@@ -46,24 +59,73 @@ class MercadoService {
         'No tienes dinero suficiente (necesitas ${formatearDinero(costo)}).',
       );
     }
+
+    // Disputa: solo se tira el dado si hay algún rival que pueda competir.
+    var huboDisputa = false;
+    String? nombreRivalDisputa;
+    final rivales = rivalesQuePuedenDisputar(est, jugador);
+    if (rivales.isNotEmpty && motor.rnd.nextDouble() < probDisputaRivalBase) {
+      final rival = rivales[motor.rnd.nextInt(rivales.length)];
+      final disputa = resolverDisputa(
+        estado: est,
+        rival: rival,
+        jugador: jugador,
+        rnd: motor.rnd,
+      );
+      huboDisputa = true;
+      nombreRivalDisputa = rival.nombre;
+
+      if (disputa.ganoRival) {
+        // El rival paga su comisión inicial y se lleva al jugador. Yo no pago
+        // nada porque la operación no se cerró conmigo.
+        rival.dinero -= costoFichajeRival(jugador);
+        jugador.representadoPorMi = false;
+        jugador.agenteId = rival.id;
+        jugador.semanasRepresentado = 0;
+        jugador.semanasEnfriamientoAgente = semanasEnfriamientoCambioAgente;
+        motor.indices.actualizar(jugador);
+        motor.agregarNoticia(
+          '${rival.nombre} ganó la disputa por ${jugador.nick}.',
+          TipoNoticia.alerta,
+        );
+        await motor.guardarYNotificar();
+        return ResultadoAccion(
+          false,
+          '${rival.nombre} también quería representar a ${jugador.nick} '
+          'y se lo llevó.',
+          huboDisputa: true,
+          ganoRival: true,
+          rivalNombre: rival.nombre,
+        );
+      }
+    }
+
     ag.dinero -= costo;
     // El gasto cuenta en el resumen de la semana (M4).
     motor.registrarGasto(costo);
     jugador.representadoPorMi = true;
+    jugador.agenteId = 'yo';
     // El periodo mínimo de representación empieza de cero (corrección I1).
     jugador.semanasRepresentado = 0;
+    jugador.semanasEnfriamientoAgente = 0;
     motor.indices.actualizar(jugador);
     motor.agregarNoticia(
       'Reclutaste a ${jugador.nick} por ${formatearDinero(costo)}.',
       TipoNoticia.fichaje,
     );
     await motor.guardarYNotificar();
-    return ResultadoAccion(true, 'Ahora representas a ${jugador.nick}.');
+    return ResultadoAccion(
+      true,
+      'Ahora representas a ${jugador.nick}.',
+      huboDisputa: huboDisputa,
+      rivalNombre: nombreRivalDisputa,
+    );
   }
 
   /// Deja de representar a un jugador.
   Future<ResultadoAccion> dejarDeRepresentar(Jugador jugador) async {
     jugador.representadoPorMi = false;
+    jugador.agenteId = null;
     jugador.semanasRepresentado = 0;
     motor.indices.actualizar(jugador);
     // Las ofertas pendientes por este jugador dejan de tener sentido (I6).
@@ -74,6 +136,81 @@ class MercadoService {
     );
     await motor.guardarYNotificar();
     return ResultadoAccion(true, 'Ya no representas a ${jugador.nick}.');
+  }
+
+  /// Probabilidad de convencer a un jugador que ahora tiene un agente rival.
+  /// Devuelve null si el jugador no está representado por un rival.
+  double? probabilidadConvencer(Jugador jugador) {
+    final rival = rivalDeJugador(motor.estado!, jugador);
+    if (rival == null) return null;
+    return probabilidadConvencerJugador(
+      estado: motor.estado!,
+      rival: rival,
+      jugador: jugador,
+    );
+  }
+
+  /// Intenta convencer a un jugador de un rival. No cuesta dinero, pero si
+  /// falla hay que esperar 13 semanas antes de reintentarlo (Parte 3A).
+  Future<ResultadoAccion> convencer(Jugador jugador) async {
+    final est = motor.estado!;
+    final rival = rivalDeJugador(est, jugador);
+    if (rival == null) {
+      return ResultadoAccion(
+        false,
+        '${jugador.nick} no está representado por un agente rival.',
+      );
+    }
+    if (jugador.semanasEnfriamientoAgente > 0) {
+      return ResultadoAccion(
+        false,
+        '${jugador.nick} acaba de cambiar de agente y no quiere hablar '
+        'hasta dentro de ${jugador.semanasEnfriamientoAgente} semanas.',
+      );
+    }
+    if (jugador.semanasEsperaConvencer > 0) {
+      return ResultadoAccion(
+        false,
+        'Podrás intentarlo de nuevo en '
+        '${jugador.semanasEsperaConvencer} semanas.',
+      );
+    }
+
+    final probabilidad = probabilidadConvencerJugador(
+      estado: est,
+      rival: rival,
+      jugador: jugador,
+    );
+    if (motor.rnd.nextDouble() < probabilidad) {
+      jugador.representadoPorMi = true;
+      jugador.agenteId = 'yo';
+      jugador.semanasRepresentado = 0;
+      jugador.semanasEnfriamientoAgente = semanasEnfriamientoCambioAgente;
+      jugador.semanasEsperaConvencer = 0;
+      motor.indices.actualizar(jugador);
+      motor.agregarNoticia(
+        'Convenciste a ${jugador.nick}: deja a ${rival.nombre} y firma '
+        'contigo.',
+        TipoNoticia.fichaje,
+      );
+      await motor.guardarYNotificar();
+      return ResultadoAccion(
+        true,
+        '¡Convenciste a ${jugador.nick}! Ahora lo representas tú.',
+      );
+    }
+
+    jugador.semanasEsperaConvencer = semanasEsperaConvencerFallido;
+    motor.agregarNoticia(
+      '${jugador.nick} rechazó tu oferta y sigue con ${rival.nombre}.',
+      TipoNoticia.evento,
+    );
+    await motor.guardarYNotificar();
+    return ResultadoAccion(
+      false,
+      '${jugador.nick} prefirió quedarse con ${rival.nombre}. '
+      'Podrás intentarlo de nuevo en $semanasEsperaConvencerFallido semanas.',
+    );
   }
 
   /// Calcula el interés de un equipo por un jugador.

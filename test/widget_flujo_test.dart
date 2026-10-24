@@ -102,11 +102,14 @@ void main() {
 
     motor.agente.dinero = 10000000;
     motor.agente.reputacion = 100;
+    // Esta prueba recorre el flujo básico; se desactivan las disputas de la
+    // Parte 3A para que el primer jugador del mercado sea reclutable.
+    motor.estado!.agentesRivales.clear();
 
     // Mercado: el primer agente libre visible es reclutable con reputación 100.
     await tester.tap(find.text('Mercado'));
     await tester.pumpAndSettle();
-    expect(find.text('Solo libres'), findsOneWidget);
+    expect(find.text('Sin equipo'), findsOneWidget);
     await tester.tap(find.byType(TarjetaJugador).first);
     await tester.pumpAndSettle();
     expect(find.text('Detalle del jugador'), findsOneWidget);
@@ -225,8 +228,12 @@ void main() {
   ) async {
     final motor = await _partidaNueva();
     final jugador = motor.jugadores.firstWhere(
-      (j) => j.equipoId == null && j.juego == motor.equipos.first.juego,
+      (j) =>
+          j.equipoId == null && j.sinAgente && j.juego == motor.equipos.first.juego,
     );
+    // Sin rivales no hay disputa: esta prueba se centra en la pantalla de
+    // ofertas, no en la competencia entre agentes.
+    motor.estado!.agentesRivales.clear();
     await motor.reclutar(jugador);
     motor.estado!.semana = 1;
 
@@ -287,8 +294,11 @@ void main() {
     final original = await _partidaNueva();
     original.agente.dinero = 7654321;
     original.agente.reputacion = 42;
+    original.estado!.agentesRivales.clear();
     await original.reclutar(
-      original.jugadores.firstWhere((j) => j.equipoId == null),
+      original.jugadores.firstWhere(
+        (j) => j.equipoId == null && j.sinAgente,
+      ),
     );
     await original.avanzarSemanas(2);
 

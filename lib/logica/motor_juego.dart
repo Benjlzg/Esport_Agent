@@ -8,6 +8,7 @@ import 'package:flutter/foundation.dart';
 
 import '../datos/cargador_mundo.dart';
 import '../modelos/agente.dart';
+import '../modelos/agente_rival.dart';
 import '../modelos/competicion.dart';
 import '../modelos/equipo.dart';
 import '../modelos/estado_partida.dart';
@@ -19,6 +20,7 @@ import '../modelos/noticia.dart';
 import '../modelos/oferta.dart';
 import '../modelos/torneo.dart';
 import '../servicios/guardado.dart';
+import 'agentes_rivales.dart' as rivales;
 import 'calendario.dart';
 import 'eventos.dart' as eventos;
 import 'generador_jugadores.dart';
@@ -34,10 +36,25 @@ import 'negociacion.dart';
 
 /// Resultado simple de una acción (reclutar, dejar de representar...).
 class ResultadoAccion {
-  ResultadoAccion(this.ok, this.mensaje);
+  ResultadoAccion(
+    this.ok,
+    this.mensaje, {
+    this.huboDisputa = false,
+    this.ganoRival = false,
+    this.rivalNombre,
+  });
 
   final bool ok;
   final String mensaje;
+
+  /// true si al reclamar al jugador apareció un agente rival.
+  final bool huboDisputa;
+
+  /// true si la disputa la ganó el rival y el jugador se fue con él.
+  final bool ganoRival;
+
+  /// Nombre del rival que participó en la disputa, si hubo.
+  final String? rivalNombre;
 }
 
 /// Un partido que se jugará próximamente en el que participa un equipo
@@ -81,7 +98,11 @@ const int maxRondasNegociacion = 3;
 class MotorJuego extends ChangeNotifier {
   /// Crea el motor. Si se indica [semilla], todas las tiradas aleatorias de
   /// la partida son reproducibles. Con `null` se comporta como siempre.
-  MotorJuego({int? semilla}) : semilla = semilla, _rnd = Random(semilla);
+  ///
+  /// [random] permite inyectar un generador controlado en las pruebas.
+  MotorJuego({int? semilla, Random? random})
+    : semilla = semilla,
+      _rnd = random ?? Random(semilla);
 
   /// Estado de la partida. Es null mientras no se ha creado o cargado.
   EstadoPartida? estado;
@@ -105,6 +126,22 @@ class MotorJuego extends ChangeNotifier {
   /// Contadores en memoria para las pruebas de balance y el robot.
   /// No se guardan en la partida.
   final MetricasSimulacion metricas = MetricasSimulacion();
+
+  /// Avisos de robos de rivales que la interfaz muestra una sola vez. Viven
+  /// solo en memoria: la noticia roja permanece en el historial, pero el
+  /// aviso destacado no necesita guardarse.
+  final List<String> _avisosRivales = [];
+
+  /// Copia de los avisos pendientes de mostrar.
+  List<String> get avisosRivales => List.unmodifiable(_avisosRivales);
+
+  /// Registra un aviso destacado de un rival (por ejemplo, un robo).
+  void registrarAvisoRival(String texto) {
+    if (texto.isNotEmpty) _avisosRivales.add(texto);
+  }
+
+  /// Vacía los avisos después de que la interfaz los haya mostrado.
+  void limpiarAvisosRivales() => _avisosRivales.clear();
 
   /// true mientras se está ejecutando un avance de semana. Evita que un doble
   /// toque en "Avanzar semana" avance dos semanas (corrección I5).
@@ -193,6 +230,17 @@ class MotorJuego extends ChangeNotifier {
   int get semana => estado!.semana;
   int get temporada => estado!.temporada;
   bool get finDelJuego => estado?.finDelJuego ?? false;
+
+  /// Agentes rivales de la partida (Parte 3A).
+  List<AgenteRival> get agentesRivales => estado?.agentesRivales ?? const [];
+
+  /// Ranking de agentes conmigo incluido.
+  List<rivales.FilaRankingAgente> get rankingAgentes =>
+      rivales.rankingAgentes(estado!);
+
+  /// Rival que representa a un jugador, o null si no tiene agente rival.
+  AgenteRival? agenteRivalDe(Jugador jugador) =>
+      rivales.rivalDeJugador(estado!, jugador);
 
   /// ¿Hay una ceremonia de premios pendiente de mostrar?
   bool get ceremoniaPendiente => estado?.ceremoniaPendiente ?? false;
@@ -441,6 +489,9 @@ class MotorJuego extends ChangeNotifier {
       competiciones: _competicion.crearCompeticiones(mundo.equipos),
     );
     _reconstruirIndices();
+    // La competencia empieza desde el primer día (Parte 3A).
+    rivales.asegurarAgentesRivales(estado!, _rnd);
+    _reconstruirIndices();
     _agregarNoticia(
       '¡Bienvenido, $nombre! Tu carrera como agente comienza hoy.',
       TipoNoticia.evento,
@@ -463,6 +514,16 @@ class MotorJuego extends ChangeNotifier {
       repararPlantillas: (carga.version ?? versionFormato) < versionFormato,
     );
     _recalcularValores();
+    // Partidas v3–v9 no tienen rivales: se generan ahora. En una v10 solo se
+    // sincronizan los `agenteId` (sin gastar RNG) para no alterar partidas
+    // actuales ni las pruebas que construyen estados controlados.
+    final versionCargada = carga.version ?? 0;
+    if (versionCargada < versionFormato) {
+      rivales.asegurarAgentesRivales(estado!, _rnd);
+    } else {
+      rivales.normalizarRepresentaciones(estado!);
+    }
+    _reconstruirIndices();
     // Al cargar se guarda de nuevo: así una partida vieja se actualiza al
     // formato actual con el contador de ids reconstruido y el estado
     // derivado reparado (I14). El repositorio conserva una copia `.bak` del
@@ -529,6 +590,14 @@ class MotorJuego extends ChangeNotifier {
   /// Recluta (representa) a un jugador. Cobra el 5 % de su valor.
   Future<ResultadoAccion> reclutar(Jugador jugador) =>
       _mercado.reclutar(jugador);
+
+  /// Probabilidad de convencer a un jugador de un rival (null si no aplica).
+  double? probabilidadConvencer(Jugador jugador) =>
+      _mercado.probabilidadConvencer(jugador);
+
+  /// Intenta convencer a un jugador que representa un rival.
+  Future<ResultadoAccion> convencer(Jugador jugador) =>
+      _mercado.convencer(jugador);
 
   /// Deja de representar a un jugador.
   Future<ResultadoAccion> dejarDeRepresentar(Jugador jugador) =>

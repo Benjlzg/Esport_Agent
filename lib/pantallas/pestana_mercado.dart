@@ -133,7 +133,7 @@ class _PestanaMercadoState extends State<PestanaMercado> {
               ),
               const SizedBox(width: 12),
               FilterChip(
-                label: const Text('Solo libres'),
+                label: const Text('Sin equipo'),
                 selected: _soloLibres,
                 onSelected: (v) => setState(() => _soloLibres = v),
               ),

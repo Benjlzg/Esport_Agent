@@ -1,5 +1,6 @@
 // Estado completo de una partida. Es todo lo que se guarda y se carga.
 import 'agente.dart';
+import 'agente_rival.dart';
 import 'competicion.dart';
 import 'equipo.dart';
 import 'evento.dart';
@@ -11,13 +12,13 @@ import 'torneo.dart';
 
 /// Versión del formato de guardado. Si algún día cambia el formato,
 /// se sube este número para poder actualizar partidas antiguas.
-const int versionFormato = 9;
+const int versionFormato = 10;
 
 /// Versión más antigua que todavía se puede cargar. Las partidas de las
-/// versiones 3 a 8 se actualizan a la 9: los campos nuevos quedan vacíos o
-/// con su valor por defecto, el contador de ids se reconstruye al cargar y
-/// las competiciones/plantillas que falten se reparan.
-/// Las de la versión 1 o 2 siguen siendo incompatibles.
+/// versiones 3 a 9 se actualizan a la 10: los campos nuevos quedan vacíos o
+/// con su valor por defecto, el contador de ids se reconstruye al cargar,
+/// se generan los agentes rivales y las competiciones/plantillas que falten
+/// se reparan. Las de la versión 1 o 2 siguen siendo incompatibles.
 const int versionMinimaCompatible = 3;
 
 /// Contiene todos los datos de la partida en curso.
@@ -33,6 +34,7 @@ class EstadoPartida {
     List<RegistroCampeon>? palmares,
     List<PremioIndividual>? premios,
     List<Oferta>? ofertas,
+    List<AgenteRival>? agentesRivales,
     Map<String, int>? fichajesVentana,
     List<EventoPendiente>? eventosPendientes,
     Map<String, int>? ultimaSemanaEvento,
@@ -56,6 +58,7 @@ class EstadoPartida {
        palmares = palmares ?? [],
        premios = premios ?? [],
        ofertas = ofertas ?? [],
+       agentesRivales = agentesRivales ?? [],
        fichajesVentana = fichajesVentana ?? {},
        eventosPendientes = eventosPendientes ?? [],
        ultimaSemanaEvento = ultimaSemanaEvento ?? {},
@@ -91,6 +94,9 @@ class EstadoPartida {
 
   /// Ofertas pendientes de respuesta (traspasos y renovaciones).
   List<Oferta> ofertas;
+
+  /// Agentes rivales que compiten conmigo (Parte 3A).
+  List<AgenteRival> agentesRivales;
 
   /// Fichajes de la IA hechos por cada equipo en la ventana en curso.
   /// La clave es el id del equipo. Se reinicia al empezar cada ventana.
@@ -168,6 +174,7 @@ class EstadoPartida {
       'palmares': palmares.map((r) => r.toJson()).toList(),
       'premios': premios.map((p) => p.toJson()).toList(),
       'ofertas': ofertas.map((o) => o.toJson()).toList(),
+      'agentesRivales': agentesRivales.map((a) => a.toJson()).toList(),
       'fichajesVentana': fichajesVentana,
       'eventosPendientes': eventosPendientes.map((e) => e.toJson()).toList(),
       'ultimaSemanaEvento': ultimaSemanaEvento,
@@ -218,6 +225,9 @@ class EstadoPartida {
           .toList(),
       ofertas: ((json['ofertas'] as List?) ?? const [])
           .map((o) => Oferta.fromJson(o as Map<String, dynamic>))
+          .toList(),
+      agentesRivales: ((json['agentesRivales'] as List?) ?? const [])
+          .map((a) => AgenteRival.fromJson(a as Map<String, dynamic>))
           .toList(),
       fichajesVentana:
           (json['fichajesVentana'] as Map?)?.map(

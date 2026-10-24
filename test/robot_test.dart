@@ -42,5 +42,36 @@ void main() {
           'El dinero final no cuadra con ingresos y gastos '
           '(descuadre ${resultado.descuadre}).',
     );
+
+    // Criterios de balance de la Parte 3A.
+    expect(
+      resultado.cumpleCriterioRobos,
+      isTrue,
+      reason:
+          'El robot perdió ${resultado.maxPerdidasPorRobo} representados por '
+          'robo en una temporada (máximo 1).',
+    );
+    expect(
+      resultado.cumpleCriterioFichajes,
+      isTrue,
+      reason:
+          'El robot solo hizo ${resultado.minimoFichajesPorTemporada} '
+          'reclutamientos en una temporada (mínimo 5).',
+    );
+    expect(
+      resultado.cumpleCriterioRivales,
+      isTrue,
+      reason:
+          'Los rivales se quedaron con '
+          '${(resultado.porcentajeEnRivales * 100).toStringAsFixed(1)} % de '
+          'los jugadores que empezaron sin agente (máximo 40 %).',
+    );
+    expect(
+      resultado.cumpleCriterioReputacion,
+      isTrue,
+      reason:
+          'La reputación final fue ${resultado.reputacionFinal} '
+          '(meta 30–45).',
+    );
   }, timeout: const Timeout(Duration(minutes: 10)));
 }

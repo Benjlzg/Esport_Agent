@@ -16,6 +16,7 @@ Jugador _jugador(
   int habilidad = 70,
   String? equipoId,
   bool representadoPorMi = false,
+  String? agenteId,
 }) => Jugador(
   id: id,
   nick: id,
@@ -28,6 +29,7 @@ Jugador _jugador(
   potencial: 80,
   equipoId: equipoId,
   representadoPorMi: representadoPorMi,
+  agenteId: agenteId,
   salarioAnual: 100000,
   semanasContrato: 100,
 );
@@ -135,6 +137,24 @@ void main() {
     expect(ids.contains('mayor'), isFalse);
     expect(ids.contains('medio'), isFalse);
     expect(estado.jugadores.length, 4);
+  });
+
+  test('no borra a los jugadores representados por un rival', () {
+    final jugadores = [
+      _jugador('libre1', edad: 30),
+      _jugador('libre2', edad: 29),
+      _jugador('rival', edad: 40, agenteId: 'r000'),
+      _jugador('mio', edad: 35, representadoPorMi: true),
+    ];
+    final estado = _estado(jugadores: jugadores, noticias: []);
+
+    limpiarDatosAntiguos(estado, limiteLibres: 1);
+
+    final ids = estado.jugadores.map((j) => j.id).toSet();
+    expect(ids, containsAll(['rival', 'mio']));
+    // Solo queda un jugador sin agente (el límite), además del rival y el mío.
+    final sinAgente = estado.jugadores.where((j) => j.sinAgente).length;
+    expect(sinAgente, 1);
   });
 
   test('elimina esperas de eventos que ya no bloquean nada', () {

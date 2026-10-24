@@ -9,6 +9,7 @@ import '../../modelos/juego.dart';
 import '../../modelos/noticia.dart';
 import '../../modelos/partido.dart';
 import '../../modelos/torneo.dart';
+import '../agentes_rivales.dart' as rivales;
 import '../calendario.dart';
 import '../formulas.dart';
 import '../liga.dart';
@@ -56,7 +57,10 @@ class CompeticionService {
     for (final juego in Juego.values) {
       premiosTemporada.addAll(calcularPremios(est, juego, puntosTitulos));
     }
-    final agenteDelAnio = calcularAgenteDelAnio(est);
+    final agenteDelAnio = calcularAgenteDelAnio(
+      est,
+      premiosExtra: premiosTemporada,
+    );
     if (agenteDelAnio != null) premiosTemporada.add(agenteDelAnio);
 
     est.premios.addAll(premiosTemporada);
@@ -264,6 +268,12 @@ class CompeticionService {
     );
 
     final premiados = aplicarEfectosCampeon(torneo, est.jugadores, est.agente);
+    // Los rivales con clientes en el equipo campeón también ganan reputación.
+    rivales.aplicarReputacionRivalesPorTitulo(
+      est,
+      campeonId,
+      mundial: torneo.tipo == TipoTorneo.mundial,
+    );
     if (premiados.isNotEmpty) {
       motor.agregarNoticia(
         '¡${premiados.map((j) => j.nick).join(', ')} '

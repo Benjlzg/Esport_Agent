@@ -19,6 +19,10 @@ class Jugador {
     required this.salarioAnual,
     required this.semanasContrato,
     this.representadoPorMi = false,
+    this.agenteId,
+    this.satisfaccion = 70,
+    this.semanasEnfriamientoAgente = 0,
+    this.semanasEsperaConvencer = 0,
     this.esReal = false,
     this.suplente = false,
     this.region,
@@ -82,6 +86,39 @@ class Jugador {
 
   /// true si forma parte de mi agencia (yo lo represento).
   bool representadoPorMi;
+
+  /// Id del agente que lo representa: `'yo'` para mis jugadores, el id de un
+  /// `AgenteRival` o `null` si no tiene agente (Parte 3A).
+  ///
+  /// `representadoPorMi` sigue siendo la fuente principal para mis jugadores;
+  /// este campo permite saber qué rival representa a los demás y mantener la
+  /// cartera de cada agente sin listas duplicadas.
+  String? agenteId;
+
+  /// Satisfacción del jugador con su agente, de 0 a 100. En la Parte 3A se
+  /// actualiza de forma provisional (moral y suplencia); la Parte 3B la
+  /// sustituirá por el sistema completo de expectativas.
+  int satisfaccion;
+
+  /// Semanas que faltan para que el jugador pueda volver a cambiar de agente.
+  /// Evita el ping-pong entre agentes (Parte 3A).
+  int semanasEnfriamientoAgente;
+
+  /// Semanas que faltan para poder volver a intentar convencerlo tras un
+  /// intento fallido (Parte 3A).
+  int semanasEsperaConvencer;
+
+  /// true si no tiene ningún agente (ni yo ni un rival). Es el "agente libre"
+  /// que se puede reclutar o disputar.
+  bool get sinAgente => !representadoPorMi && agenteId == null;
+
+  /// true si no pertenece a ningún equipo. Se llama "jugador sin equipo",
+  /// no "agente libre", para no confundir los dos conceptos (Parte 3A).
+  bool get sinEquipo => equipoId == null;
+
+  /// true si lo representa otro agente (no yo).
+  bool get representadoPorRival =>
+      !representadoPorMi && agenteId != null && agenteId != 'yo';
 
   /// true = jugador real, false = generado por el juego.
   bool esReal;
@@ -189,6 +226,10 @@ class Jugador {
       'salarioAnual': salarioAnual,
       'semanasContrato': semanasContrato,
       'representadoPorMi': representadoPorMi,
+      'agenteId': agenteId,
+      'satisfaccion': satisfaccion,
+      'semanasEnfriamientoAgente': semanasEnfriamientoAgente,
+      'semanasEsperaConvencer': semanasEsperaConvencer,
       'esReal': esReal,
       'suplente': suplente,
       'region': region,
@@ -229,6 +270,13 @@ class Jugador {
       salarioAnual: json['salarioAnual'] as int,
       semanasContrato: json['semanasContrato'] as int,
       representadoPorMi: json['representadoPorMi'] as bool,
+      agenteId: json['agenteId'] as String?,
+      satisfaccion:
+          ((json['satisfaccion'] as num?)?.toInt() ?? 70).clamp(0, 100),
+      semanasEnfriamientoAgente:
+          (json['semanasEnfriamientoAgente'] as num?)?.toInt() ?? 0,
+      semanasEsperaConvencer:
+          (json['semanasEsperaConvencer'] as num?)?.toInt() ?? 0,
       esReal: json['esReal'] as bool,
       suplente: json['suplente'] as bool? ?? false,
       region: json['region'] as String?,

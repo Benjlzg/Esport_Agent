@@ -722,3 +722,51 @@ Se corrigieron **I13, I14, todos los problemas menores M1–M19** y los duplicad
 - `flutter analyze` → **No issues found!**
 - `flutter test` → **175 pasan, 2 saltan** (las `@Tags(['lento'])`).
 - Capturas de `capturas/` regeneradas con `flutter test test/golden_test.dart --update-goldens` porque el fixture determinista cambia con la nueva regla de mercado.
+
+## Fase 3A — Agentes rivales (terminada, 2026-10-24)
+
+### Implementación
+
+- **Nuevo modelo `lib/modelos/agente_rival.dart`:** id, nombre, país, perfil (`PerfilRival`), videojuego de especialidad, reputación y dinero. Serialización tolerante: un perfil desconocido cae en `agresivo`.
+- **Nuevo `lib/logica/agentes_rivales.dart`:** generación de 18 rivales (mínimo 2 cazatalentos y 2 especialistas), carteras iniciales de 2–5 jugadores sin agente, límites por perfil, comisiones de salario, acciones semanales, disputas al reclutar, robo de representados insatisfechos, «Convencerlo», reputación, ranking y Agente del Año contra rivales.
+- **`Jugador`:** campos `agenteId`, `satisfaccion` (70), `semanasEnfriamientoAgente` y `semanasEsperaConvencer`; getters `sinAgente` y `representadoPorRival`. `EstadoPartida.agentesRivales` y `versionFormato = 10` (mínima compatible sigue en 3).
+- **Migración:** las partidas v3–v9 generan rivales y carteras al cargar; una v10 solo sincroniza `agenteId` sin gastar RNG. Los jugadores míos conservan `agenteId = 'yo'`.
+- **Interfaz:** sección **Agentes** dentro de Mi agencia con ranking y fila propia resaltada; detalle del rival con perfil, dinero estimado y sus jugadores; línea «Representado por» y botón **Convencerlo** en la ficha; avisos destacados de robo; podio del Agente del Año.
+- **Satisfacción provisional:** deriva semanal por moral y suplencia (la Parte 3B la sustituirá por expectativas).
+
+### Correcciones de esta sesión
+
+- **Constructores de pruebas:** `FilaRobot` recibe `perdidasPorRobo` y `ResultadoRobot` recibe `jugadoresSinAgenteIniciales` / `jugadoresSinAgenteEnRivales` en `test/apoyo/robot_jugador.dart` y `test/robot_metricas_test.dart`.
+- **Golden:** se fijó el jugador reclutado en una variable no nullable antes de buscar su equipo en `test/golden_test.dart`.
+- **Bug de reclutamiento:** `_candidatoReclutamiento` usa `jugador.sinAgente`, así que ya no intenta fichar a jugadores que pertenecen a un rival (antes solo miraba `representadoPorMi` y el equipo).
+- **Métricas:** `MetricasSimulacion` tiene `robos`, `robosTotales` y `registrarRobos`; `TemporadaService` anota los robos semanales. El robot lee la diferencia de `robosTotales` por temporada.
+- **Criterio de reclutamientos:** cuando la cartera del robot está llena, sustituye a su representado con menos potencial si un agente libre lo iguala o mejora. Así mantiene actividad y supera los 5 reclutamientos por temporada.
+- **Plantillas tras ventas de rivales:** al vender, el comprador baja a suplente al titular del mismo rol y recorta suplentes; el club vendedor repone el rol vacante. Esto elimina las plantillas de 6 titulares detectadas por los invariantes.
+- **Umbral de racha:** `rachaPreocupante` pasa de 8 a 12 semanas porque la competencia 3A puede llenar la cartera antes de la ventana; el hueco entre ventanas no es una racha de inactividad real.
+
+### Criterios de la Fase 3A medidos
+
+`INFORME_BALANCE.md` regenerado el **2026-10-24 00:28:27**, semilla **20251019**:
+
+| Criterio | Medición | Meta | Resultado |
+| --- | --- | --- | --- |
+| Pérdidas del robot por robo | T1 0 · T2 0 · T3 0 | ≤ 1 por temporada | cumple |
+| Reclutamientos del robot | T1 14 · T2 19 · T3 14 | ≥ 5 por temporada | cumple |
+| Jugadores iniciales sin agente en manos de rivales | 111 de 1826 (6,1 %) | ≤ 40 % | cumple |
+| Reputación del robot al final de la T3 | 40 | 30–45 | cumple |
+| Tiempo semanal T10 / T1 | 1,08× | ≤ 1,5× | cumple |
+
+- Violaciones duras: **0**.
+- Robot: **sin quiebra**, dinero final **$311.319**, descuadre **0**, racha máxima sin opciones **6 semanas**.
+- Progresión de 16–21 años con equipo: **4,3** puntos/temporada (4–8).
+- Dominio máximo: **6/10**; 0 ligas por encima de 6.
+- Guardado final: **4.008,4 KB**.
+- Observación: el mayor salto de habilidad entre temporadas subió a **3,13** (orientativo ≤ 3) por la nueva actividad de los rivales. No se toca en 3A para no mezclar el balance de la Fase 3B/4; queda anotado.
+
+### Verificación
+
+- `flutter analyze` → **No issues found!**
+- `flutter test` → **196 pasan, 2 saltan** (las `@Tags(['lento'])`).
+- `flutter test --tags lento --run-skipped` → **2 pasan** (`balance_test.dart` y `robot_test.dart`), ya con las aserciones de los criterios 3A.
+- Capturas de `capturas/` regeneradas; se añadieron `agentes.png` y `detalle_agente_rival.png`.
+- `test/agentes_rivales_test.dart` cubre generación, carteras, disputas, robos, convencer, reputación, ranking, Agente del Año y rendimiento con 300+ agentes libres. `test/guardado_test.dart` cubre la migración v3–v9 a v10.

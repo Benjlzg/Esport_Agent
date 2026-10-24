@@ -10,6 +10,7 @@ import '../modelos/estado_partida.dart';
 import '../modelos/historial.dart';
 import '../modelos/juego.dart';
 import '../modelos/jugador.dart';
+import 'agentes_rivales.dart' as rivales;
 import 'formulas.dart';
 
 /// Roles que cuentan para el Máximo Eliminador en LoL y Dota 2.
@@ -125,59 +126,82 @@ List<PremioIndividual> calcularPremios(
   return premios;
 }
 
-/// Calcula el Agente del Año: lo gano si el total de títulos de mis
-/// representados en la temporada supera el de cualquier equipo.
-PremioIndividual? calcularAgenteDelAnio(EstadoPartida estado) {
+/// Calcula el Agente del Año comparando mis representados con los de todos
+/// los rivales. Gana quien sume más puntos con los pesos del premio.
+///
+/// El detalle incluye el podio de los 3 mejores para la ceremonia.
+PremioIndividual? calcularAgenteDelAnio(
+  EstadoPartida estado, {
+  List<PremioIndividual> premiosExtra = const [],
+}) {
   final temporada = estado.temporada;
-  final titulos = estado.palmares.where((r) => r.temporada == temporada);
+  final puntuaciones = rivales.puntuacionesAgenteDelAnio(
+    estado,
+    premiosExtra: premiosExtra,
+  );
+  if (puntuaciones.isEmpty) return null;
 
-  final misRepresentadosPorEquipo = <String, bool>{};
-  for (final j in estado.jugadores) {
-    if (j.representadoPorMi && j.equipoId != null) {
-      misRepresentadosPorEquipo[j.equipoId!] = true;
-    }
-  }
+  final ganador = puntuaciones.first;
+  // Si nadie sumó puntos, no tiene sentido entregar el premio.
+  if (ganador.puntos <= 0) return null;
 
-  final misTitulos = titulos
-      .where((r) => misRepresentadosPorEquipo[r.ganadorId] == true)
-      .length;
-
-  final porEquipo = <String, int>{};
-  for (final r in titulos) {
-    porEquipo[r.ganadorId] = (porEquipo[r.ganadorId] ?? 0) + 1;
-  }
-  final mejorEquipo = porEquipo.values.isEmpty
-      ? 0
-      : porEquipo.values.reduce((a, b) => a > b ? a : b);
-
-  if (misTitulos <= mejorEquipo || misTitulos == 0) return null;
+  final podio = puntuaciones.take(3).toList();
+  final detallePodio = <String>[
+    for (var i = 0; i < podio.length; i++)
+      '${i + 1}. ${podio[i].esYo ? 'Tú' : podio[i].nombre} '
+          '(${podio[i].puntos.toStringAsFixed(1)} pts)',
+  ].join(' · ');
 
   return PremioIndividual(
     temporada: temporada,
     categoria: CategoriaPremio.agenteDelAnio,
-    nombreAgente: estado.agente.nombre,
-    detalle: 'Tu agencia sumó $misTitulos títulos esta temporada.',
+    nombreAgente: ganador.nombre,
+    detalle:
+        '${ganador.esYo ? 'Tu agencia' : ganador.nombre} sumó '
+        '${ganador.puntos.toStringAsFixed(1)} puntos. '
+        'Podio: $detallePodio.',
   );
 }
 
 /// Aplica los efectos de los premios a mis representados: valor +15%,
-/// moral +20 y reputación +3 por premiado. El Agente del Año da +5 extra.
+/// moral +20 y reputación +3 por premiado. El Agente del Año da +5 extra al
+/// agente ganador, sea yo o un rival. Los clientes de un rival solo suman
+/// reputación a su agente (Parte 3A).
 void aplicarEfectosPremios(
   EstadoPartida estado,
   List<PremioIndividual> premios,
 ) {
   for (final premio in premios) {
     if (premio.categoria == CategoriaPremio.agenteDelAnio) {
-      estado.agente.reputacion = min(
-        100,
-        estado.agente.reputacion + reputacionAgenteDelAnio,
-      );
+      final nombre = premio.nombreAgente;
+      if (nombre == null) continue;
+      if (nombre == estado.agente.nombre) {
+        estado.agente.reputacion = min(
+          100,
+          estado.agente.reputacion + reputacionAgenteDelAnio,
+        );
+      } else {
+        for (final rival in estado.agentesRivales) {
+          if (rival.nombre != nombre) continue;
+          rivales.ajustarReputacionRival(rival, reputacionAgenteDelAnio);
+          break;
+        }
+      }
       continue;
     }
     final id = premio.jugadorId;
     if (id == null) continue;
     final jugador = _jugadorPorId(estado, id);
-    if (jugador == null || !jugador.representadoPorMi) continue;
+    if (jugador == null) continue;
+
+    final rival = rivales.rivalDeJugador(estado, jugador);
+    if (rival != null) {
+      // El premio de un cliente da reputación a su agente rival.
+      rivales.ajustarReputacionRival(rival, efectoPremioReputacion);
+      continue;
+    }
+    if (!jugador.representadoPorMi) continue;
+
     jugador.moral = (jugador.moral + efectoPremioMoral).clamp(0, 100);
     jugador.multiplicadorValor =
         (jugador.multiplicadorValor * efectoPremioMultiplicador).clamp(

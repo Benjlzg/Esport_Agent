@@ -101,6 +101,8 @@ class _PantallaCeremoniaPremiosState extends State<PantallaCeremoniaPremios> {
         ? null
         : widget.motor.jugadorPorId(premio.jugadorId!);
     final esAgente = premio.categoria == CategoriaPremio.agenteDelAnio;
+    final esMiAgente =
+        esAgente && premio.nombreAgente == widget.motor.agente.nombre;
     final ganador = esAgente
         ? (premio.nombreAgente ?? 'Tu agencia')
         : (jugador?.nick ?? premio.nombreJugador ?? '—');
@@ -169,7 +171,7 @@ class _PantallaCeremoniaPremiosState extends State<PantallaCeremoniaPremios> {
                 if (widget.motor.misJugadores.any(
                       (j) => j.id == premio.jugadorId,
                     ) ||
-                    esAgente) ...[
+                    esMiAgente) ...[
                   const SizedBox(height: 16),
                   const Chip(
                     avatar: Icon(

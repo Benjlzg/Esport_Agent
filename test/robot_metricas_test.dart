@@ -12,20 +12,24 @@ FilaRobot _fila({
   int temporada = 1,
   int dineroInicio = robotDineroInicial,
   int dineroFin = 60000,
+  int reputacionFin = robotReputacionInicial,
+  int fichajes = 0,
+  int perdidasPorRobo = 0,
 }) => FilaRobot(
   temporada: temporada,
   dineroInicio: dineroInicio,
   dineroFin: dineroFin,
   reputacionInicio: robotReputacionInicial,
-  reputacionFin: robotReputacionInicial,
+  reputacionFin: reputacionFin,
   decisiones: 0,
   decisionesPorTipo: const {},
-  fichajes: 0,
+  fichajes: fichajes,
   ventas: 0,
   eventos: 0,
   ofertasRespondidas: 0,
   semanasSinOpcion: 0,
   rachaMaxima: 0,
+  perdidasPorRobo: perdidasPorRobo,
 );
 
 /// Resultado mínimo para probar los cálculos del informe.
@@ -37,6 +41,8 @@ ResultadoRobot _resultado({
   int? semanaMenosDinero = 1,
   Map<String, int>? ingresos,
   Map<String, int>? gastos,
+  int jugadoresSinAgenteIniciales = 0,
+  int jugadoresSinAgenteEnRivales = 0,
 }) => ResultadoRobot(
   filas: filas ?? [_fila()],
   rachaMaxima: 0,
@@ -50,6 +56,8 @@ ResultadoRobot _resultado({
       ingresos ?? {for (final fuente in robotFuentesIngreso) fuente: 0},
   gastosPorFuente:
       gastos ?? {for (final fuente in robotFuentesGasto) fuente: 0},
+  jugadoresSinAgenteIniciales: jugadoresSinAgenteIniciales,
+  jugadoresSinAgenteEnRivales: jugadoresSinAgenteEnRivales,
 );
 
 void main() {
@@ -152,6 +160,51 @@ void main() {
       expect(texto, contains('Reclutamientos'));
       expect(texto, contains('### Cuadre del dinero'));
       expect(texto, contains('0 (cuadra)'));
+    });
+
+    test('mide los criterios de la Parte 3A por temporada', () {
+      final resultado = _resultado(
+        filas: [
+          _fila(temporada: 1, fichajes: 5, perdidasPorRobo: 1),
+          _fila(temporada: 2, fichajes: 6, perdidasPorRobo: 0),
+          _fila(
+            temporada: 3,
+            fichajes: 7,
+            reputacionFin: 43,
+            perdidasPorRobo: 0,
+          ),
+        ],
+        jugadoresSinAgenteIniciales: 100,
+        jugadoresSinAgenteEnRivales: 35,
+      );
+
+      expect(resultado.maxPerdidasPorRobo, 1);
+      expect(resultado.cumpleCriterioRobos, isTrue);
+      expect(resultado.minimoFichajesPorTemporada, 5);
+      expect(resultado.cumpleCriterioFichajes, isTrue);
+      expect(resultado.porcentajeEnRivales, closeTo(0.35, 0.0001));
+      expect(resultado.cumpleCriterioRivales, isTrue);
+      expect(resultado.cumpleCriterioReputacion, isTrue);
+
+      final texto = seccionRobotMarkdown(resultado);
+      expect(texto, contains('Robos'));
+      expect(texto, contains('| 1 |'));
+    });
+
+    test('los criterios 3A fallan fuera de rango', () {
+      final resultado = _resultado(
+        filas: [
+          _fila(temporada: 1, fichajes: 4, perdidasPorRobo: 2),
+          _fila(temporada: 2, fichajes: 3, reputacionFin: 29),
+        ],
+        jugadoresSinAgenteIniciales: 100,
+        jugadoresSinAgenteEnRivales: 41,
+      );
+
+      expect(resultado.cumpleCriterioRobos, isFalse);
+      expect(resultado.cumpleCriterioFichajes, isFalse);
+      expect(resultado.cumpleCriterioRivales, isFalse);
+      expect(resultado.cumpleCriterioReputacion, isFalse);
     });
   });
 }

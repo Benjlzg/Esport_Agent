@@ -14,10 +14,12 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:esport_agent/logica/motor_juego.dart';
 import 'package:esport_agent/modelos/evento.dart';
 import 'package:esport_agent/modelos/juego.dart';
+import 'package:esport_agent/modelos/jugador.dart';
 import 'package:esport_agent/modelos/oferta.dart';
 import 'package:esport_agent/pantallas/pantalla_ajustes.dart';
 import 'package:esport_agent/pantallas/pantalla_ceremonia_premios.dart';
 import 'package:esport_agent/pantallas/pantalla_crear_agente.dart';
+import 'package:esport_agent/pantallas/pantalla_detalle_agente_rival.dart';
 import 'package:esport_agent/pantallas/pantalla_detalle_equipo.dart';
 import 'package:esport_agent/pantallas/pantalla_detalle_jugador.dart';
 import 'package:esport_agent/pantallas/pantalla_inicio.dart';
@@ -74,6 +76,25 @@ void main() {
 
   testWidgets('mi agencia', (tester) async {
     await _principal(tester, _base, 'mi_agencia', pestana: 'Mi agencia');
+  });
+
+  testWidgets('agentes', (tester) async {
+    await _principal(
+      tester,
+      _base,
+      'agentes',
+      pestana: 'Mi agencia',
+      submunicion: 'Agentes',
+    );
+  });
+
+  testWidgets('detalle de agente rival', (tester) async {
+    final rival = _base.agentesRivales.first;
+    await _capturar(
+      tester,
+      PantallaDetalleAgenteRival(motor: _base, agenteId: rival.id),
+      'detalle_agente_rival',
+    );
   });
 
   testWidgets('mercado', (tester) async {
@@ -245,7 +266,9 @@ Future<MotorJuego> _prepararBase() async {
   motor.agente.reputacion = 100;
 
   final candidatos =
-      motor.estado!.jugadores.where((j) => j.equipoId == null).toList()
+      motor.estado!.jugadores
+          .where((j) => j.equipoId == null && j.sinAgente)
+          .toList()
         ..sort((a, b) => b.potencial.compareTo(a.potencial));
   var reclutados = 0;
   for (final jugador in candidatos) {
@@ -269,7 +292,9 @@ Future<MotorJuego> _prepararBase() async {
 Future<MotorJuego> _prepararEvento() async {
   final motor = await crearPartidaSembrada(dinero: 50000000);
   motor.agente.reputacion = 100;
-  final jugador = motor.estado!.jugadores.firstWhere((j) => j.equipoId == null);
+  final jugador = motor.estado!.jugadores.firstWhere(
+    (j) => j.equipoId == null && j.sinAgente,
+  );
   motor.estado!.eventosPendientes.add(
     EventoPendiente(
       id: 'ev_captura_1',
@@ -294,11 +319,23 @@ Future<MotorJuego> _prepararEvento() async {
 Future<MotorJuego> _prepararOferta() async {
   final motor = await crearPartidaSembrada(dinero: 50000000);
   motor.agente.reputacion = 100;
-  final jugador = motor.estado!.jugadores.firstWhere((j) => j.equipoId == null);
-  await motor.reclutar(jugador);
+  final candidatos =
+      motor.estado!.jugadores.where((j) => j.sinAgente).toList();
+  Jugador? jugador;
+  for (final candidato in candidatos) {
+    final resultado = await motor.reclutar(candidato);
+    if (resultado.ok) {
+      jugador = candidato;
+      break;
+    }
+  }
+  if (jugador == null) {
+    throw StateError('El fixture no pudo reclutar a ningún jugador.');
+  }
+  final jugadorReclutado = jugador;
 
   final equipo = motor.estado!.equipos.firstWhere(
-    (e) => e.juego == jugador.juego,
+    (e) => e.juego == jugadorReclutado.juego,
   );
   motor.estado!.ofertas.add(
     Oferta(

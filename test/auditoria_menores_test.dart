@@ -101,9 +101,13 @@ void main() {
 
   test('M4: el resumen incluye traspasos, renovaciones y eventos', () async {
     final motor = await crearPartidaSembrada();
-    final libre = motor.jugadores.firstWhere((j) => j.equipoId == null);
+    final libre = motor.jugadores.firstWhere(
+      (j) => j.equipoId == null && j.sinAgente,
+    );
     motor.agente.reputacion = 100;
     motor.agente.dinero = 10000000;
+    // La prueba mide el resumen semanal; se evita una disputa aleatoria.
+    motor.estado!.agentesRivales.clear();
 
     await motor.reclutar(libre);
     final costo = costoRepresentar(libre.valorMercado);

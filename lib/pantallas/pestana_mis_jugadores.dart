@@ -1,19 +1,70 @@
-// Pestaña Mi agencia: los jugadores que represento y acceso a las ofertas.
+// Pestaña Mi agencia: mis jugadores y el ranking de agentes (Parte 3A).
+//
+// La barra inferior sigue teniendo 5 pestañas. "Agentes" es una subpestaña
+// dentro de Mi agencia, como permite el plan.
 import 'package:flutter/material.dart';
 
 import '../logica/motor_juego.dart';
 import '../tema/tema_app.dart';
 import '../widgets/tarjeta_jugador.dart';
+import 'pantalla_agentes.dart';
 import 'pantalla_detalle_jugador.dart';
 import 'pantalla_ofertas.dart';
 
-class PestanaMisJugadores extends StatelessWidget {
+class PestanaMisJugadores extends StatefulWidget {
   const PestanaMisJugadores({super.key, required this.motor});
 
   final MotorJuego motor;
 
   @override
+  State<PestanaMisJugadores> createState() => _PestanaMisJugadoresState();
+}
+
+class _PestanaMisJugadoresState extends State<PestanaMisJugadores> {
+  /// 0 = mis jugadores, 1 = ranking de agentes.
+  int _seccion = 0;
+
+  @override
   Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(12, 10, 12, 0),
+          child: SegmentedButton<int>(
+            segments: const [
+              ButtonSegment(
+                value: 0,
+                label: Text('Mis jugadores'),
+                icon: Icon(Icons.groups, size: 18),
+              ),
+              ButtonSegment(
+                value: 1,
+                label: Text('Agentes'),
+                icon: Icon(Icons.people_alt, size: 18),
+              ),
+            ],
+            selected: {_seccion},
+            showSelectedIcon: false,
+            style: const ButtonStyle(
+              visualDensity: VisualDensity.compact,
+            ),
+            onSelectionChanged: (seleccion) {
+              setState(() => _seccion = seleccion.first);
+            },
+          ),
+        ),
+        Expanded(
+          child: _seccion == 0
+              ? _misJugadores(context)
+              : VistaAgentes(motor: widget.motor),
+        ),
+      ],
+    );
+  }
+
+  /// Lista de mis representados y acceso a las ofertas pendientes.
+  Widget _misJugadores(BuildContext context) {
+    final motor = widget.motor;
     final jugadores = motor.misJugadores;
     final ofertas = motor.ofertasPendientes.length;
 

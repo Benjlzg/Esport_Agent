@@ -195,6 +195,7 @@ class ContextoEventos {
     final rol = jugador.rol;
     final eraTitular = !jugador.suplente;
     jugador.representadoPorMi = false;
+    jugador.agenteId = null;
     estado.jugadores.remove(jugador);
     indiceJugadores.remove(jugador.id);
     reconstruirIndices = true;
@@ -718,7 +719,10 @@ List<DefinicionEvento> _crearCatalogo() {
           efecto: (ctx, evento, jugador) {
             final j = jugador!;
             final seVa = ctx.rnd.nextDouble() < 0.40;
-            if (seVa) j.representadoPorMi = false;
+            if (seVa) {
+              j.representadoPorMi = false;
+              j.agenteId = null;
+            }
             return seVa
                 ? '${j.nick} dejó la agencia tras el conflicto.'
                 : '${j.nick} sigue en la agencia, pero molesto.';

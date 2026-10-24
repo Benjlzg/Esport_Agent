@@ -332,6 +332,7 @@ void main() {
     final textoInforme = archivoInforme.readAsStringSync();
     expect(textoInforme, contains('- Generado: **'));
     expect(textoInforme, contains('## Progresión de jóvenes'));
+    expect(textoInforme, contains('## Criterios de la Fase 3A'));
 
     // El test falla DESPUÉS de escribir el informe para poder diagnosticar.
     expect(
@@ -340,6 +341,17 @@ void main() {
       reason: 'Violaciones duras:\n${violaciones.join('\n')}',
     );
     expect(resumen, isNotEmpty);
+
+    // Criterios de balance de la Parte 3A.
+    expect(robot.cumpleCriterioRobos, isTrue);
+    expect(robot.cumpleCriterioFichajes, isTrue);
+    expect(robot.cumpleCriterioRivales, isTrue);
+    expect(robot.cumpleCriterioReputacion, isTrue);
+    expect(
+      filas.last.milisegundos / filas.first.milisegundos,
+      lessThanOrEqualTo(1.5),
+      reason: 'El paso semanal creció más de 1,5× entre la T1 y la T10.',
+    );
   }, timeout: const Timeout(Duration(minutes: 30)));
 }
 
@@ -363,7 +375,7 @@ String _escribirInforme({
       .toList();
 
   final buffer = StringBuffer()
-    ..writeln('# INFORME DE BALANCE — FASE 2.5')
+    ..writeln('# INFORME DE BALANCE — FASE 3A')
     ..writeln()
     ..writeln('- Generado: **${_fechaHora(DateTime.now())}** (hora local).')
     ..writeln('- Generado por: `test/balance_test.dart`.')
@@ -375,6 +387,11 @@ String _escribirInforme({
     )
     ..writeln(
       '- Los eventos se resuelven solos eligiendo la opción más barata.',
+    )
+    ..writeln(
+      '- Parte 3A: los agentes rivales están activos en la partida '
+      'observadora y en el robot. Sus criterios se miden en la sección '
+      '«Criterios de la Fase 3A».',
     )
     ..writeln(
       '- Comando: `flutter test test/balance_test.dart --tags lento '
@@ -821,6 +838,63 @@ String _escribirInforme({
     ..writeln(
       '- Media global por semana: '
       '${decimal(milisegundosSemanas / 520, 1)} ms.',
+    )
+    ..writeln();
+
+  // Criterios de la Parte 3A (agentes rivales). Se miden con el robot de 3
+  // temporadas y con la partida observadora de 10 temporadas.
+  final tiempoT10SobreT1 = filas.isEmpty
+      ? 0.0
+      : filas.last.milisegundos / filas.first.milisegundos;
+  final robosPorTemporada = robot.filas
+      .map((fila) => 'T${fila.temporada}: ${fila.perdidasPorRobo}')
+      .join(' · ');
+  final fichajesPorTemporada = robot.filas
+      .map((fila) => 'T${fila.temporada}: ${fila.fichajes}')
+      .join(' · ');
+  buffer
+    ..writeln('## Criterios de la Fase 3A (agentes rivales)')
+    ..writeln()
+    ..writeln(
+      tablaMarkdown(
+        ['Criterio', 'Medición', 'Meta', '¿Cumple?'],
+        [
+          [
+            'Pérdidas del robot por robo',
+            '$robosPorTemporada (máximo ${robot.maxPerdidasPorRobo} por '
+                'temporada)',
+            '≤ 1 por temporada',
+            robot.cumpleCriterioRobos ? 'cumple' : 'no cumple',
+          ],
+          [
+            'Reclutamientos del robot',
+            '$fichajesPorTemporada (mínimo '
+                '${robot.minimoFichajesPorTemporada} por temporada)',
+            '≥ 5 por temporada',
+            robot.cumpleCriterioFichajes ? 'cumple' : 'no cumple',
+          ],
+          [
+            'Jugadores que empezaron sin agente y acabaron en un rival',
+            '${robot.jugadoresSinAgenteEnRivales} de '
+                '${robot.jugadoresSinAgenteIniciales} '
+                '(${decimal(robot.porcentajeEnRivales * 100, 1)} %)',
+            '≤ 40 %',
+            robot.cumpleCriterioRivales ? 'cumple' : 'no cumple',
+          ],
+          [
+            'Reputación del robot al final de la T3',
+            '${robot.reputacionFinal}',
+            '30–45',
+            robot.cumpleCriterioReputacion ? 'cumple' : 'no cumple',
+          ],
+          [
+            'Tiempo semanal de la T10 frente a la T1',
+            '${decimal(tiempoT10SobreT1, 2)}×',
+            '≤ 1,5×',
+            tiempoT10SobreT1 <= 1.5 ? 'cumple' : 'no cumple',
+          ],
+        ],
+      ),
     )
     ..writeln();
 

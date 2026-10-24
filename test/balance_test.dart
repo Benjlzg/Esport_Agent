@@ -333,6 +333,8 @@ void main() {
     expect(textoInforme, contains('- Generado: **'));
     expect(textoInforme, contains('## Progresión de jóvenes'));
     expect(textoInforme, contains('## Criterios de la Fase 3A'));
+    expect(textoInforme, contains('## Criterios de la Fase 3B'));
+    expect(textoInforme, contains('## Criterios de la Fase 3C'));
 
     // El test falla DESPUÉS de escribir el informe para poder diagnosticar.
     expect(
@@ -351,10 +353,21 @@ void main() {
     expect(robot.cumpleCriterioSatisfaccion, isTrue);
     expect(robot.cumpleCriterioComision, isTrue);
     expect(robot.cumpleCriterioPromesas, isTrue);
+
+    // Criterios de balance de la Parte 3C.
+    expect(robot.cumpleCriterioOjeadores, isTrue);
+    expect(robot.cumpleCriterioSemiancho, isTrue);
+    expect(robot.cumpleCriterioGastoOjeadores, isTrue);
+    expect(robot.cumpleCriterioTalentosRivales, isTrue);
     expect(
       filas.last.milisegundos / filas.first.milisegundos,
       lessThanOrEqualTo(1.5),
       reason: 'El paso semanal creció más de 1,5× entre la T1 y la T10.',
+    );
+    expect(
+      filas.last.guardadoKb,
+      lessThanOrEqualTo(4890),
+      reason: 'El guardado final superó el límite de ~4.890 KB.',
     );
   }, timeout: const Timeout(Duration(minutes: 30)));
 }
@@ -379,7 +392,7 @@ String _escribirInforme({
       .toList();
 
   final buffer = StringBuffer()
-    ..writeln('# INFORME DE BALANCE — FASE 3B')
+    ..writeln('# INFORME DE BALANCE — FASE 3C')
     ..writeln()
     ..writeln('- Generado: **${_fechaHora(DateTime.now())}** (hora local).')
     ..writeln('- Generado por: `test/balance_test.dart`.')
@@ -401,6 +414,12 @@ String _escribirInforme({
       '- Parte 3B: la satisfacción usa expectativas y contratos de '
       'representación. El robot responde a los avisos y renueva sus '
       'contratos; sus criterios se miden en «Criterios de la Fase 3B».',
+    )
+    ..writeln(
+      '- Parte 3C: el potencial real está oculto tras un rango estimado y '
+      'los ojeadores lo estrechan. El robot contrata 2 ojeadores nivel 2 y '
+      'ficha por el punto medio del rango; sus criterios se miden en '
+      '«Criterios de la Fase 3C».',
     )
     ..writeln(
       '- Comando: `flutter test test/balance_test.dart --tags lento '
@@ -582,6 +601,14 @@ String _escribirInforme({
           ],
         ],
       ),
+    )
+    ..writeln()
+    ..writeln(
+      'La Parte 3C **no necesitó ajustes de constantes**: la primera '
+      'medición cumplió los cuatro criterios. La única decisión de diseño '
+      'fue la política fija del robot (2 ojeadores nivel 2 en los dos pares '
+      'con más agentes libres de 21 años o menos) y el uso del punto medio '
+      'del rango visible para fichar.',
     )
     ..writeln()
     ..writeln('### Correcciones de lógica')
@@ -909,10 +936,7 @@ String _escribirInforme({
 
   // Criterios de la Parte 3B (satisfacción y contratos).
   final perdidasSatisfaccionPorTemporada = robot.filas
-      .map(
-        (fila) =>
-            'T${fila.temporada}: ${fila.perdidasPorInsatisfaccion}',
-      )
+      .map((fila) => 'T${fila.temporada}: ${fila.perdidasPorInsatisfaccion}')
       .join(' · ');
   buffer
     ..writeln('## Criterios de la Fase 3B (satisfacción)')
@@ -945,6 +969,54 @@ String _escribirInforme({
             '${robot.promesasIncumplidas}',
             '≤ 2',
             robot.cumpleCriterioPromesas ? 'cumple' : 'no cumple',
+          ],
+        ],
+      ),
+    )
+    ..writeln();
+
+  // Criterios de la Parte 3C (ojeadores y potencial oculto).
+  final semianchoT1 = robot.semianchoT1;
+  final semianchoT3 = robot.semianchoT3;
+  final filaT3 = robot.filas.isEmpty ? null : robot.filas.last;
+  final gastoOjeadoresT3 = filaT3?.gastoOjeadores ?? 0;
+  final ingresosT3 = filaT3?.ingresosTemporada ?? 0;
+  final porcentajeOjeadoresT3 = ingresosT3 == 0
+      ? 0.0
+      : gastoOjeadoresT3 / ingresosT3 * 100;
+  buffer
+    ..writeln('## Criterios de la Fase 3C (ojeadores)')
+    ..writeln()
+    ..writeln(
+      tablaMarkdown(
+        ['Criterio', 'Medición', 'Meta', '¿Cumple?'],
+        [
+          [
+            'Ojeadores nivel 2 contratados por el robot',
+            '${robot.ojeadoresNivel2}',
+            '2',
+            robot.cumpleCriterioOjeadores ? 'cumple' : 'no cumple',
+          ],
+          [
+            'Semiancho medio de los fichajes T1 → T3',
+            '${decimal(semianchoT1, 1)} → ${decimal(semianchoT3, 1)}',
+            'baja de T1 a T3',
+            robot.cumpleCriterioSemiancho ? 'cumple' : 'no cumple',
+          ],
+          [
+            'Gasto en ojeadores de la T3 / ingresos de la T3',
+            '${formatearDinero(gastoOjeadoresT3)} de '
+                '${formatearDinero(ingresosT3)} '
+                '(${decimal(porcentajeOjeadoresT3, 1)} %)',
+            '≤ 15 %',
+            robot.cumpleCriterioGastoOjeadores ? 'cumple' : 'no cumple',
+          ],
+          [
+            'Top 20 de potencial real en manos de rivales',
+            '${robot.top20ConRival} de ${robot.top20Considerados} '
+                '(${decimal(robot.porcentajeTop20EnRivales * 100, 1)} %)',
+            '≤ 40 %',
+            robot.cumpleCriterioTalentosRivales ? 'cumple' : 'no cumple',
           ],
         ],
       ),
@@ -1094,6 +1166,27 @@ String _escribirInforme({
     ..writeln(
       '- Promesas incumplidas: ${robot.promesasIncumplidas} (meta ≤ 2): '
       '**${robot.cumpleCriterioPromesas ? 'cumple' : 'no cumple'}**.',
+    )
+    ..writeln(
+      '- Ojeadores nivel 2: ${robot.ojeadoresNivel2} (meta 2): '
+      '**${robot.cumpleCriterioOjeadores ? 'cumple' : 'no cumple'}**.',
+    )
+    ..writeln(
+      '- Semiancho medio de fichajes T1 → T3: '
+      '${decimal(semianchoT1, 1)} → ${decimal(semianchoT3, 1)} '
+      '(meta: baja): '
+      '**${robot.cumpleCriterioSemiancho ? 'cumple' : 'no cumple'}**.',
+    )
+    ..writeln(
+      '- Gasto en ojeadores de la T3: '
+      '${decimal(porcentajeOjeadoresT3, 1)} % de los ingresos (meta ≤ 15 %): '
+      '**${robot.cumpleCriterioGastoOjeadores ? 'cumple' : 'no cumple'}**.',
+    )
+    ..writeln(
+      '- Top 20 de potencial real con rivales: '
+      '${robot.top20ConRival} de ${robot.top20Considerados} '
+      '(${decimal(robot.porcentajeTop20EnRivales * 100, 1)} %, meta ≤ 40 %): '
+      '**${robot.cumpleCriterioTalentosRivales ? 'cumple' : 'no cumple'}**.',
     )
     ..writeln()
     ..writeln(marcadorRobotInicio)

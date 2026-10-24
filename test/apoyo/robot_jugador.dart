@@ -1,14 +1,17 @@
 // Robot de pruebas (Fase 2.5, paso 8): juega a nivel de motor durante varias
 // temporadas con una estrategia sencilla y mide si la agencia sobrevive.
 import 'dart:io';
+import 'dart:math';
 
 import 'package:esport_agent/logica/calendario.dart';
 import 'package:esport_agent/logica/formulas.dart';
 import 'package:esport_agent/logica/motor_juego.dart';
 import 'package:esport_agent/logica/negociacion.dart';
+import 'package:esport_agent/logica/ojeadores.dart';
 import 'package:esport_agent/logica/satisfaccion.dart';
 import 'package:esport_agent/modelos/equipo.dart';
 import 'package:esport_agent/modelos/evento.dart';
+import 'package:esport_agent/modelos/juego.dart';
 import 'package:esport_agent/modelos/jugador.dart';
 import 'package:esport_agent/modelos/oferta.dart';
 
@@ -36,6 +39,12 @@ const int robotMejoraReemplazo = 0;
 
 /// Reserva mínima para no quedarse sin dinero para la oficina.
 const int robotSemanasReserva = 8;
+
+/// Política de ojeadores del robot (Parte 3C): dos ojeadores de nivel 2 si
+/// tiene reserva para 30 semanas de su salario total.
+const int robotNumeroOjeadores = 2;
+const int robotOjeadoresNivel = 2;
+const int robotSemanasReservaOjeadores = 30;
 
 /// Una racha de esta cantidad de semanas sin opciones es preocupante.
 /// La competencia de la Parte 3A puede llenar la cartera antes de la ventana;
@@ -70,11 +79,13 @@ const List<String> robotFuentesIngreso = [
 const String gastoOficina = 'Oficina';
 const String gastoReclutamientos = 'Reclutamientos';
 const String gastoEventos = 'Eventos';
+const String gastoOjeadores = 'Ojeadores';
 
 /// Orden fijo de las fuentes de gasto en el informe.
 const List<String> robotFuentesGasto = [
   gastoOficina,
   gastoReclutamientos,
+  gastoOjeadores,
   gastoEventos,
 ];
 
@@ -102,6 +113,9 @@ class FilaRobot {
     this.perdidasPorInsatisfaccion = 0,
     this.perdidasPorContrato = 0,
     this.promesasIncumplidas = 0,
+    this.semianchoMedioFichajes = 0,
+    this.ingresosTemporada = 0,
+    this.gastoOjeadores = 0,
   });
 
   final int temporada;
@@ -129,6 +143,15 @@ class FilaRobot {
 
   /// Promesas incumplidas en esta temporada.
   final int promesasIncumplidas;
+
+  /// Semiancho medio del rango visible de los fichajes de la temporada.
+  final double semianchoMedioFichajes;
+
+  /// Ingresos totales de la temporada (para el criterio del 15 %).
+  final int ingresosTemporada;
+
+  /// Gasto en salarios de ojeadores durante la temporada.
+  final int gastoOjeadores;
 }
 
 /// Resumen completo de la partida del robot.
@@ -148,6 +171,9 @@ class ResultadoRobot {
     required this.jugadoresSinAgenteEnRivales,
     this.satisfaccionMedia = 0,
     this.comisionMedia = 0,
+    this.ojeadoresNivel2 = 0,
+    this.top20ConRival = 0,
+    this.top20Considerados = 0,
   });
 
   final List<FilaRobot> filas;
@@ -182,6 +208,48 @@ class ResultadoRobot {
 
   /// Comisión media de los contratos de representación al terminar.
   final double comisionMedia;
+
+  /// Ojeadores de nivel 2 contratados por el robot (Parte 3C).
+  final int ojeadoresNivel2;
+
+  /// Jugadores del top 20 de potencial real que están con un rival.
+  final int top20ConRival;
+
+  /// Tamaño del top 20 medido (normalmente 20).
+  final int top20Considerados;
+
+  /// Semiancho medio de los fichajes de la primera temporada.
+  double get semianchoT1 =>
+      filas.isEmpty ? 0 : filas.first.semianchoMedioFichajes;
+
+  /// Semiancho medio de los fichajes de la última temporada.
+  double get semianchoT3 =>
+      filas.isEmpty ? 0 : filas.last.semianchoMedioFichajes;
+
+  /// Criterio 3C: el semiancho medio de los fichajes baja de T1 a T3.
+  bool get cumpleCriterioSemiancho =>
+      filas.length >= 3 && semianchoT3 <= semianchoT1;
+
+  /// Criterio 3C: dos ojeadores de nivel 2 contratados.
+  bool get cumpleCriterioOjeadores => ojeadoresNivel2 >= robotNumeroOjeadores;
+
+  /// Criterio 3C: gasto en ojeadores ≤ 15 % de los ingresos de la T3.
+  bool get cumpleCriterioGastoOjeadores {
+    if (filas.isEmpty) return false;
+    final fila = filas.last;
+    if (fila.ingresosTemporada <= 0) return false;
+    return fila.gastoOjeadores <= fila.ingresosTemporada * 0.15;
+  }
+
+  /// Criterio 3C: ≤ 40 % del top 20 de potencial real está con rivales.
+  bool get cumpleCriterioTalentosRivales {
+    if (top20Considerados == 0) return true;
+    return top20ConRival <= top20Considerados * 0.40;
+  }
+
+  /// Porcentaje del top 20 que está con rivales.
+  double get porcentajeTop20EnRivales =>
+      top20Considerados == 0 ? 0 : top20ConRival / top20Considerados;
 
   /// Pérdidas por robo sumadas a todas las temporadas.
   int get perdidasPorRobo =>
@@ -234,7 +302,9 @@ class ResultadoRobot {
   int get maxPerdidasPorSatisfaccion => filas.isEmpty
       ? 0
       : filas
-            .map((fila) => fila.perdidasPorInsatisfaccion + fila.perdidasPorRobo)
+            .map(
+              (fila) => fila.perdidasPorInsatisfaccion + fila.perdidasPorRobo,
+            )
             .reduce((a, b) => a > b ? a : b);
 
   /// Criterio 3B: máximo 1–2 pérdidas por insatisfacción o robo por temporada.
@@ -309,6 +379,15 @@ class RobotJugador {
   String _ventanaActual = '';
   final Set<String> _vendidosEnVentana = {};
 
+  /// Semianchos de los fichajes de la temporada en curso (Parte 3C).
+  final List<double> _semianchosFichajesTemporada = [];
+
+  /// Evita contratar ojeadores más de una vez.
+  bool _ojeadoresContratados = false;
+
+  /// Gasto en ojeadores de la temporada en curso.
+  int _gastoOjeadoresTemporada = 0;
+
   /// Dinero mínimo y semana en que se alcanzó (B1).
   int _dineroMinimo = robotDineroInicial;
   int? _temporadaMenosDinero;
@@ -346,15 +425,21 @@ class RobotJugador {
         .map((j) => j.id)
         .toSet();
 
+    // Política fija de 3C: dos ojeadores nivel 2 si hay reserva para 30
+    // semanas de su salario total.
+    await _contratarOjeadoresIniciales();
+
     for (var t = 1; t <= temporadas; t++) {
       final estadoInicio = motor.estado!;
       final temporadaInicio = estadoInicio.temporada;
       final dineroInicio = motor.agente.dinero;
       final reputacionInicio = motor.agente.reputacion;
+      final ingresosInicioTemporada = _ingresosTotalesActuales();
+      _semianchosFichajesTemporada.clear();
+      _gastoOjeadoresTemporada = 0;
       final robosInicioTemporada = motor.metricas.robosTotales;
       final renunciasInicioTemporada = motor.metricas.renunciasTotales;
-      final contratosInicioTemporada =
-          motor.metricas.contratosVencidosTotales;
+      final contratosInicioTemporada = motor.metricas.contratosVencidosTotales;
       final promesasInicioTemporada = motor.metricas.promesasIncumplidas;
       var decisiones = 0;
       var eventos = 0;
@@ -416,8 +501,11 @@ class RobotJugador {
                   motor.metricas.contratosVencidosTotales -
                   contratosInicioTemporada,
               promesasIncumplidas:
-                  motor.metricas.promesasIncumplidas -
-                  promesasInicioTemporada,
+                  motor.metricas.promesasIncumplidas - promesasInicioTemporada,
+              semianchoMedioFichajes: _semianchoMedioFichajes(),
+              ingresosTemporada:
+                  _ingresosTotalesActuales() - ingresosInicioTemporada,
+              gastoOjeadores: _gastoOjeadoresTemporada,
             ),
           );
           final sinAgenteEnRivales = _jugadoresSinAgenteEnRivales();
@@ -436,6 +524,9 @@ class RobotJugador {
             jugadoresSinAgenteEnRivales: sinAgenteEnRivales,
             satisfaccionMedia: _satisfaccionMedia(),
             comisionMedia: _comisionMedia(),
+            ojeadoresNivel2: _ojeadoresNivel2(),
+            top20ConRival: _top20ConRival(),
+            top20Considerados: _top20Considerados(),
           );
         }
       }
@@ -455,8 +546,7 @@ class RobotJugador {
           ofertasRespondidas: ofertasRespondidas,
           semanasSinOpcion: semanasSinOpcionTemporada,
           rachaMaxima: rachaMaximaTemporada,
-          perdidasPorRobo:
-              motor.metricas.robosTotales - robosInicioTemporada,
+          perdidasPorRobo: motor.metricas.robosTotales - robosInicioTemporada,
           perdidasPorInsatisfaccion:
               motor.metricas.renunciasTotales - renunciasInicioTemporada,
           perdidasPorContrato:
@@ -464,6 +554,10 @@ class RobotJugador {
               contratosInicioTemporada,
           promesasIncumplidas:
               motor.metricas.promesasIncumplidas - promesasInicioTemporada,
+          semianchoMedioFichajes: _semianchoMedioFichajes(),
+          ingresosTemporada:
+              _ingresosTotalesActuales() - ingresosInicioTemporada,
+          gastoOjeadores: _gastoOjeadoresTemporada,
         ),
       );
     }
@@ -484,6 +578,9 @@ class RobotJugador {
       jugadoresSinAgenteEnRivales: _jugadoresSinAgenteEnRivales(),
       satisfaccionMedia: _satisfaccionMedia(),
       comisionMedia: _comisionMedia(),
+      ojeadoresNivel2: _ojeadoresNivel2(),
+      top20ConRival: _top20ConRival(),
+      top20Considerados: _top20Considerados(),
     );
   }
 
@@ -519,6 +616,81 @@ class RobotJugador {
     return suma / jugadores.length;
   }
 
+  /// Suma actual de ingresos de todas las fuentes (para medir la T3).
+  int _ingresosTotalesActuales() =>
+      _ingresosPorFuente.values.fold(0, (suma, monto) => suma + monto);
+
+  /// Media de semiancho de los fichajes de la temporada en curso.
+  double _semianchoMedioFichajes() {
+    if (_semianchosFichajesTemporada.isEmpty) return 0;
+    final suma = _semianchosFichajesTemporada.fold<double>(
+      0,
+      (total, ancho) => total + ancho,
+    );
+    return suma / _semianchosFichajesTemporada.length;
+  }
+
+  /// Ojeadores nivel 2 que siguen contratados al final.
+  int _ojeadoresNivel2() =>
+      motor.ojeadores.where((o) => o.nivel == robotOjeadoresNivel).length;
+
+  /// Tamaño del top de potencial real que se mide (máximo 20).
+  int _top20Considerados() => min(20, motor.jugadores.length);
+
+  /// Cuántos del top 20 de potencial real están representados por un rival.
+  int _top20ConRival() {
+    final top = List<Jugador>.from(motor.jugadores)
+      ..sort((a, b) => b.potencial.compareTo(a.potencial));
+    return top.take(20).where((j) => j.representadoPorRival).length;
+  }
+
+  /// Contrata dos ojeadores nivel 2 en los dos pares juego+región con más
+  /// agentes libres de 21 años o menos, si hay reserva para 30 semanas.
+  Future<void> _contratarOjeadoresIniciales() async {
+    if (_ojeadoresContratados) return;
+    final costeSemanal =
+        salarioOjeador(robotOjeadoresNivel) * robotNumeroOjeadores;
+    if (motor.agente.dinero < costeSemanal * robotSemanasReservaOjeadores) {
+      return;
+    }
+
+    final equipos = {for (final equipo in motor.equipos) equipo.id: equipo};
+    final conteo = <(Juego, String), int>{};
+    for (final jugador in motor.jugadores) {
+      if (!jugador.sinAgente || jugador.oculto) continue;
+      if (jugador.edad > 21) continue;
+      final region = jugador.equipoId == null
+          ? jugador.region
+          : equipos[jugador.equipoId]?.region;
+      if (region == null) continue;
+      final par = (jugador.juego, region);
+      conteo[par] = (conteo[par] ?? 0) + 1;
+    }
+    if (conteo.isEmpty) return;
+
+    final pares = conteo.entries.toList()
+      ..sort((a, b) {
+        final porCantidad = b.value.compareTo(a.value);
+        if (porCantidad != 0) return porCantidad;
+        return a.key.$2.compareTo(b.key.$2);
+      });
+    var contratados = 0;
+    for (final par in pares) {
+      if (contratados >= robotNumeroOjeadores) break;
+      final yaExiste = motor.ojeadores.any(
+        (o) => o.juego == par.key.$1 && o.region == par.key.$2,
+      );
+      if (yaExiste) continue;
+      final resultado = await motor.contratarOjeador(
+        juego: par.key.$1,
+        region: par.key.$2,
+        nivel: robotOjeadoresNivel,
+      );
+      if (resultado.ok) contratados++;
+    }
+    _ojeadoresContratados = true;
+  }
+
   /// Avanza una semana, comprueba si había opciones y actúa.
   /// Devuelve true si la semana no ofrecía ninguna opción.
   Future<bool> _jugarSemana({
@@ -542,6 +714,10 @@ class RobotJugador {
     );
     // La oficina se cobra siempre al avanzar, aunque no haya otras acciones.
     _sumarGasto(gastoOficina, gastoOficinaSemanal);
+    // Los ojeadores cobran su salario semanal junto a la oficina.
+    final gastoOjeadoresSemana = motor.gastoOjeadoresSemanal;
+    _sumarGasto(gastoOjeadores, gastoOjeadoresSemana);
+    _gastoOjeadoresTemporada += gastoOjeadoresSemana;
     _actualizarVentana();
 
     final enVentana = enVentanaFichajes(motor.semana);
@@ -613,9 +789,7 @@ class RobotJugador {
   /// Responde a los jugadores que quieren hablar: promete si hay dinero para
   /// sostener la agencia; si no, los ignora. Es la política pedida en 3B.
   Future<void> _responderSatisfaccion() async {
-    final jugadores = List<Jugador>.of(
-      motor.representadosQueQuierenHablar,
-    );
+    final jugadores = List<Jugador>.of(motor.representadosQueQuierenHablar);
     final reserva = gastoOficinaSemanal * robotSemanasReserva;
     for (final jugador in jugadores) {
       if (!jugador.quiereHablar || !jugador.representadoPorMi) continue;
@@ -711,14 +885,17 @@ class RobotJugador {
   }
 
   /// Recluta como máximo un agente libre por semana. Si la cartera está llena,
-  /// sustituye al representado con menos potencial cuando la mejora compensa.
+  /// sustituye al representado con menor potencial visible cuando la mejora
+  /// compensa. Nunca mira el potencial real (Parte 3C).
   Future<bool> _reclutar() async {
     final candidato = _candidatoReclutamiento();
     if (candidato == null) return false;
+    final potencialCandidato = puntoMedioPotencial(candidato);
     if (motor.misJugadores.length >= robotMaxRepresentados) {
       final peor = _peorRepresentado();
       if (peor == null ||
-          candidato.potencial < peor.potencial + robotMejoraReemplazo) {
+          potencialCandidato <
+              puntoMedioPotencial(peor) + robotMejoraReemplazo) {
         return false;
       }
       await motor.dejarDeRepresentar(peor);
@@ -727,6 +904,7 @@ class RobotJugador {
     final resultado = await motor.reclutar(candidato);
     if (resultado.ok) {
       _sumarGasto(gastoReclutamientos, dineroAntes - motor.agente.dinero);
+      _semianchosFichajesTemporada.add(semianchoVisibleDe(candidato));
     }
     return resultado.ok;
   }
@@ -739,17 +917,19 @@ class RobotJugador {
     if (motor.misJugadores.length < robotMaxRepresentados) return true;
     final peor = _peorRepresentado();
     return peor != null &&
-        candidato.potencial >= peor.potencial + robotMejoraReemplazo;
+        puntoMedioPotencial(candidato) >=
+            puntoMedioPotencial(peor) + robotMejoraReemplazo;
   }
 
-  /// Representado propio con menos potencial (desempata por habilidad).
+  /// Representado propio con menor potencial visible (desempata por habilidad).
   Jugador? _peorRepresentado() {
     Jugador? peor;
     for (final jugador in motor.misJugadores) {
+      final potencial = puntoMedioPotencial(jugador);
+      final potencialPeor = peor == null ? 0.0 : puntoMedioPotencial(peor);
       if (peor == null ||
-          jugador.potencial < peor.potencial ||
-          (jugador.potencial == peor.potencial &&
-              jugador.habilidad < peor.habilidad)) {
+          potencial < potencialPeor ||
+          (potencial == potencialPeor && jugador.habilidad < peor.habilidad)) {
         peor = jugador;
       }
     }
@@ -767,8 +947,11 @@ class RobotJugador {
     for (final jugador in motor.jugadores) {
       // Solo agentes libres: ni míos ni de un rival (Parte 3A).
       if (!jugador.sinAgente) continue;
+      // Los talentos ocultos no son visibles para el robot.
+      if (jugador.oculto) continue;
       if (jugador.habilidad > agente.reputacion + 40) continue;
-      if (jugador.potencial < jugador.habilidad + robotMargenPotencial) {
+      final potencialVisible = puntoMedioPotencial(jugador);
+      if (potencialVisible < jugador.habilidad + robotMargenPotencial) {
         continue;
       }
       // La Parte 3B hace que un jugador sin equipo o con expectativas
@@ -782,19 +965,16 @@ class RobotJugador {
         equipo: equipo,
       );
       final cumplidas = expectativas.every(
-        (clave) => expectativaCumplida(
-          jugador: jugador,
-          clave: clave,
-          equipo: equipo,
-        ),
+        (clave) =>
+            expectativaCumplida(jugador: jugador, clave: clave, equipo: equipo),
       );
       if (!cumplidas) continue;
       final coste = costoRepresentar(jugador.valorMercado);
       if (coste > maximoCoste) continue;
       if (dinero - coste < reserva) continue;
       if (mejor == null ||
-          jugador.potencial > mejor.potencial ||
-          (jugador.potencial == mejor.potencial &&
+          potencialVisible > puntoMedioPotencial(mejor) ||
+          (potencialVisible == puntoMedioPotencial(mejor) &&
               jugador.habilidad > mejor.habilidad)) {
         mejor = jugador;
       }
@@ -893,6 +1073,16 @@ String seccionRobotMarkdown(ResultadoRobot resultado) {
       'con menos potencial cuando el agente libre lo iguala o mejora.',
     )
     ..writeln(
+      '- Ojeadores (3C): contrata $robotNumeroOjeadores de nivel '
+      '$robotOjeadoresNivel en los dos pares juego+región con más agentes '
+      'libres de 21 años o menos, si tiene reserva para '
+      '$robotSemanasReservaOjeadores semanas de su salario total.',
+    )
+    ..writeln(
+      '- Ficha usando el punto medio del rango visible del potencial, no el '
+      'potencial real.',
+    )
+    ..writeln(
       '- Vende en ventana pidiendo el valor de mercado y acepta '
       'contraofertas ≥ ${(robotMinimoContraoferta * 100).round()} %.',
     )
@@ -946,6 +1136,44 @@ String seccionRobotMarkdown(ResultadoRobot resultado) {
       ],
     ),
   );
+
+  buffer
+    ..writeln()
+    ..writeln('### Ojeadores (3C)')
+    ..writeln()
+    ..writeln(
+      tablaMarkdown(
+        [
+          'Temporada',
+          'Semiancho medio fichajes',
+          'Gasto ojeadores',
+          'Ingresos temporada',
+          '% ojeadores',
+        ],
+        [
+          for (final fila in resultado.filas)
+            [
+              '${fila.temporada}',
+              decimal(fila.semianchoMedioFichajes, 1),
+              miles(fila.gastoOjeadores),
+              miles(fila.ingresosTemporada),
+              fila.ingresosTemporada == 0
+                  ? '—'
+                  : '${decimal(fila.gastoOjeadores / fila.ingresosTemporada * 100, 1)} %',
+            ],
+        ],
+      ),
+    )
+    ..writeln()
+    ..writeln(
+      '- Ojeadores nivel $robotOjeadoresNivel contratados: '
+      '${resultado.ojeadoresNivel2} (meta $robotNumeroOjeadores).',
+    )
+    ..writeln(
+      '- Semiancho medio de fichajes: T1 '
+      '${decimal(resultado.semianchoT1, 1)} → T3 '
+      '${decimal(resultado.semianchoT3, 1)} (meta: baja).',
+    );
 
   final principal = resultado.fuentePrincipalIngresos;
   final ingresosTotales = resultado.ingresosTotales;
@@ -1092,6 +1320,29 @@ String seccionRobotMarkdown(ResultadoRobot resultado) {
     ..writeln(
       '- Promesas incumplidas: ${resultado.promesasIncumplidas} (meta ≤ 2): '
       '**${resultado.cumpleCriterioPromesas ? 'cumple' : 'no cumple'}**.',
+    )
+    ..writeln(
+      '- Ojeadores nivel $robotOjeadoresNivel: '
+      '${resultado.ojeadoresNivel2} (meta $robotNumeroOjeadores): '
+      '**${resultado.cumpleCriterioOjeadores ? 'cumple' : 'no cumple'}**.',
+    )
+    ..writeln(
+      '- Semiancho medio de fichajes T1 → T3: '
+      '${decimal(resultado.semianchoT1, 1)} → '
+      '${decimal(resultado.semianchoT3, 1)} (meta: baja): '
+      '**${resultado.cumpleCriterioSemiancho ? 'cumple' : 'no cumple'}**.',
+    )
+    ..writeln(
+      '- Gasto en ojeadores de la T3: '
+      '${decimal(resultado.filas.isEmpty ? 0 : resultado.filas.last.gastoOjeadores / max(1, resultado.filas.last.ingresosTemporada) * 100, 1)} % '
+      'de los ingresos (meta ≤ 15 %): '
+      '**${resultado.cumpleCriterioGastoOjeadores ? 'cumple' : 'no cumple'}**.',
+    )
+    ..writeln(
+      '- Top 20 de potencial real con rivales: '
+      '${resultado.top20ConRival} de ${resultado.top20Considerados} '
+      '(${decimal(resultado.porcentajeTop20EnRivales * 100, 1)} %, meta ≤ 40 %): '
+      '**${resultado.cumpleCriterioTalentosRivales ? 'cumple' : 'no cumple'}**.',
     )
     ..writeln('- Tiempo del robot: ${resultado.milisegundos} ms.');
 

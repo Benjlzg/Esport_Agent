@@ -105,5 +105,38 @@ void main() {
           'Hubo ${resultado.promesasIncumplidas} promesas incumplidas '
           '(máximo 2).',
     );
+
+    // Criterios de balance de la Parte 3C.
+    expect(
+      resultado.cumpleCriterioOjeadores,
+      isTrue,
+      reason:
+          'El robot tiene ${resultado.ojeadoresNivel2} ojeadores nivel 2 '
+          '(meta 2).',
+    );
+    expect(
+      resultado.cumpleCriterioSemiancho,
+      isTrue,
+      reason:
+          'El semiancho medio de fichajes no bajó de T1 a T3: '
+          '${resultado.semianchoT1.toStringAsFixed(1)} → '
+          '${resultado.semianchoT3.toStringAsFixed(1)}.',
+    );
+    expect(
+      resultado.cumpleCriterioGastoOjeadores,
+      isTrue,
+      reason:
+          'El gasto en ojeadores de la T3 supera el 15 % de los ingresos '
+          '(gasto ${resultado.filas.isEmpty ? 0 : resultado.filas.last.gastoOjeadores}, '
+          'ingresos ${resultado.filas.isEmpty ? 0 : resultado.filas.last.ingresosTemporada}).',
+    );
+    expect(
+      resultado.cumpleCriterioTalentosRivales,
+      isTrue,
+      reason:
+          'Los rivales tienen ${resultado.top20ConRival} de los '
+          '${resultado.top20Considerados} potenciales reales más altos '
+          '(máximo 40 %).',
+    );
   }, timeout: const Timeout(Duration(minutes: 10)));
 }

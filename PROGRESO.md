@@ -807,30 +807,46 @@ Se corrigieron **I13, I14, todos los problemas menores M1–M19** y los duplicad
 - Capturas de `capturas/` regeneradas con `flutter test --update-goldens test/golden_test.dart`; el fixture de Mi agencia recluta representados con equipo (no agentes sin equipo) para que la cartera llegue viva a la semana 47.
 - `test/satisfaccion_test.dart` cubre expectativas, delta semanal, avisos, promesas, bonos, renuncias, comisión contractual, renegociación, expiración, traspasos/renovaciones, títulos, migración v10 y la ficha del jugador.
 
-## Fase 3C — Ojeadores (en curso)
+## Fase 3C — Ojeadores (terminada, 2026-10-24)
 
-### Commit 1 — modelo, lógica y migración v12
+### Implementación
 
-- Nuevo modelo `Ojeador` y lógica central en `lib/logica/ojeadores.dart`: `textoPotencial(jugador)`, rango visible, error fijo, observación semanal, cobertura por juego+región, talentos ocultos y migración determinista.
-- `Jugador` incorpora `errorPotencial`, `semanasObservado`, `potencialVisibleMin/Max` y `oculto`; `EstadoPartida` incorpora `ojeadores` y sube `versionFormato` a **12** (`versionMinimaCompatible` sigue en 3).
-- Todos los nacimientos de jugadores pasan por `inicializarPotencialJugador`: partida nueva, jóvenes, reemplazos y talentos ocultos.
-- La observación semanal se ejecuta dentro del recorrido único por jugador de `temporada_service.dart`, sin un segundo bucle.
-- La migración v11 asigna `errorPotencial` con un hash determinista del id, sin gastar RNG, y deja el rango visible en null para conservar el potencial exacto que ya conocía el jugador.
-- Los rivales y la IA de mercado usan `potencialEstimado`; los talentos ocultos quedan fuera de sus fichajes y protegidos del tope de 300 agentes libres.
-- Se cambiaron los textos de eventos que revelaban puntos o el número exacto de potencial. La ficha del jugador ya usa `textoPotencial` y se añadió la prueba que prohíbe `.potencial` directo en pantallas y widgets.
-- **Golden regeneradas en este commit 1:** el RNG cambió al asignar el error/rango inicial y la ficha muestra el rango de potencial; además se actualizó una expectativa frágil de `widget_flujo_test.dart` para leer la reputación real de la partida.
+- **Nuevo modelo `lib/modelos/ojeador.dart`:** id, nombre, videojuego, región, nivel 1–5 y semanas contratadas. Serialización tolerante: el nivel se acota a 1–5 al cargar.
+- **Nuevo `lib/logica/ojeadores.dart`:** costos semanales, `textoPotencial(jugador)`, semiancho visible, rango que converge al potencial real, error fijo de por vida, observación semanal, cobertura por juego+región, talentos ocultos y migración determinista.
+- **`Jugador`:** nuevos campos `errorPotencial`, `semanasObservado`, `potencialVisibleMin/Max` y `oculto`; getter `potencialEstimado`. `EstadoPartida.ojeadores` y `versionFormato = 12` (`versionMinimaCompatible` sigue en 3).
+- **Un solo punto de nacimiento:** `inicializarPotencialJugador` asigna el error aleatorio y el rango inicial ±15. Se llama desde partida nueva, generadores de jóvenes/libres/reemplazos, jugadores reales del cargador y talentos ocultos; es idempotente.
+- **Migración v11:** el error se calcula con un hash FNV-1a del id, sin gastar RNG, y el rango visible queda en null para conservar el potencial exacto que ya conocía el jugador.
+- **Semana:** el salario de los ojeadores se cobra junto a la oficina y la observación se ejecuta dentro del recorrido único por jugador de `temporada_service.dart` (sin un segundo bucle). Al cambiar de temporada se destapan los ocultos viejos y después se generan los nuevos.
+- **Talentos ocultos:** invisibles y no fichables por rivales ni por la IA mientras estén ocultos; protegidos del tope de 300 agentes libres; al reclutarlos pasan a `oculto = false`.
+- **Rivales e IA:** todas las decisiones de fichaje usan `potencialEstimado = clamp(potencial + errorPotencial, habilidad, 99)`; el orden del Mercado y el robot usan el punto medio del rango visible.
+- **Interfaz:** pantalla **Ojeadores** (contratar por videojuego → región → nivel, estrellas, salario, semanas, cupos y despido con confirmación), acceso desde Mi agencia, rango de potencial con lupa y nota de precisión en el Mercado y en la ficha, y sección **Talentos descubiertos**.
+- **Textos:** los eventos ya no muestran puntos ni el número exacto de potencial. Una prueba prohíbe `.potencial` directo en `lib/pantallas` y `lib/widgets`, y comprueba que los textos de eventos y noticias/ofertas no lo revelen.
+- **Robot:** contrata 2 ojeadores nivel 2 si tiene reserva para 30 semanas de salario, en los 2 pares juego+región con más agentes libres de 21 años o menos, y ficha por el punto medio del rango visible.
+
+### Criterios de la Fase 3C medidos
+
+`INFORME_BALANCE.md` regenerado el **2026-10-24 11:36:06**, semilla **20251019**:
+
+| Criterio | Medición | Meta | Resultado |
+| --- | --- | --- | --- |
+| Ojeadores nivel 2 contratados por el robot | 2 | 2 | cumple |
+| Semiancho medio de los fichajes T1 → T3 | 14,9 → 7,7 | baja de T1 a T3 | cumple |
+| Gasto en ojeadores de la T3 / ingresos de la T3 | $20.800 de $214.552 (9,7 %) | ≤ 15 % | cumple |
+| Top 20 de potencial real en manos de rivales | 3 de 20 (15,0 %) | ≤ 40 % | cumple |
+
+- Violaciones duras: **0**.
+- Criterios 3A: robos máximos **1** por temporada, reclutamientos mínimos **11**, **7,0 %** de los jugadores iniciales sin agente en rivales, reputación final **40** y tiempo **1,02×**.
+- Criterios 3B: pérdidas máximas por insatisfacción o robo **1**, satisfacción media **85,0**, comisión media **5,0 %** y **1** promesa incumplida.
+- Robot: **sin quiebra**, dinero final **$58.611**, descuadre **0**, racha máxima sin opciones **4 semanas**.
+- Tiempo semanal T10 / T1: **1,02×** (meta ≤ 1,5×); guardado final **4.813,2 KB** (meta ≤ ~4.890 KB).
+- Ajustes de balance: **0 rondas**; la primera medición cumplió los cuatro criterios 3C y no se tocaron constantes.
+
+### Verificación
+
 - `flutter analyze` → **No issues found!**
-- `flutter test` → **236 pasan, 2 saltan** (las pruebas `@tags lento`).
-
-### Commit 2 — interfaz de ojeadores y potencial visible
-
-- Nueva pantalla `PantallaOjeadores`: lista de ojeadores con nombre, videojuego, región, estrellas de nivel, salario semanal, semanas contratadas y despido con confirmación.
-- Contratación con diálogo de videojuego → región → nivel, salario mostrado y confirmación; sin cuota de contratación. Máximo de 6 y cupos visibles.
-- Acceso a Ojeadores desde Mi agencia, con número de contratados, cupos y gasto semanal.
-- `TarjetaJugador` muestra el potencial con `Icons.search` y `textoPotencial`; el Mercado añade la nota de precisión del ojeador.
-- El Mercado incorpora la sección **Talentos descubiertos**, solo con ojeador en la región, y mantiene esos jugadores fuera del listado normal.
-- La ficha del jugador muestra el rango de potencial y la nota de observación (`Ojeador nivel N · X semanas`, `Sin ojeador` o `Potencial conocido`).
-- Se añadieron pruebas de interfaz para Ojeadores, talentos descubiertos y la ficha, además de la prueba que prohíbe `.potencial` directo en pantallas y widgets.
-- Capturas golden regeneradas, incluida la nueva `capturas/ojeadores.png`.
-- `flutter analyze` → **No issues found!**
-- `flutter test` → **240 pasan, 2 saltan** (las pruebas `@tags lento`).
+- `flutter test` → **242 pasan, 2 saltan** (las pruebas `@tags lento`).
+- `flutter test --tags lento --run-skipped` → **2 pasan** (`balance_test.dart` y `robot_test.dart`).
+- `test/ojeadores_test.dart` cubre fórmulas, error fijo, monotonía, cobertura, rangos, ocultos, contratación/salario, rivales, migración y el test de 3 temporadas con `errorPotencial = 0`.
+- `test/guardado_test.dart` carga una partida v11 con ojeadores vacíos, rangos nulos y error determinista, y comprueba que se reguarda como v12.
+- Capturas de `capturas/` regeneradas; se añadió `ojeadores.png`.
+- Commits de la parte: **219c1b0** (modelo, lógica y migración), **8c8ff61** (interfaz) y el commit de cierre con el informe y esta sección.

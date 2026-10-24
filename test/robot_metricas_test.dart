@@ -15,6 +15,9 @@ FilaRobot _fila({
   int reputacionFin = robotReputacionInicial,
   int fichajes = 0,
   int perdidasPorRobo = 0,
+  double semiancho = 0,
+  int ingresos = 0,
+  int gastoOjeadores = 0,
 }) => FilaRobot(
   temporada: temporada,
   dineroInicio: dineroInicio,
@@ -30,6 +33,9 @@ FilaRobot _fila({
   semanasSinOpcion: 0,
   rachaMaxima: 0,
   perdidasPorRobo: perdidasPorRobo,
+  semianchoMedioFichajes: semiancho,
+  ingresosTemporada: ingresos,
+  gastoOjeadores: gastoOjeadores,
 );
 
 /// Resultado mínimo para probar los cálculos del informe.
@@ -43,6 +49,9 @@ ResultadoRobot _resultado({
   Map<String, int>? gastos,
   int jugadoresSinAgenteIniciales = 0,
   int jugadoresSinAgenteEnRivales = 0,
+  int ojeadoresNivel2 = 0,
+  int top20ConRival = 0,
+  int top20Considerados = 0,
 }) => ResultadoRobot(
   filas: filas ?? [_fila()],
   rachaMaxima: 0,
@@ -58,6 +67,9 @@ ResultadoRobot _resultado({
       gastos ?? {for (final fuente in robotFuentesGasto) fuente: 0},
   jugadoresSinAgenteIniciales: jugadoresSinAgenteIniciales,
   jugadoresSinAgenteEnRivales: jugadoresSinAgenteEnRivales,
+  ojeadoresNivel2: ojeadoresNivel2,
+  top20ConRival: top20ConRival,
+  top20Considerados: top20Considerados,
 );
 
 void main() {
@@ -205,6 +217,78 @@ void main() {
       expect(resultado.cumpleCriterioFichajes, isFalse);
       expect(resultado.cumpleCriterioRivales, isFalse);
       expect(resultado.cumpleCriterioReputacion, isFalse);
+    });
+
+    test('mide los criterios de la Parte 3C', () {
+      final resultado = _resultado(
+        filas: [
+          _fila(
+            temporada: 1,
+            semiancho: 15,
+            ingresos: 100000,
+            gastoOjeadores: 10000,
+          ),
+          _fila(
+            temporada: 2,
+            semiancho: 11,
+            ingresos: 100000,
+            gastoOjeadores: 10000,
+          ),
+          _fila(
+            temporada: 3,
+            semiancho: 7,
+            ingresos: 100000,
+            gastoOjeadores: 10000,
+          ),
+        ],
+        ojeadoresNivel2: 2,
+        top20ConRival: 8,
+        top20Considerados: 20,
+      );
+
+      expect(resultado.cumpleCriterioOjeadores, isTrue);
+      expect(resultado.cumpleCriterioSemiancho, isTrue);
+      expect(resultado.cumpleCriterioGastoOjeadores, isTrue);
+      expect(resultado.cumpleCriterioTalentosRivales, isTrue);
+      expect(resultado.semianchoT1, 15);
+      expect(resultado.semianchoT3, 7);
+
+      final texto = seccionRobotMarkdown(resultado);
+      expect(texto, contains('### Ojeadores (3C)'));
+      expect(texto, contains('Ojeadores nivel 2: 2'));
+    });
+
+    test('los criterios 3C fallan fuera de rango', () {
+      final resultado = _resultado(
+        filas: [
+          _fila(
+            temporada: 1,
+            semiancho: 7,
+            ingresos: 100000,
+            gastoOjeadores: 20000,
+          ),
+          _fila(
+            temporada: 2,
+            semiancho: 8,
+            ingresos: 100000,
+            gastoOjeadores: 20000,
+          ),
+          _fila(
+            temporada: 3,
+            semiancho: 9,
+            ingresos: 100000,
+            gastoOjeadores: 20000,
+          ),
+        ],
+        ojeadoresNivel2: 1,
+        top20ConRival: 9,
+        top20Considerados: 20,
+      );
+
+      expect(resultado.cumpleCriterioOjeadores, isFalse);
+      expect(resultado.cumpleCriterioSemiancho, isFalse);
+      expect(resultado.cumpleCriterioGastoOjeadores, isFalse);
+      expect(resultado.cumpleCriterioTalentosRivales, isFalse);
     });
   });
 }

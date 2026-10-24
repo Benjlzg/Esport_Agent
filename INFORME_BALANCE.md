@@ -1,6 +1,6 @@
-# INFORME DE BALANCE — FASE 3B
+# INFORME DE BALANCE — FASE 3C
 
-- Generado: **2026-10-24 01:08:23** (hora local).
+- Generado: **2026-10-24 11:36:06** (hora local).
 - Generado por: `test/balance_test.dart`.
 
 - Semilla: **20251019**.
@@ -8,6 +8,7 @@
 - Los eventos se resuelven solos eligiendo la opción más barata.
 - Parte 3A: los agentes rivales están activos en la partida observadora y en el robot. Sus criterios se miden en la sección «Criterios de la Fase 3A».
 - Parte 3B: la satisfacción usa expectativas y contratos de representación. El robot responde a los avisos y renueva sus contratos; sus criterios se miden en «Criterios de la Fase 3B».
+- Parte 3C: el potencial real está oculto tras un rango estimado y los ojeadores lo estrechan. El robot contrata 2 ojeadores nivel 2 y ficha por el punto medio del rango; sus criterios se miden en «Criterios de la Fase 3C».
 - Comando: `flutter test test/balance_test.dart --tags lento --run-skipped`. La suite normal (`flutter test`) salta estas pruebas.
 
 ## Ajustes de constantes
@@ -36,6 +37,8 @@ Las rondas **1–3** son las del ajuste de dominio y economía de la Fase 2.5. L
 | 6 | reputación en eventos negativos | `polemica_redes` y `rumor_negativo` restaban 2 puntos cada uno. | Restan 1 punto cada uno; los traspasos mantienen su tope en 40. | Reputación final del robot: 40 (meta 30–45). No afecta al dominio: la reputación es solo del agente. |
 
 
+La Parte 3C **no necesitó ajustes de constantes**: la primera medición cumplió los cuatro criterios. La única decisión de diseño fue la política fija del robot (2 ojeadores nivel 2 en los dos pares con más agentes libres de 21 años o menos) y el uso del punto medio del rango visible para fichar.
+
 ### Correcciones de lógica
 
 - Al vencer el contrato de un titular, su equipo repone el rol en la misma semana. Sin esto, las plantillas se vaciaban con las temporadas y desde T2 había equipos sin 5 titulares.
@@ -45,32 +48,32 @@ Las rondas **1–3** son las del ajuste de dominio y economía de la Fase 2.5. L
 
 | Temporada | Presup. inicio | Presup. fin | Fin / inicio | Valor máx. | Valor P95 |
 | --- | --- | --- | --- | --- | --- |
-| 1 | 447.280.000 | 425.829.900 | 0.95× | 2.157.000 | 1.235.000 |
-| 2 | 447.275.600 | 300.949.300 | 0.67× | 3.783.000 | 1.723.000 |
-| 3 | 447.280.000 | 278.761.800 | 0.62× | 3.783.000 | 2.385.000 |
-| 4 | 447.280.000 | 281.312.400 | 0.63× | 3.783.000 | 2.454.000 |
-| 5 | 447.280.000 | 288.254.800 | 0.64× | 3.783.000 | 2.460.000 |
-| 6 | 447.280.000 | 273.139.400 | 0.61× | 3.783.000 | 2.454.000 |
-| 7 | 447.280.000 | 266.510.600 | 0.60× | 3.783.000 | 2.412.000 |
-| 8 | 447.269.500 | 263.379.600 | 0.59× | 3.672.000 | 2.370.000 |
-| 9 | 447.269.100 | 277.294.300 | 0.62× | 3.492.000 | 2.361.000 |
-| 10 | 447.280.000 | 265.620.700 | 0.59× | 3.783.000 | 2.289.000 |
+| 1 | 446.220.000 | 423.804.400 | 0.95× | 2.157.000 | 1.197.000 |
+| 2 | 446.220.000 | 308.410.400 | 0.69× | 3.783.000 | 1.709.000 |
+| 3 | 446.212.200 | 290.631.000 | 0.65× | 3.783.000 | 2.322.000 |
+| 4 | 446.209.500 | 286.727.000 | 0.64× | 3.492.000 | 2.442.000 |
+| 5 | 446.208.400 | 290.352.700 | 0.65× | 3.689.000 | 2.454.000 |
+| 6 | 446.089.800 | 283.281.700 | 0.64× | 3.783.000 | 2.454.000 |
+| 7 | 446.179.900 | 274.861.400 | 0.62× | 3.783.000 | 2.412.000 |
+| 8 | 446.207.600 | 275.146.900 | 0.62× | 3.492.000 | 2.325.000 |
+| 9 | 446.220.000 | 264.711.000 | 0.59× | 3.783.000 | 2.289.000 |
+| 10 | 446.220.000 | 264.378.700 | 0.59× | 3.783.000 | 2.274.000 |
 
 
 ## Habilidad promedio por videojuego (jugadores con equipo)
 
 | Temporada | LoL | Valorant | CS2 | Dota 2 | Media |
 | --- | --- | --- | --- | --- | --- |
-| 1 | 60.2 | 63.9 | 66.2 | 62.4 | 63.2 |
-| 2 | 64.3 | 66.4 | 69.1 | 65.4 | 66.3 |
-| 3 | 65.8 | 68.2 | 70.2 | 66.9 | 67.8 |
-| 4 | 66.2 | 69.3 | 71.3 | 67.9 | 68.7 |
-| 5 | 67.4 | 69.4 | 71.1 | 68.4 | 69.1 |
-| 6 | 67.5 | 69.7 | 72.0 | 69.1 | 69.6 |
-| 7 | 67.1 | 69.2 | 70.8 | 69.6 | 69.2 |
-| 8 | 67.5 | 69.4 | 70.9 | 69.9 | 69.4 |
-| 9 | 67.1 | 69.4 | 71.6 | 70.0 | 69.5 |
-| 10 | 67.0 | 68.2 | 70.8 | 69.4 | 68.9 |
+| 1 | 60.0 | 64.7 | 66.5 | 62.5 | 63.4 |
+| 2 | 62.8 | 67.7 | 68.1 | 65.0 | 65.9 |
+| 3 | 65.2 | 68.7 | 71.1 | 67.1 | 68.0 |
+| 4 | 66.1 | 69.2 | 71.8 | 68.5 | 68.9 |
+| 5 | 66.6 | 70.0 | 71.8 | 69.0 | 69.3 |
+| 6 | 67.0 | 70.5 | 71.8 | 69.3 | 69.6 |
+| 7 | 66.9 | 70.1 | 72.1 | 69.6 | 69.7 |
+| 8 | 67.6 | 69.9 | 70.5 | 69.9 | 69.5 |
+| 9 | 67.3 | 70.2 | 70.8 | 70.2 | 69.6 |
+| 10 | 66.9 | 70.6 | 71.0 | 69.1 | 69.4 |
 
 
 ## Progresión de jóvenes (16–21 años)
@@ -81,21 +84,21 @@ Los promedios por situación excluyen a los jugadores que ya estaban en su poten
 
 | Temporada | Con equipo | Sin equipo | Titulares | Suplentes | Media todos | Medidos | En su potencial |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | 6.1 | 7.6 | 6.1 | 0.0 | 6.2 | 810 | 0 |
-| 2 | 4.6 | 5.3 | 4.6 | 4.5 | 3.3 | 958 | 275 |
-| 3 | 4.2 | 3.9 | 4.3 | 3.7 | 2.3 | 1046 | 455 |
-| 4 | 3.7 | 4.3 | 3.7 | 3.6 | 1.9 | 993 | 519 |
-| 5 | 4.1 | 4.1 | 4.2 | 4.0 | 2.2 | 936 | 430 |
-| 6 | 4.1 | 4.3 | 4.2 | 3.8 | 2.6 | 768 | 287 |
-| 7 | 4.1 | 4.0 | 4.2 | 3.8 | 2.6 | 752 | 273 |
-| 8 | 4.2 | 4.4 | 4.3 | 4.0 | 2.7 | 736 | 274 |
-| 9 | 3.9 | 4.5 | 3.9 | 3.7 | 2.5 | 729 | 289 |
-| 10 | 4.0 | 4.1 | 4.3 | 3.5 | 2.5 | 727 | 276 |
+| 1 | 6.3 | 5.3 | 6.3 | 0.0 | 6.2 | 866 | 0 |
+| 2 | 4.6 | 5.0 | 4.8 | 4.1 | 3.5 | 1009 | 255 |
+| 3 | 4.3 | 4.1 | 4.3 | 4.4 | 2.5 | 1140 | 461 |
+| 4 | 4.1 | 3.8 | 4.1 | 4.0 | 2.1 | 1110 | 514 |
+| 5 | 4.1 | 3.9 | 4.3 | 3.6 | 2.2 | 1018 | 449 |
+| 6 | 4.0 | 4.1 | 4.2 | 3.7 | 2.6 | 842 | 297 |
+| 7 | 4.2 | 4.2 | 4.4 | 3.7 | 2.7 | 826 | 289 |
+| 8 | 4.1 | 4.0 | 4.3 | 3.3 | 2.7 | 805 | 274 |
+| 9 | 4.2 | 4.1 | 4.4 | 3.6 | 2.8 | 805 | 265 |
+| 10 | 4.6 | 3.9 | 4.8 | 3.9 | 2.9 | 811 | 254 |
 
 
-- Progresión media con equipo (con margen de mejora): **4.3 puntos/temporada** · sin equipo: **4.7**.
+- Progresión media con equipo (con margen de mejora): **4.4 puntos/temporada** · sin equipo: **4.2**.
 - La regla ×0,5 para jugadores sin equipo se aplica por jugador y está cubierta por `test/progresion_test.dart`; la media observada sin equipo puede variar por la mezcla de edades y de potencial.
-- Jugadores medidos en 10 temporadas: 8455 · ya estaban en su potencial: 3078.
+- Jugadores medidos en 10 temporadas: 9232 · ya estaban en su potencial: 3058.
 - Criterio 4–8 puntos por temporada: **cumple**.
 
 ## Dominio por liga (1ª División, 10 temporadas)
@@ -104,11 +107,11 @@ Para cada liga de 1ª División se cuentan las temporadas distintas en las que e
 
 | Liga | Equipo | Temporadas ganadas | Títulos de split |
 | --- | --- | --- | --- |
-| Liga Coreana · LoL · Corea | t1_lol | 6 de 10 | 8 |
-| Liga Latinoamericana · LoL · Latinoamérica | fic_lol_38 | 6 de 10 | 6 |
-| Liga de Europa del Este · Dota 2 · Europa del Este | team_spirit_dota2 | 5 de 10 | 9 |
-| Liga Norteamericana · LoL · Norteamérica | cloud9_lol | 5 de 10 | 8 |
-| Liga Norteamericana · Dota 2 · Norteamérica | fic_dota2_178 | 5 de 10 | 6 |
+| Liga de Europa del Este · Dota 2 · Europa del Este | team_spirit_dota2 | 6 de 10 | 8 |
+| Circuito de China · Valorant · China | edward_gaming_valorant | 6 de 10 | 7 |
+| Liga Coreana · LoL · Corea | t1_lol | 6 de 10 | 6 |
+| Liga Europea · LoL · Europa | g2_lol | 5 de 10 | 9 |
+| Liga China · Dota 2 · China | xtreme_gaming_dota2 | 5 de 10 | 7 |
 
 
 - Ligas con un campeón por encima de 6 de 10 temporadas: **0**.
@@ -118,16 +121,16 @@ Para cada liga de 1ª División se cuentan las temporadas distintas en las que e
 
 | Temporada | Fichajes IA V1 (1–4) | Fichajes IA V2 (23–26) | Fichajes IA V3 (47–52) | Fichajes IA total | Ofertas al agente (observador) | Eventos | Eventos con decisión |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | 257 | 232 | 325 | 814 | 0 | 10 | 0 |
-| 2 | 316 | 209 | 265 | 790 | 0 | 8 | 1 |
-| 3 | 297 | 214 | 243 | 754 | 0 | 7 | 0 |
-| 4 | 293 | 199 | 246 | 738 | 0 | 11 | 1 |
-| 5 | 302 | 177 | 239 | 718 | 0 | 15 | 1 |
-| 6 | 316 | 187 | 243 | 746 | 0 | 10 | 1 |
-| 7 | 317 | 172 | 233 | 722 | 0 | 11 | 1 |
-| 8 | 307 | 165 | 234 | 706 | 0 | 13 | 1 |
-| 9 | 316 | 170 | 202 | 688 | 0 | 14 | 1 |
-| 10 | 303 | 184 | 241 | 728 | 0 | 8 | 1 |
+| 1 | 260 | 239 | 318 | 817 | 0 | 18 | 1 |
+| 2 | 271 | 219 | 262 | 752 | 0 | 14 | 0 |
+| 3 | 284 | 207 | 255 | 746 | 0 | 15 | 2 |
+| 4 | 314 | 196 | 254 | 764 | 0 | 18 | 1 |
+| 5 | 316 | 175 | 240 | 731 | 0 | 15 | 1 |
+| 6 | 315 | 160 | 227 | 702 | 0 | 11 | 1 |
+| 7 | 323 | 175 | 214 | 712 | 0 | 17 | 0 |
+| 8 | 328 | 160 | 198 | 686 | 0 | 10 | 1 |
+| 9 | 307 | 184 | 213 | 704 | 0 | 14 | 0 |
+| 10 | 315 | 186 | 213 | 714 | 0 | 17 | 1 |
 
 
 - **Ofertas al agente (observador):** son 0 porque la partida observadora no recluta jugadores. Sin representados, la IA no tiene a quién enviar ofertas.
@@ -136,41 +139,51 @@ Para cada liga de 1ª División se cuentan las temporadas distintas en las que e
 
 | Temporada | Tiempo total | Media por semana |
 | --- | --- | --- |
-| 1 | 3932 ms | 75.6 ms |
-| 2 | 4683 ms | 90.1 ms |
-| 3 | 4645 ms | 89.3 ms |
-| 4 | 5073 ms | 97.6 ms |
-| 5 | 5045 ms | 97.0 ms |
-| 6 | 4896 ms | 94.2 ms |
-| 7 | 5125 ms | 98.6 ms |
-| 8 | 5189 ms | 99.8 ms |
-| 9 | 4978 ms | 95.7 ms |
-| 10 | 4771 ms | 91.8 ms |
+| 1 | 5086 ms | 97.8 ms |
+| 2 | 5975 ms | 114.9 ms |
+| 3 | 6144 ms | 118.2 ms |
+| 4 | 5972 ms | 114.8 ms |
+| 5 | 6200 ms | 119.2 ms |
+| 6 | 5196 ms | 99.9 ms |
+| 7 | 4910 ms | 94.4 ms |
+| 8 | 4988 ms | 95.9 ms |
+| 9 | 5147 ms | 99.0 ms |
+| 10 | 5181 ms | 99.6 ms |
 
 
 - Semanas medidas: 520.
-- Tiempo total de avance: 48538 ms.
-- Media global por semana: 90.5 ms.
+- Tiempo total de avance: 54999 ms.
+- Media global por semana: 102.7 ms.
 
 ## Criterios de la Fase 3A (agentes rivales)
 
 | Criterio | Medición | Meta | ¿Cumple? |
 | --- | --- | --- | --- |
-| Pérdidas del robot por robo | T1: 0 · T2: 0 · T3: 0 (máximo 0 por temporada) | ≤ 1 por temporada | cumple |
-| Reclutamientos del robot | T1: 19 · T2: 14 · T3: 15 (mínimo 14 por temporada) | ≥ 5 por temporada | cumple |
-| Jugadores que empezaron sin agente y acabaron en un rival | 118 de 1826 (6.5 %) | ≤ 40 % | cumple |
+| Pérdidas del robot por robo | T1: 0 · T2: 1 · T3: 0 (máximo 1 por temporada) | ≤ 1 por temporada | cumple |
+| Reclutamientos del robot | T1: 19 · T2: 18 · T3: 11 (mínimo 11 por temporada) | ≥ 5 por temporada | cumple |
+| Jugadores que empezaron sin agente y acabaron en un rival | 130 de 1845 (7.0 %) | ≤ 40 % | cumple |
 | Reputación del robot al final de la T3 | 40 | 30–45 | cumple |
-| Tiempo semanal de la T10 frente a la T1 | 1.21× | ≤ 1,5× | cumple |
+| Tiempo semanal de la T10 frente a la T1 | 1.02× | ≤ 1,5× | cumple |
 
 
 ## Criterios de la Fase 3B (satisfacción)
 
 | Criterio | Medición | Meta | ¿Cumple? |
 | --- | --- | --- | --- |
-| Pérdidas del robot por insatisfacción o robo | T1: 0 · T2: 0 · T3: 0 (máximo 0 por temporada) | ≤ 2 por temporada | cumple |
-| Satisfacción media de la cartera al final de la T3 | 80.1 | 55–85 | cumple |
+| Pérdidas del robot por insatisfacción o robo | T1: 0 · T2: 0 · T3: 0 (máximo 1 por temporada) | ≤ 2 por temporada | cumple |
+| Satisfacción media de la cartera al final de la T3 | 85.0 | 55–85 | cumple |
 | Comisión media de los contratos | 5.0 % | 4–6 % | cumple |
-| Promesas incumplidas | 0 | ≤ 2 | cumple |
+| Promesas incumplidas | 1 | ≤ 2 | cumple |
+
+
+## Criterios de la Fase 3C (ojeadores)
+
+| Criterio | Medición | Meta | ¿Cumple? |
+| --- | --- | --- | --- |
+| Ojeadores nivel 2 contratados por el robot | 2 | 2 | cumple |
+| Semiancho medio de los fichajes T1 → T3 | 14.9 → 7.7 | baja de T1 a T3 | cumple |
+| Gasto en ojeadores de la T3 / ingresos de la T3 | $20.800 de $214.552 (9.7 %) | ≤ 15 % | cumple |
+| Top 20 de potencial real en manos de rivales | 3 de 20 (15.0 %) | ≤ 40 % | cumple |
 
 
 ## Tamaño de los datos (corrección A3)
@@ -179,16 +192,16 @@ Se miden al final de cada temporada, antes de la limpieza de inicio de temporada
 
 | Temporada | Jugadores | Noticias | Resultados | Palmarés | Premios | Ofertas | Eventos | Guardado (KB) |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | 2607 | 200 | 5456 | 100 | 17 | 0 | 0 | 3488.6 |
-| 2 | 2808 | 200 | 5456 | 200 | 34 | 0 | 0 | 4314.6 |
-| 3 | 2867 | 200 | 5456 | 300 | 51 | 0 | 0 | 4292.4 |
-| 4 | 2882 | 200 | 5456 | 400 | 68 | 0 | 0 | 4406.7 |
-| 5 | 2893 | 200 | 5456 | 500 | 85 | 0 | 0 | 4379.8 |
-| 6 | 2880 | 200 | 5456 | 600 | 102 | 0 | 0 | 4402.4 |
-| 7 | 2885 | 200 | 5456 | 700 | 119 | 0 | 0 | 4397.8 |
-| 8 | 2868 | 200 | 5456 | 800 | 136 | 0 | 0 | 4422.4 |
-| 9 | 2848 | 200 | 5456 | 900 | 153 | 0 | 0 | 4394.0 |
-| 10 | 2858 | 200 | 5456 | 1000 | 170 | 0 | 0 | 4447.7 |
+| 1 | 2660 | 200 | 5456 | 100 | 17 | 0 | 0 | 3792.6 |
+| 2 | 2857 | 200 | 5456 | 200 | 34 | 0 | 0 | 4706.3 |
+| 3 | 2896 | 200 | 5456 | 300 | 51 | 0 | 0 | 4690.7 |
+| 4 | 2919 | 200 | 5456 | 400 | 68 | 0 | 0 | 4760.9 |
+| 5 | 2923 | 200 | 5456 | 500 | 85 | 0 | 0 | 4800.4 |
+| 6 | 2909 | 200 | 5456 | 600 | 102 | 0 | 0 | 4808.2 |
+| 7 | 2913 | 200 | 5456 | 700 | 119 | 0 | 0 | 4791.4 |
+| 8 | 2918 | 200 | 5456 | 800 | 136 | 0 | 0 | 4795.4 |
+| 9 | 2911 | 200 | 5456 | 900 | 153 | 0 | 0 | 4809.1 |
+| 10 | 2933 | 200 | 5456 | 1000 | 170 | 0 | 0 | 4813.2 |
 
 
 ## Invariantes
@@ -198,49 +211,67 @@ Sin violaciones duras en las 10 temporadas.
 ## Veredicto
 
 - Violaciones duras: **0**.
-- Mayor salto de habilidad entre temporadas: 3.13 puntos (orientativo ≤ 3).
-- Progresión media de 16–21 años con equipo: 4.3 puntos/temporada (objetivo 4–8; sin equipo 4.7).
+- Mayor salto de habilidad entre temporadas: 2.47 puntos (orientativo ≤ 3).
+- Progresión media de 16–21 años con equipo: 4.4 puntos/temporada (objetivo 4–8; sin equipo 4.2).
 - Mayor dominio en una liga de 1ª División: 6 de 10 temporadas del mismo equipo (orientativo ≤ 6): **cumple**.
 - Mayor relación presupuesto fin / inicio: 0.95×.
-- Tiempo de la temporada 10 / temporada 1: 1.21× (meta ≤ 1,5×).
-- Tamaño final del guardado: 4447.7 KB.
-- Fichajes IA registrados en las ventanas: 7404.
-- Robot de 3 temporadas: sobrevivió, racha máxima sin opciones 8 semanas.
-- Ingresos del robot: traspasos $380.240 vs eventos $97.628. Fuente principal: Traspasos.
+- Tiempo de la temporada 10 / temporada 1: 1.02× (meta ≤ 1,5×).
+- Tamaño final del guardado: 4813.2 KB.
+- Fichajes IA registrados en las ventanas: 7328.
+- Robot de 3 temporadas: sobrevivió, racha máxima sin opciones 4 semanas.
+- Ingresos del robot: traspasos $391.070 vs eventos $131.790. Fuente principal: Traspasos.
 - Reputación del robot: 10 → 40 (meta 30–45 al final de la T3): **cumple**.
-- Satisfacción media final del robot: 80.1 (meta 55–85): **cumple**.
+- Satisfacción media final del robot: 85.0 (meta 55–85): **cumple**.
 - Comisión media de los contratos: 5.0 % (meta 4–6 %): **cumple**.
-- Pérdidas máximas por insatisfacción o robo en una temporada: 0 (meta ≤ 2): **cumple**.
-- Promesas incumplidas: 0 (meta ≤ 2): **cumple**.
+- Pérdidas máximas por insatisfacción o robo en una temporada: 1 (meta ≤ 2): **cumple**.
+- Promesas incumplidas: 1 (meta ≤ 2): **cumple**.
+- Ojeadores nivel 2: 2 (meta 2): **cumple**.
+- Semiancho medio de fichajes T1 → T3: 14.9 → 7.7 (meta: baja): **cumple**.
+- Gasto en ojeadores de la T3: 9.7 % de los ingresos (meta ≤ 15 %): **cumple**.
+- Top 20 de potencial real con rivales: 3 de 20 (15.0 %, meta ≤ 40 %): **cumple**.
 
 <!-- ROBOT:INICIO -->
 ## Jugador robot (3 temporadas)
 
 - Economía real: empieza con $50.000 y reputación 10, igual que un jugador nuevo (B1).
 - Recluta agentes libres con habilidad ≤ reputación + 40, potencial alto (≥ habilidad + 10), coste ≤ 25 % del dinero y expectativas ya cumplidas; máximo 8 representados. Si la cartera está llena, sustituye al representado con menos potencial cuando el agente libre lo iguala o mejora.
+- Ojeadores (3C): contrata 2 de nivel 2 en los dos pares juego+región con más agentes libres de 21 años o menos, si tiene reserva para 30 semanas de su salario total.
+- Ficha usando el punto medio del rango visible del potencial, no el potencial real.
 - Vende en ventana pidiendo el valor de mercado y acepta contraofertas ≥ 90 %.
 - Responde eventos con la opción más barata y acepta traspasos ≥ 92 % del valor; las renovaciones solo si el salario no baja.
 
 | Temporada | Dinero inicio | Dinero fin | Reput. inicio | Reput. fin | Decisiones | Fichajes | Ventas | Eventos | Ofertas | Semanas sin opción | Racha máx. | Robos | Renuncias | Contratos | Promesas |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | 50.000 | 36.567 | 10 | 31 | 10 | 19 | 11 | 37 | 3 | 9 | 3 | 0 | 0 | 0 | 0 |
-| 2 | 36.567 | 29.982 | 31 | 40 | 14 | 14 | 9 | 46 | 2 | 15 | 8 | 0 | 0 | 0 | 0 |
-| 3 | 29.982 | 56.678 | 40 | 40 | 14 | 15 | 11 | 41 | 6 | 10 | 4 | 0 | 0 | 0 | 0 |
+| 1 | 50.000 | 17.837 | 10 | 25 | 12 | 19 | 7 | 42 | 1 | 8 | 3 | 0 | 0 | 0 | 0 |
+| 2 | 17.837 | 46.600 | 25 | 38 | 16 | 18 | 10 | 53 | 1 | 11 | 4 | 1 | 0 | 0 | 1 |
+| 3 | 46.600 | 58.611 | 38 | 40 | 8 | 11 | 10 | 37 | 4 | 12 | 4 | 0 | 0 | 0 | 0 |
 
+
+### Ojeadores (3C)
+
+| Temporada | Semiancho medio fichajes | Gasto ojeadores | Ingresos temporada | % ojeadores |
+| --- | --- | --- | --- | --- |
+| 1 | 14.9 | 20.800 | 128.943 | 16.1 % |
+| 2 | 12.1 | 20.800 | 235.163 | 8.8 % |
+| 3 | 7.7 | 20.800 | 214.552 | 9.7 % |
+
+
+- Ojeadores nivel 2 contratados: 2 (meta 2).
+- Semiancho medio de fichajes: T1 14.9 → T3 7.7 (meta: baja).
 
 ### Dinero, ingresos y gastos
 
-- Semana con menos dinero: T1 · S17 ($3.499).
-- Principal fuente de ingresos: Traspasos ($380.240).
-- Criterio B1 (sin quiebra y ≤ $5.000.000 al final de la T3): **cumple** (dinero final $56.678).
+- Semana con menos dinero: T1 · S20 (-$30).
+- Principal fuente de ingresos: Traspasos ($391.070).
+- Criterio B1 (sin quiebra y ≤ $5.000.000 al final de la T3): **cumple** (dinero final $58.611).
 
 | Fuente de ingreso | Total |
 | --- | --- |
-| Comisiones de salario | 44.673 |
-| Traspasos | 380.240 |
-| Renovaciones | 26.037 |
-| Eventos | 97.628 |
-| **Total** | **548.578** |
+| Comisiones de salario | 42.939 |
+| Traspasos | 391.070 |
+| Renovaciones | 12.859 |
+| Eventos | 131.790 |
+| **Total** | **578.658** |
 
 
 ### Gastos
@@ -248,9 +279,10 @@ Sin violaciones duras en las 10 temporadas.
 | Fuente de gasto | Total |
 | --- | --- |
 | Oficina | 78.000 |
-| Reclutamientos | 426.050 |
-| Eventos | 37.850 |
-| **Total** | **541.900** |
+| Reclutamientos | 402.200 |
+| Ojeadores | 62.400 |
+| Eventos | 27.447 |
+| **Total** | **570.047** |
 
 
 ### Cuadre del dinero
@@ -258,9 +290,9 @@ Sin violaciones duras en las 10 temporadas.
 | Concepto | Importe |
 | --- | --- |
 | Dinero inicial | 50.000 |
-| Ingresos | 548.578 |
-| Gastos | −541.900 |
-| Dinero final | 56.678 |
+| Ingresos | 578.658 |
+| Gastos | −570.047 |
+| Dinero final | 58.611 |
 | Descuadre | 0 (cuadra) |
 
 
@@ -268,26 +300,30 @@ Sin violaciones duras en las 10 temporadas.
 
 | Evento | Veces |
 | --- | --- |
-| oferta_otro_juego | 9 |
-| torneo_exhibicion | 9 |
-| marca_perifericos | 6 |
-| polemica_redes | 6 |
-| burnout | 5 |
-| inversor_interesado | 2 |
-| conflicto_agente | 1 |
+| polemica_redes | 8 |
+| torneo_exhibicion | 7 |
+| marca_perifericos | 7 |
+| oferta_otro_juego | 5 |
+| inversor_interesado | 3 |
+| burnout | 3 |
+| conflicto_agente | 3 |
 
 
 ### Veredicto del robot
 
 - Quiebra: **no**.
-- Eventos respondidos: 124 (38 con decisión).
-- Fichajes propios: 48 · ventas: 31.
-- Semanas sin ninguna opción: 34 · racha máxima: 8 (preocupante desde 12).
+- Eventos respondidos: 132 (36 con decisión).
+- Fichajes propios: 48 · ventas: 27.
+- Semanas sin ninguna opción: 31 · racha máxima: 4 (preocupante desde 12).
 - Racha preocupante: **no**.
-- Satisfacción media final: 80.1 (meta 55–85): **cumple**.
+- Satisfacción media final: 85.0 (meta 55–85): **cumple**.
 - Comisión media de los contratos: 5.0 % (meta 4–6 %): **cumple**.
-- Máximo de pérdidas por insatisfacción o robo en una temporada: 0 (meta ≤ 2): **cumple**.
-- Promesas incumplidas: 0 (meta ≤ 2): **cumple**.
-- Tiempo del robot: 26936 ms.
+- Máximo de pérdidas por insatisfacción o robo en una temporada: 1 (meta ≤ 2): **cumple**.
+- Promesas incumplidas: 1 (meta ≤ 2): **cumple**.
+- Ojeadores nivel 2: 2 (meta 2): **cumple**.
+- Semiancho medio de fichajes T1 → T3: 14.9 → 7.7 (meta: baja): **cumple**.
+- Gasto en ojeadores de la T3: 9.7 % de los ingresos (meta ≤ 15 %): **cumple**.
+- Top 20 de potencial real con rivales: 3 de 20 (15.0 %, meta ≤ 40 %): **cumple**.
+- Tiempo del robot: 27271 ms.
 
 <!-- ROBOT:FIN -->

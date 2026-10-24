@@ -6,6 +6,7 @@ import '../modelos/equipo.dart';
 import '../modelos/jugador.dart';
 import '../tema/tema_app.dart';
 import 'barra_habilidad.dart';
+import 'barra_satisfaccion.dart';
 import 'escudo_equipo.dart';
 import 'estrellas_forma.dart';
 
@@ -16,6 +17,7 @@ class TarjetaJugador extends StatelessWidget {
     required this.jugador,
     this.equipo,
     this.onTap,
+    this.mostrarSatisfaccion = false,
   });
 
   final Jugador jugador;
@@ -24,6 +26,9 @@ class TarjetaJugador extends StatelessWidget {
   final Equipo? equipo;
 
   final VoidCallback? onTap;
+
+  /// true para mostrar la barra de satisfacción (pestaña Mi agencia).
+  final bool mostrarSatisfaccion;
 
   @override
   Widget build(BuildContext context) {
@@ -91,6 +96,28 @@ class TarjetaJugador extends StatelessWidget {
                       estrellas: estrellasDeNotas(jugador.ultimasNotas),
                       tamano: 13,
                     ),
+                    if (mostrarSatisfaccion) ...[
+                      const SizedBox(height: 6),
+                      BarraSatisfaccion(
+                        valor: jugador.satisfaccion,
+                        etiqueta: 'Satisfacción',
+                        altura: 6,
+                      ),
+                      if (avisoSatisfaccion(jugador.satisfaccion) != null)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 4),
+                          child: Text(
+                            avisoSatisfaccion(jugador.satisfaccion)!,
+                            style: TextStyle(
+                              color: jugador.satisfaccion < 25
+                                  ? AppColores.peligro
+                                  : AppColores.dorado,
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                    ],
                   ],
                 ),
               ),

@@ -23,6 +23,7 @@ import '../servicios/guardado.dart';
 import 'agentes_rivales.dart' as rivales;
 import 'calendario.dart';
 import 'eventos.dart' as eventos;
+import 'formulas.dart';
 import 'generador_jugadores.dart';
 import 'indices_mundo.dart';
 import 'servicios/competicion_service.dart';
@@ -33,6 +34,7 @@ import 'liga.dart';
 import 'mercado.dart';
 import 'metricas.dart';
 import 'negociacion.dart';
+import 'satisfaccion.dart' as sat;
 
 /// Resultado simple de una acción (reclutar, dejar de representar...).
 class ResultadoAccion {
@@ -93,6 +95,11 @@ enum NivelInteres { muyInteresado, interesado, sinInteres }
 
 /// Cuántas rondas de negociación se permiten por jugador y equipo.
 const int maxRondasNegociacion = 3;
+
+/// Las plantillas completas se garantizan desde la Parte 3A (formato 10).
+/// Las partidas v10 ya son válidas: al migrar a v11 no hay que regenerar
+/// titulares ni gastar RNG. Solo las v3–v9 necesitan la reparación.
+const int versionPlantillasReparadas = 10;
 
 /// El motor principal del juego.
 class MotorJuego extends ChangeNotifier {
@@ -318,6 +325,192 @@ class MotorJuego extends ChangeNotifier {
     return lista.take(3).toList();
   }
 
+  // ------------------- SATISFACCIÓN (PARTE 3B) -------------------
+
+  /// Satisfacción media de mis representados (0 si no tengo ninguno).
+  double get satisfaccionMedia {
+    final jugadores = misJugadores;
+    if (jugadores.isEmpty) return 0;
+    final suma = jugadores.fold<int>(0, (total, j) => total + j.satisfaccion);
+    return suma / jugadores.length;
+  }
+
+  /// Representados que quieren hablar conmigo, de menor a mayor satisfacción.
+  List<Jugador> get representadosQueQuierenHablar =>
+      misJugadores.where((j) => j.quiereHablar).toList()
+        ..sort((a, b) => a.satisfaccion.compareTo(b.satisfaccion));
+
+  /// Número de representados que quieren hablar (contador de avisos).
+  int get avisosSatisfaccion => representadosQueQuierenHablar.length;
+
+  /// Número de representados en riesgo de marcharse.
+  int get representadosEnRiesgo =>
+      misJugadores.where((j) => j.satisfaccion < sat.satisfaccionCritica).length;
+
+  /// Los representados con menor satisfacción.
+  List<Jugador> representadosMasDescontentos([int cantidad = 3]) {
+    final lista = misJugadores
+      ..sort((a, b) => a.satisfaccion.compareTo(b.satisfaccion));
+    return lista.take(cantidad).toList();
+  }
+
+  /// Etiqueta visible de una expectativa.
+  String etiquetaExpectativa(String clave) => sat.etiquetaExpectativa(clave);
+
+  /// Expectativas actuales de un jugador.
+  List<String> expectativasDe(Jugador jugador) =>
+      List.unmodifiable(jugador.expectativas);
+
+  /// true si una expectativa del jugador se cumple ahora mismo.
+  bool expectativaCumplida(Jugador jugador, String clave) =>
+      sat.expectativaCumplida(
+        jugador: jugador,
+        clave: clave,
+        equipo: sat.equipoDe(estado!, jugador),
+      );
+
+  /// Comisión máxima que aceptaría el jugador para una duración concreta.
+  double comisionMaximaAceptablePara(Jugador jugador, int duracionSemanas) =>
+      sat.comisionMaximaAceptable(
+        satisfaccion: jugador.satisfaccion,
+        duracionSemanas: duracionSemanas,
+      );
+
+  /// Costo del bono para apaciguar a un jugador.
+  int costoBonoApaciguar(Jugador jugador) =>
+      sat.costoBonoApaciguar(jugador);
+
+  /// Promete al jugador que mejorarás su situación (+10 ahora).
+  Future<ResultadoAccion> prometerMejora(Jugador jugador) async {
+    if (!jugador.representadoPorMi) {
+      return ResultadoAccion(false, 'No representas a ${jugador.nick}.');
+    }
+    if (!jugador.quiereHablar) {
+      return ResultadoAccion(
+        false,
+        '${jugador.nick} no quiere hablar contigo ahora mismo.',
+      );
+    }
+    if (jugador.semanasPromesaPendiente > 0) {
+      return ResultadoAccion(
+        false,
+        'Ya tienes una promesa pendiente con ${jugador.nick}.',
+      );
+    }
+    sat.aplicarSatisfaccion(jugador, sat.promesaSatisfaccion);
+    jugador.semanasPromesaPendiente = sat.semanasPromesaPendiente;
+    jugador.quiereHablar = false;
+    _agregarNoticia(
+      'Prometiste a ${jugador.nick} que mejorarás su situación. Tienes '
+      '${sat.semanasPromesaPendiente} semanas para cumplirlo.',
+      TipoNoticia.evento,
+    );
+    await _guardarYNotificar();
+    return ResultadoAccion(
+      true,
+      '${jugador.nick} confía en tu promesa. Quedan '
+      '${sat.semanasPromesaPendiente} semanas.',
+    );
+  }
+
+  /// Paga un bono del 5 % del valor para apaciguar al jugador (+15).
+  Future<ResultadoAccion> pagarBono(Jugador jugador) async {
+    if (!jugador.representadoPorMi) {
+      return ResultadoAccion(false, 'No representas a ${jugador.nick}.');
+    }
+    if (!jugador.quiereHablar) {
+      return ResultadoAccion(
+        false,
+        '${jugador.nick} no quiere hablar contigo ahora mismo.',
+      );
+    }
+    final costo = sat.costoBonoApaciguar(jugador);
+    if (agente.dinero < costo) {
+      return ResultadoAccion(
+        false,
+        'No tienes dinero suficiente para el bono '
+        '(${formatearDinero(costo)}).',
+      );
+    }
+    agente.dinero -= costo;
+    registrarGasto(costo);
+    sat.aplicarSatisfaccion(jugador, sat.bonoSatisfaccion);
+    jugador.quiereHablar = false;
+    _agregarNoticia(
+      'Pagaste un bono de ${formatearDinero(costo)} a ${jugador.nick}.',
+      TipoNoticia.evento,
+    );
+    await _guardarYNotificar();
+    return ResultadoAccion(
+      true,
+      'Le pagaste ${formatearDinero(costo)} a ${jugador.nick}.',
+    );
+  }
+
+  /// Ignora al jugador que quiere hablar (−10 de satisfacción).
+  Future<ResultadoAccion> ignorarJugador(Jugador jugador) async {
+    if (!jugador.representadoPorMi) {
+      return ResultadoAccion(false, 'No representas a ${jugador.nick}.');
+    }
+    sat.aplicarSatisfaccion(jugador, -sat.castigoIgnorarJugador);
+    jugador.quiereHablar = false;
+    _agregarNoticia(
+      'Ignoraste a ${jugador.nick}, que quería hablar contigo.',
+      TipoNoticia.alerta,
+    );
+    await _guardarYNotificar();
+    return ResultadoAccion(true, 'Ignoraste a ${jugador.nick}.');
+  }
+
+  /// Renueva el contrato de representación si el jugador lo acepta.
+  Future<ResultadoAccion> renegociarContratoRepresentacion(
+    Jugador jugador, {
+    required double comision,
+    required int duracionSemanas,
+  }) async {
+    if (!jugador.representadoPorMi) {
+      return ResultadoAccion(false, 'No representas a ${jugador.nick}.');
+    }
+    if (jugador.semanasContratoRepresentacion >
+        sat.umbralSemanasRenovacionRepresentacion) {
+      return ResultadoAccion(
+        false,
+        'Todavía quedan ${jugador.semanasContratoRepresentacion} semanas de '
+        'contrato. Podrás renegociar cuando queden '
+        '${sat.umbralSemanasRenovacionRepresentacion} o menos.',
+      );
+    }
+    if (!sat.aceptaRenovacionRepresentacion(
+      satisfaccion: jugador.satisfaccion,
+      comisionOfrecida: comision,
+      duracionSemanas: duracionSemanas,
+    )) {
+      final maxima = sat.comisionMaximaAceptable(
+        satisfaccion: jugador.satisfaccion,
+        duracionSemanas: duracionSemanas,
+      );
+      return ResultadoAccion(
+        false,
+        '${jugador.nick} no acepta esa oferta. Para '
+        '$duracionSemanas semanas aceptaría como máximo '
+        '${sat.formatearComision(maxima)}.',
+      );
+    }
+    jugador.comisionSalarioContrato = comision;
+    jugador.semanasContratoRepresentacion = duracionSemanas;
+    _agregarNoticia(
+      'Renegociaste el contrato de representación de ${jugador.nick}: '
+      '${sat.formatearComision(comision)} durante $duracionSemanas semanas.',
+      TipoNoticia.fichaje,
+    );
+    await _guardarYNotificar();
+    return ResultadoAccion(
+      true,
+      'Contrato renovado con ${jugador.nick}: '
+      '${sat.formatearComision(comision)} durante $duracionSemanas semanas.',
+    );
+  }
+
   /// Las últimas 5 noticias.
   List<Noticia> get ultimasNoticias => estado!.noticias.take(5).toList();
 
@@ -511,7 +704,8 @@ class MotorJuego extends ChangeNotifier {
     // actual: en una partida v9 válida no hace falta gastar RNG ni alterar
     // plantillas que el jugador ya tenía.
     _repararEstadoCargado(
-      repararPlantillas: (carga.version ?? versionFormato) < versionFormato,
+      repararPlantillas:
+          (carga.version ?? versionFormato) < versionPlantillasReparadas,
     );
     _recalcularValores();
     // Partidas v3–v9 no tienen rivales: se generan ahora. En una v10 solo se
@@ -523,6 +717,9 @@ class MotorJuego extends ChangeNotifier {
     } else {
       rivales.normalizarRepresentaciones(estado!);
     }
+    // Partidas v3–v10 no traen expectativas ni contrato de representación:
+    // se generan aquí sin gastar RNG. En una v11 solo repara datos corruptos.
+    sat.asegurarRepresentados(estado!);
     _reconstruirIndices();
     // Al cargar se guarda de nuevo: así una partida vieja se actualiza al
     // formato actual con el contador de ids reconstruido y el estado

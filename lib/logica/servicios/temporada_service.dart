@@ -16,6 +16,7 @@ import '../mantenimiento.dart';
 import '../mercado.dart' as mercado;
 import '../motor_juego.dart';
 import '../progresion.dart';
+import '../satisfaccion.dart' as sat;
 
 /// Orquesta el paso del tiempo y la evolución de los jugadores.
 class TemporadaService {
@@ -75,13 +76,36 @@ class TemporadaService {
       if (j.semanasEnfriamientoAgente > 0) j.semanasEnfriamientoAgente--;
       if (j.semanasEsperaConvencer > 0) j.semanasEsperaConvencer--;
 
-      // 4.0c) Satisfacción provisional hasta la Parte 3B.
-      _actualizarSatisfaccionProvisional(j);
+      // 4.0c) Satisfacción, promesas, contrato de representación y posible
+      // renuncia (Parte 3B). Se procesa antes de cobrar la comisión para que
+      // un jugador que se marcha esta semana no genere ingresos.
+      if (j.representadoPorMi) {
+        final resultadoSatisfaccion = sat.procesarSemanaRepresentado(
+          estado: est,
+          jugador: j,
+          rnd: motor.rnd,
+        );
+        for (final noticia in resultadoSatisfaccion.noticias) {
+          motor.agregarNoticia(noticia.texto, noticia.tipo);
+        }
+        motor.metricas.registrarRenuncias(
+          resultadoSatisfaccion.renuncio ? 1 : 0,
+        );
+        motor.metricas.registrarContratosVencidos(
+          resultadoSatisfaccion.contratoVencido ? 1 : 0,
+        );
+        motor.metricas.registrarPromesasIncumplidas(
+          resultadoSatisfaccion.promesaIncumplida ? 1 : 0,
+        );
+      }
 
-      // 4.1) Comisión por el salario de mis jugadores con equipo.
+      // 4.1) Comisión por el salario de mis jugadores con equipo. La comisión
+      // sale del contrato de representación (Parte 3B); el 5 % es el valor
+      // inicial de las partidas antiguas.
       if (j.representadoPorMi && j.equipoId != null) {
         final semanal = calcularSalarioSemanal(j.salarioAnual);
-        ingresos += motor.comisionNeta((semanal * comisionSalario).round());
+        final comision = (semanal * j.comisionSalarioContrato).round();
+        ingresos += motor.comisionNeta(comision);
       }
 
       // 4.2) Baja el contrato; si llega a 0, el jugador queda libre.
@@ -188,16 +212,6 @@ class TemporadaService {
     await motor.guardarYNotificar();
   }
 
-  /// Satisfacción provisional de la Parte 3A. La Parte 3B la sustituirá por
-  /// expectativas y contratos; aquí solo reacciona a la moral y a la suplencia.
-  void _actualizarSatisfaccionProvisional(Jugador j) {
-    var ajuste = 0.0;
-    if (j.moral < 45 || (j.equipoId != null && j.suplente)) ajuste -= 0.5;
-    if (j.moral > 75) ajuste += 0.5;
-    if (ajuste == 0) return;
-    j.satisfaccion = (j.satisfaccion + ajuste).round().clamp(0, 100);
-  }
-
   /// Ejecuta las acciones de los rivales y registra sus noticias y avisos.
   void _procesarAgentesRivales() {
     final est = motor.estado!;
@@ -250,8 +264,10 @@ class TemporadaService {
       if (j.semanasComoSuplente < semanasPorSplit) continue;
       j.moral = (j.moral + castigoMoralSuplenteSplit).clamp(0, 100);
       if (j.representadoPorMi) {
+        sat.aplicarEfectoSuplenteSplit(j);
         motor.agregarNoticia(
-          '${j.nick} pasó todo el split en el banquillo y pierde moral.',
+          '${j.nick} pasó todo el split en el banquillo y pierde moral y '
+          'satisfacción.',
           TipoNoticia.alerta,
         );
       }

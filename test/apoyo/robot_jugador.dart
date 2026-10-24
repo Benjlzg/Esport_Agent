@@ -6,6 +6,7 @@ import 'package:esport_agent/logica/calendario.dart';
 import 'package:esport_agent/logica/formulas.dart';
 import 'package:esport_agent/logica/motor_juego.dart';
 import 'package:esport_agent/logica/negociacion.dart';
+import 'package:esport_agent/logica/satisfaccion.dart';
 import 'package:esport_agent/modelos/equipo.dart';
 import 'package:esport_agent/modelos/evento.dart';
 import 'package:esport_agent/modelos/jugador.dart';
@@ -98,6 +99,9 @@ class FilaRobot {
     required this.semanasSinOpcion,
     required this.rachaMaxima,
     required this.perdidasPorRobo,
+    this.perdidasPorInsatisfaccion = 0,
+    this.perdidasPorContrato = 0,
+    this.promesasIncumplidas = 0,
   });
 
   final int temporada;
@@ -116,6 +120,15 @@ class FilaRobot {
 
   /// Representados míos que un rival me robó durante esta temporada.
   final int perdidasPorRobo;
+
+  /// Representados que renunciaron por insatisfacción en esta temporada.
+  final int perdidasPorInsatisfaccion;
+
+  /// Contratos de representación vencidos sin renovar en esta temporada.
+  final int perdidasPorContrato;
+
+  /// Promesas incumplidas en esta temporada.
+  final int promesasIncumplidas;
 }
 
 /// Resumen completo de la partida del robot.
@@ -133,6 +146,8 @@ class ResultadoRobot {
     required this.gastosPorFuente,
     required this.jugadoresSinAgenteIniciales,
     required this.jugadoresSinAgenteEnRivales,
+    this.satisfaccionMedia = 0,
+    this.comisionMedia = 0,
   });
 
   final List<FilaRobot> filas;
@@ -161,6 +176,12 @@ class ResultadoRobot {
 
   /// De esos jugadores, cuántos terminaron representados por un rival.
   final int jugadoresSinAgenteEnRivales;
+
+  /// Satisfacción media de la cartera al terminar la simulación.
+  final double satisfaccionMedia;
+
+  /// Comisión media de los contratos de representación al terminar.
+  final double comisionMedia;
 
   /// Pérdidas por robo sumadas a todas las temporadas.
   int get perdidasPorRobo =>
@@ -197,6 +218,43 @@ class ResultadoRobot {
       : jugadoresSinAgenteEnRivales / jugadoresSinAgenteIniciales;
 
   bool get cumpleCriterioRivales => porcentajeEnRivales <= 0.40;
+
+  /// Pérdidas por insatisfacción sumadas a todas las temporadas.
+  int get perdidasPorInsatisfaccion =>
+      filas.fold(0, (total, fila) => total + fila.perdidasPorInsatisfaccion);
+
+  /// Máximo de representados perdidos en una temporada por insatisfacción.
+  int get maxPerdidasPorInsatisfaccion => filas.isEmpty
+      ? 0
+      : filas
+            .map((fila) => fila.perdidasPorInsatisfaccion)
+            .reduce((a, b) => a > b ? a : b);
+
+  /// Máximo de pérdidas por insatisfacción o robo en una temporada.
+  int get maxPerdidasPorSatisfaccion => filas.isEmpty
+      ? 0
+      : filas
+            .map((fila) => fila.perdidasPorInsatisfaccion + fila.perdidasPorRobo)
+            .reduce((a, b) => a > b ? a : b);
+
+  /// Criterio 3B: máximo 1–2 pérdidas por insatisfacción o robo por temporada.
+  bool get cumpleCriterioPerdidasSatisfaccion =>
+      maxPerdidasPorSatisfaccion <= 2;
+
+  /// Criterio 3B: satisfacción media final entre 55 y 85.
+  bool get cumpleCriterioSatisfaccion =>
+      satisfaccionMedia >= 55 && satisfaccionMedia <= 85;
+
+  /// Criterio 3B: comisión media de los contratos entre 4 % y 6 %.
+  bool get cumpleCriterioComision =>
+      comisionMedia >= 0.04 && comisionMedia <= 0.06;
+
+  /// Promesas incumplidas acumuladas en toda la partida.
+  int get promesasIncumplidas =>
+      filas.fold(0, (total, fila) => total + fila.promesasIncumplidas);
+
+  /// Criterio 3B: como máximo 2 castigos por promesa incumplida.
+  bool get cumpleCriterioPromesas => promesasIncumplidas <= 2;
 
   /// Reputación al final de la última temporada jugada.
   int get reputacionFinal =>
@@ -294,6 +352,10 @@ class RobotJugador {
       final dineroInicio = motor.agente.dinero;
       final reputacionInicio = motor.agente.reputacion;
       final robosInicioTemporada = motor.metricas.robosTotales;
+      final renunciasInicioTemporada = motor.metricas.renunciasTotales;
+      final contratosInicioTemporada =
+          motor.metricas.contratosVencidosTotales;
+      final promesasInicioTemporada = motor.metricas.promesasIncumplidas;
       var decisiones = 0;
       var eventos = 0;
       var fichajes = 0;
@@ -348,6 +410,14 @@ class RobotJugador {
               rachaMaxima: rachaMaximaTemporada,
               perdidasPorRobo:
                   motor.metricas.robosTotales - robosInicioTemporada,
+              perdidasPorInsatisfaccion:
+                  motor.metricas.renunciasTotales - renunciasInicioTemporada,
+              perdidasPorContrato:
+                  motor.metricas.contratosVencidosTotales -
+                  contratosInicioTemporada,
+              promesasIncumplidas:
+                  motor.metricas.promesasIncumplidas -
+                  promesasInicioTemporada,
             ),
           );
           final sinAgenteEnRivales = _jugadoresSinAgenteEnRivales();
@@ -364,6 +434,8 @@ class RobotJugador {
             gastosPorFuente: Map<String, int>.of(_gastosPorFuente),
             jugadoresSinAgenteIniciales: _sinAgenteIniciales.length,
             jugadoresSinAgenteEnRivales: sinAgenteEnRivales,
+            satisfaccionMedia: _satisfaccionMedia(),
+            comisionMedia: _comisionMedia(),
           );
         }
       }
@@ -385,6 +457,13 @@ class RobotJugador {
           rachaMaxima: rachaMaximaTemporada,
           perdidasPorRobo:
               motor.metricas.robosTotales - robosInicioTemporada,
+          perdidasPorInsatisfaccion:
+              motor.metricas.renunciasTotales - renunciasInicioTemporada,
+          perdidasPorContrato:
+              motor.metricas.contratosVencidosTotales -
+              contratosInicioTemporada,
+          promesasIncumplidas:
+              motor.metricas.promesasIncumplidas - promesasInicioTemporada,
         ),
       );
     }
@@ -403,6 +482,8 @@ class RobotJugador {
       gastosPorFuente: Map<String, int>.of(_gastosPorFuente),
       jugadoresSinAgenteIniciales: _sinAgenteIniciales.length,
       jugadoresSinAgenteEnRivales: _jugadoresSinAgenteEnRivales(),
+      satisfaccionMedia: _satisfaccionMedia(),
+      comisionMedia: _comisionMedia(),
     );
   }
 
@@ -414,6 +495,28 @@ class RobotJugador {
           (j) => _sinAgenteIniciales.contains(j.id) && j.representadoPorRival,
         )
         .length;
+  }
+
+  /// Satisfacción media actual de la cartera del robot.
+  double _satisfaccionMedia() {
+    final jugadores = motor.misJugadores;
+    if (jugadores.isEmpty) return 0;
+    final suma = jugadores.fold<int>(
+      0,
+      (total, jugador) => total + jugador.satisfaccion,
+    );
+    return suma / jugadores.length;
+  }
+
+  /// Comisión media actual de los contratos de representación.
+  double _comisionMedia() {
+    final jugadores = motor.misJugadores;
+    if (jugadores.isEmpty) return 0;
+    final suma = jugadores.fold<double>(
+      0,
+      (total, jugador) => total + jugador.comisionSalarioContrato,
+    );
+    return suma / jugadores.length;
   }
 
   /// Avanza una semana, comprueba si había opciones y actúa.
@@ -442,12 +545,15 @@ class RobotJugador {
     _actualizarVentana();
 
     final enVentana = enVentanaFichajes(motor.semana);
+    final haySatisfaccion = motor.representadosQueQuierenHablar.isNotEmpty;
     final hayOpcion =
         motor.eventosPendientes.isNotEmpty ||
         motor.ofertasPendientes.isNotEmpty ||
         _hayReclutamientoPosible() ||
+        haySatisfaccion ||
         (enVentana && _jugadorVendible() != null);
 
+    await _responderSatisfaccion();
     await _responderEventos(
       decisionesPorTipo: decisionesPorTipo,
       alResolverEvento: alResolverEvento,
@@ -501,6 +607,42 @@ class RobotJugador {
     if (clave != _ventanaActual) {
       _ventanaActual = clave;
       _vendidosEnVentana.clear();
+    }
+  }
+
+  /// Responde a los jugadores que quieren hablar: promete si hay dinero para
+  /// sostener la agencia; si no, los ignora. Es la política pedida en 3B.
+  Future<void> _responderSatisfaccion() async {
+    final jugadores = List<Jugador>.of(
+      motor.representadosQueQuierenHablar,
+    );
+    final reserva = gastoOficinaSemanal * robotSemanasReserva;
+    for (final jugador in jugadores) {
+      if (!jugador.quiereHablar || !jugador.representadoPorMi) continue;
+      if (motor.agente.dinero > reserva) {
+        await motor.prometerMejora(jugador);
+      } else {
+        await motor.ignorarJugador(jugador);
+      }
+    }
+
+    // Renueva los contratos de representación antes de que expiren. Sin esto
+    // la cartera se vaciaría sola cada 52 semanas.
+    for (final jugador in List<Jugador>.of(motor.misJugadores)) {
+      if (jugador.semanasContratoRepresentacion >
+          umbralSemanasRenovacionRepresentacion) {
+        continue;
+      }
+      final maxima = motor.comisionMaximaAceptablePara(jugador, 52);
+      if (maxima < comisionRepresentacionMin) continue;
+      var comision = jugador.comisionSalarioContrato;
+      if (comision > maxima) comision = maxima;
+      if (comision < comisionRepresentacionMin) continue;
+      await motor.renegociarContratoRepresentacion(
+        jugador,
+        comision: comision,
+        duracionSemanas: 52,
+      );
     }
   }
 
@@ -625,11 +767,28 @@ class RobotJugador {
     for (final jugador in motor.jugadores) {
       // Solo agentes libres: ni míos ni de un rival (Parte 3A).
       if (!jugador.sinAgente) continue;
-      if (jugador.equipoId != null) continue;
       if (jugador.habilidad > agente.reputacion + 40) continue;
       if (jugador.potencial < jugador.habilidad + robotMargenPotencial) {
         continue;
       }
+      // La Parte 3B hace que un jugador sin equipo o con expectativas
+      // incumplidas se marche. El robot solo ficha carteras que ya pueden
+      // estar satisfechas: así cuida a sus representados como pide la fase.
+      final equipo = jugador.equipoId == null
+          ? null
+          : motor.equipoPorId(jugador.equipoId!);
+      final expectativas = generarExpectativas(
+        jugador: jugador,
+        equipo: equipo,
+      );
+      final cumplidas = expectativas.every(
+        (clave) => expectativaCumplida(
+          jugador: jugador,
+          clave: clave,
+          equipo: equipo,
+        ),
+      );
+      if (!cumplidas) continue;
       final coste = costoRepresentar(jugador.valorMercado);
       if (coste > maximoCoste) continue;
       if (dinero - coste < reserva) continue;
@@ -727,11 +886,11 @@ String seccionRobotMarkdown(ResultadoRobot resultado) {
     )
     ..writeln(
       '- Recluta agentes libres con habilidad ≤ reputación + 40, potencial '
-      'alto (≥ habilidad + $robotMargenPotencial) y coste ≤ '
-      '${(robotMaxPorcentajeDinero * 100).round()} % del dinero; máximo '
-      '$robotMaxRepresentados representados. Si la cartera está llena, '
-      'sustituye al representado con menos potencial cuando el agente libre '
-      'lo iguala o mejora.',
+      'alto (≥ habilidad + $robotMargenPotencial), coste ≤ '
+      '${(robotMaxPorcentajeDinero * 100).round()} % del dinero y '
+      'expectativas ya cumplidas; máximo $robotMaxRepresentados '
+      'representados. Si la cartera está llena, sustituye al representado '
+      'con menos potencial cuando el agente libre lo iguala o mejora.',
     )
     ..writeln(
       '- Vende en ventana pidiendo el valor de mercado y acepta '
@@ -760,6 +919,9 @@ String seccionRobotMarkdown(ResultadoRobot resultado) {
         'Semanas sin opción',
         'Racha máx.',
         'Robos',
+        'Renuncias',
+        'Contratos',
+        'Promesas',
       ],
       [
         for (final fila in resultado.filas)
@@ -777,6 +939,9 @@ String seccionRobotMarkdown(ResultadoRobot resultado) {
             '${fila.semanasSinOpcion}',
             '${fila.rachaMaxima}',
             '${fila.perdidasPorRobo}',
+            '${fila.perdidasPorInsatisfaccion}',
+            '${fila.perdidasPorContrato}',
+            '${fila.promesasIncumplidas}',
           ],
       ],
     ),
@@ -906,6 +1071,27 @@ String seccionRobotMarkdown(ResultadoRobot resultado) {
     ..writeln(
       '- Racha preocupante: '
       '**${resultado.rachaPreocupanteDetectada ? 'sí' : 'no'}**.',
+    )
+    ..writeln(
+      '- Satisfacción media final: '
+      '${resultado.satisfaccionMedia.toStringAsFixed(1)} '
+      '(meta 55–85): '
+      '**${resultado.cumpleCriterioSatisfaccion ? 'cumple' : 'no cumple'}**.',
+    )
+    ..writeln(
+      '- Comisión media de los contratos: '
+      '${(resultado.comisionMedia * 100).toStringAsFixed(1)} % '
+      '(meta 4–6 %): '
+      '**${resultado.cumpleCriterioComision ? 'cumple' : 'no cumple'}**.',
+    )
+    ..writeln(
+      '- Máximo de pérdidas por insatisfacción o robo en una temporada: '
+      '${resultado.maxPerdidasPorSatisfaccion} (meta ≤ 2): '
+      '**${resultado.cumpleCriterioPerdidasSatisfaccion ? 'cumple' : 'no cumple'}**.',
+    )
+    ..writeln(
+      '- Promesas incumplidas: ${resultado.promesasIncumplidas} (meta ≤ 2): '
+      '**${resultado.cumpleCriterioPromesas ? 'cumple' : 'no cumple'}**.',
     )
     ..writeln('- Tiempo del robot: ${resultado.milisegundos} ms.');
 

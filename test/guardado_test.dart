@@ -136,7 +136,7 @@ void main() {
       ]) {
         mapa.remove(campo);
       }
-      // Los campos de representación y de la Parte 3A tampoco existían.
+      // Los campos de representación y de las Partes 3A/3B tampoco existían.
       mapa['jugadores'] = (mapa['jugadores'] as List).map((j) {
         final jugador = Map<String, dynamic>.from(j as Map);
         jugador.remove('semanasRepresentado');
@@ -144,6 +144,11 @@ void main() {
         jugador.remove('satisfaccion');
         jugador.remove('semanasEnfriamientoAgente');
         jugador.remove('semanasEsperaConvencer');
+        jugador.remove('expectativas');
+        jugador.remove('quiereHablar');
+        jugador.remove('semanasPromesaPendiente');
+        jugador.remove('semanasContratoRepresentacion');
+        jugador.remove('comisionSalarioContrato');
         return jugador;
       }).toList();
       SharedPreferences.setMockInitialValues({clavePartida: jsonEncode(mapa)});
@@ -170,7 +175,7 @@ void main() {
       }
     }
 
-    expect(versionFormato, 10);
+    expect(versionFormato, 11);
     expect(versionMinimaCompatible, 3);
   });
 
@@ -195,6 +200,11 @@ void main() {
       jugador.remove('satisfaccion');
       jugador.remove('semanasEnfriamientoAgente');
       jugador.remove('semanasEsperaConvencer');
+      jugador.remove('expectativas');
+      jugador.remove('quiereHablar');
+      jugador.remove('semanasPromesaPendiente');
+      jugador.remove('semanasContratoRepresentacion');
+      jugador.remove('comisionSalarioContrato');
       return jugador;
     }).toList();
     SharedPreferences.setMockInitialValues({clavePartida: jsonEncode(mapa)});
@@ -216,7 +226,7 @@ void main() {
     final jugadorLibre = est.jugadores.firstWhere((j) => j.id == libre.id);
     // Puede haber quedado sin agente o con uno, pero nunca representado por mí.
     expect(jugadorLibre.representadoPorMi, isFalse);
-    expect(est.toJson()['version'], 10);
+    expect(est.toJson()['version'], 11);
   });
 
   test('guarda en un archivo con respaldo .bak y sin temporales', () async {

@@ -11,6 +11,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:esport_agent/logica/formulas.dart';
 import 'package:esport_agent/logica/motor_juego.dart';
 import 'package:esport_agent/modelos/evento.dart';
 import 'package:esport_agent/modelos/juego.dart';
@@ -265,14 +266,28 @@ Future<MotorJuego> _prepararBase() async {
   final motor = await crearPartidaSembrada(dinero: 50000000);
   motor.agente.reputacion = 100;
 
+  // La captura debe seguir teniendo representados al llegar a la semana 47.
+  // Se eligen jugadores de equipo titular (no suplentes) de 1ª División que
+  // no sean de élite; así sus expectativas quedan cumplidas y la satisfacción
+  // no fuerza una renuncia durante la simulación. El salario se iguala al de
+  // mercado para que "cobrar lo que vale" también se cumpla.
+  final equipos = {for (final e in motor.estado!.equipos) e.id: e};
   final candidatos =
       motor.estado!.jugadores
-          .where((j) => j.equipoId == null && j.sinAgente)
+          .where(
+            (j) =>
+                j.equipoId != null &&
+                j.sinAgente &&
+                !j.suplente &&
+                (equipos[j.equipoId!]?.division ?? 2) == 1 &&
+                (equipos[j.equipoId!]?.prestigio ?? 100) < 80,
+          )
           .toList()
         ..sort((a, b) => b.potencial.compareTo(a.potencial));
   var reclutados = 0;
   for (final jugador in candidatos) {
     if (reclutados >= 3) break;
+    jugador.salarioAnual = calcularSalarioAnual(valorMercadoDe(jugador));
     final resultado = await motor.reclutar(jugador);
     if (resultado.ok) reclutados++;
   }

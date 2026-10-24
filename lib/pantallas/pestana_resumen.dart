@@ -5,6 +5,7 @@ import '../logica/formulas.dart';
 import '../logica/motor_juego.dart';
 import '../tema/tema_app.dart';
 import '../widgets/barra_habilidad.dart';
+import '../widgets/barra_satisfaccion.dart';
 import '../widgets/escudo_equipo.dart';
 import '../widgets/tarjeta_jugador.dart';
 import 'pantalla_detalle_jugador.dart';
@@ -87,6 +88,9 @@ class PestanaResumen extends StatelessWidget {
         ),
         const SizedBox(height: 20),
 
+        // Salud de la agencia (Parte 3B).
+        ..._saludAgencia(),
+
         // Campeones internacionales de la temporada (si ya hay alguno).
         ..._campeonesInternacionales(),
 
@@ -168,6 +172,77 @@ class PestanaResumen extends StatelessWidget {
         ...motor.ultimasNoticias.map((n) => FilaNoticia(noticia: n)),
       ],
     );
+  }
+
+  /// Tarjeta con la satisfacción media y los representados más descontentos.
+  List<Widget> _saludAgencia() {
+    final jugadores = motor.misJugadores;
+    if (jugadores.isEmpty) return const [];
+    final media = motor.satisfaccionMedia.round();
+    final descontentos = motor.representadosMasDescontentos();
+    return [
+      Card(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Salud de la agencia',
+                style: TextStyle(
+                  color: AppColores.textoPrincipal,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
+              const SizedBox(height: 10),
+              BarraSatisfaccion(valor: media, etiqueta: 'Satisfacción media'),
+              const SizedBox(height: 12),
+              const Text(
+                'Los más descontentos',
+                style: TextStyle(
+                  color: AppColores.textoSecundario,
+                  fontSize: 12,
+                ),
+              ),
+              const SizedBox(height: 4),
+              for (final jugador in descontentos)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 3),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.person,
+                        color: AppColores.textoSecundario,
+                        size: 16,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          jugador.nick,
+                          style: const TextStyle(
+                            color: AppColores.textoPrincipal,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                      Text(
+                        '${jugador.satisfaccion}',
+                        style: TextStyle(
+                          color: colorSatisfaccion(jugador.satisfaccion),
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+      const SizedBox(height: 20),
+    ];
   }
 
   /// Tarjeta destacada con los campeones internacionales de la temporada.

@@ -3,14 +3,17 @@ import 'package:flutter/material.dart';
 
 import '../logica/formulas.dart';
 import '../logica/motor_juego.dart';
+import '../logica/satisfaccion.dart';
 import '../modelos/historial.dart';
 import '../modelos/jugador.dart';
 import '../tema/tema_app.dart';
 import '../widgets/barra_habilidad.dart';
+import '../widgets/barra_satisfaccion.dart';
 import '../widgets/dialogo_confirmacion.dart';
 import '../widgets/escudo_equipo.dart';
 import '../widgets/estrellas_forma.dart';
 import 'pantalla_negociacion.dart';
+import 'pantalla_renegociacion_representacion.dart';
 
 class PantallaDetalleJugador extends StatelessWidget {
   const PantallaDetalleJugador({
@@ -171,6 +174,14 @@ class PantallaDetalleJugador extends StatelessWidget {
                 ),
               if (agenteRival != null) const SizedBox(height: 16),
 
+              // Satisfacción y contrato de representación (Parte 3B).
+              if (jugador.representadoPorMi) ...[
+                _bloqueSatisfaccion(jugador),
+                const SizedBox(height: 16),
+                _bloqueContrato(jugador),
+                const SizedBox(height: 20),
+              ],
+
               // Barras.
               BarraHabilidad(valor: jugador.habilidad, etiqueta: 'Habilidad'),
               const SizedBox(height: 10),
@@ -306,6 +317,140 @@ class PantallaDetalleJugador extends StatelessWidget {
     );
   }
 
+  /// Bloque de satisfacción con sus expectativas cumplidas o incumplidas.
+  Widget _bloqueSatisfaccion(Jugador jugador) {
+    final aviso = avisoSatisfaccion(jugador.satisfaccion);
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Expanded(
+                  child: Text(
+                    'Satisfacción',
+                    style: TextStyle(
+                      color: AppColores.textoPrincipal,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                if (aviso != null)
+                  Text(
+                    aviso,
+                    style: TextStyle(
+                      color: jugador.satisfaccion < 25
+                          ? AppColores.peligro
+                          : AppColores.dorado,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            BarraSatisfaccion(valor: jugador.satisfaccion),
+            const SizedBox(height: 12),
+            const Text(
+              'Expectativas',
+              style: TextStyle(
+                color: AppColores.textoPrincipal,
+                fontWeight: FontWeight.bold,
+                fontSize: 13,
+              ),
+            ),
+            const SizedBox(height: 6),
+            if (jugador.expectativas.isEmpty)
+              const Text(
+                'Sin expectativas registradas.',
+                style: TextStyle(
+                  color: AppColores.textoSecundario,
+                  fontSize: 12,
+                ),
+              )
+            else
+              for (final clave in jugador.expectativas)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 3),
+                  child: Row(
+                    children: [
+                      Icon(
+                        motor.expectativaCumplida(jugador, clave)
+                            ? Icons.check_circle
+                            : Icons.cancel,
+                        color: motor.expectativaCumplida(jugador, clave)
+                            ? AppColores.exito
+                            : AppColores.peligro,
+                        size: 18,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          motor.etiquetaExpectativa(clave),
+                          style: const TextStyle(
+                            color: AppColores.textoPrincipal,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Bloque con la comisión y las semanas que quedan de representación.
+  Widget _bloqueContrato(Jugador jugador) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Contrato de representación',
+              style: TextStyle(
+                color: AppColores.textoPrincipal,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 8),
+            _fila(
+              'Comisión',
+              formatearComision(jugador.comisionSalarioContrato),
+              AppColores.acento2,
+            ),
+            const SizedBox(height: 6),
+            _fila(
+              'Semanas restantes',
+              '${jugador.semanasContratoRepresentacion} semanas',
+              jugador.semanasContratoRepresentacion <=
+                      umbralSemanasRenovacionRepresentacion
+                  ? AppColores.dorado
+                  : AppColores.textoPrincipal,
+            ),
+            if (jugador.semanasPromesaPendiente > 0) ...[
+              const SizedBox(height: 8),
+              Text(
+                'Promesa pendiente: ${jugador.semanasPromesaPendiente} '
+                'semanas para cumplirla.',
+                style: const TextStyle(
+                  color: AppColores.dorado,
+                  fontSize: 12,
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
   /// Sección de premios individuales del jugador.
   List<Widget> _premios(String jugadorId) {
     final premios = motor.premiosDeJugador(jugadorId);
@@ -418,6 +563,14 @@ class PantallaDetalleJugador extends StatelessWidget {
     // lógica, compartido con la pantalla de negociación (sección 5).
     final motivos = motor.motivosParaOfrecer(jugador);
     return [
+      if (jugador.quiereHablar) ...[
+        ElevatedButton.icon(
+          icon: const Icon(Icons.record_voice_over),
+          label: const Text('Hablar con él'),
+          onPressed: () => _hablar(context, jugador),
+        ),
+        const SizedBox(height: 10),
+      ],
       ElevatedButton.icon(
         icon: const Icon(Icons.send),
         label: const Text('Ofrecer a un equipo'),
@@ -441,6 +594,24 @@ class PantallaDetalleJugador extends StatelessWidget {
           style: const TextStyle(color: AppColores.dorado, fontSize: 12),
         ),
       ],
+      if (jugador.semanasContratoRepresentacion <=
+          umbralSemanasRenovacionRepresentacion) ...[
+        const SizedBox(height: 10),
+        OutlinedButton.icon(
+          icon: const Icon(Icons.handshake),
+          label: const Text('Renegociar contrato'),
+          onPressed: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => PantallaRenegociacionRepresentacion(
+                  motor: motor,
+                  jugadorId: jugador.id,
+                ),
+              ),
+            );
+          },
+        ),
+      ],
       const SizedBox(height: 10),
       OutlinedButton.icon(
         icon: const Icon(Icons.person_remove),
@@ -448,6 +619,64 @@ class PantallaDetalleJugador extends StatelessWidget {
         onPressed: () => _dejarDeRepresentar(context, jugador),
       ),
     ];
+  }
+
+  /// Abre la conversación con un jugador insatisfecho y aplica su elección.
+  Future<void> _hablar(BuildContext context, Jugador jugador) async {
+    final opcion = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text('Hablar con ${jugador.nick}'),
+        content: Text(
+          '${jugador.nick} no está contento con la agencia '
+          '(satisfacción ${jugador.satisfaccion}). ¿Qué le propones?\n\n'
+          'Prometer mejorar: +10 ahora, pero −20 si no cumples en '
+          '$semanasPromesaPendiente semanas.\n'
+          'Pagar un bono: ${formatearComision(porcentajeBonoApaciguar)} de su '
+          'valor y +15 de satisfacción.\n'
+          'Ignorar: −$castigoIgnorarJugador de satisfacción.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop('prometer'),
+            child: const Text('Prometer mejorar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop('bono'),
+            child: const Text('Pagar un bono'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop('ignorar'),
+            child: const Text('Ignorar'),
+          ),
+        ],
+      ),
+    );
+    if (opcion == null || !context.mounted) return;
+
+    ResultadoAccion resultado;
+    switch (opcion) {
+      case 'prometer':
+        resultado = await motor.prometerMejora(jugador);
+      case 'bono':
+        final costo = motor.costoBonoApaciguar(jugador);
+        final confirmado = await mostrarConfirmacion(
+          context,
+          titulo: 'Pagar un bono',
+          mensaje:
+              'Vas a pagar ${formatearDinero(costo)} (5 % de su valor) a '
+              '${jugador.nick}. Su satisfacción subirá 15 puntos.',
+          textoConfirmar: 'Pagar bono',
+        );
+        if (!confirmado) return;
+        resultado = await motor.pagarBono(jugador);
+      default:
+        resultado = await motor.ignorarJugador(jugador);
+    }
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(resultado.mensaje)));
   }
 
   Future<void> _reclutar(

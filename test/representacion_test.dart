@@ -152,6 +152,17 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    await tester.scrollUntilVisible(
+      find.text('Tiempo como representado'),
+      300,
+      scrollable: find
+          .descendant(
+            of: find.byType(PantallaDetalleJugador),
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
+    await tester.pumpAndSettle();
     expect(find.text('Tiempo como representado'), findsOneWidget);
     expect(find.text('3 semanas'), findsOneWidget);
     await tester.scrollUntilVisible(

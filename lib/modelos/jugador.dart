@@ -21,6 +21,11 @@ class Jugador {
     this.representadoPorMi = false,
     this.agenteId,
     this.satisfaccion = 70,
+    this.expectativas = const [],
+    this.quiereHablar = false,
+    this.semanasPromesaPendiente = 0,
+    this.semanasContratoRepresentacion = 52,
+    this.comisionSalarioContrato = 0.05,
     this.semanasEnfriamientoAgente = 0,
     this.semanasEsperaConvencer = 0,
     this.esReal = false,
@@ -95,10 +100,28 @@ class Jugador {
   /// cartera de cada agente sin listas duplicadas.
   String? agenteId;
 
-  /// Satisfacción del jugador con su agente, de 0 a 100. En la Parte 3A se
-  /// actualiza de forma provisional (moral y suplencia); la Parte 3B la
-  /// sustituirá por el sistema completo de expectativas.
+  /// Satisfacción del jugador con su agente, de 0 a 100. Desde la Parte 3B
+  /// depende de si se cumplen sus expectativas y de cómo lo trate el agente.
   int satisfaccion;
+
+  /// Claves de las expectativas que el jugador tiene puestas en su agente
+  /// (Parte 3B). Se generan al reclutarlo y se guardan como texto para que el
+  /// formato sea estable entre versiones.
+  List<String> expectativas;
+
+  /// true si el jugador quiere hablar con el agente por su insatisfacción.
+  bool quiereHablar;
+
+  /// Semanas que quedan de una promesa de mejora. Al llegar a 0 se aplica la
+  /// recompensa o el castigo correspondiente (Parte 3B).
+  int semanasPromesaPendiente;
+
+  /// Semanas que le quedan al contrato de representación (Parte 3B).
+  int semanasContratoRepresentacion;
+
+  /// Comisión sobre el salario que cobra el agente por este contrato. Siempre
+  /// es una fracción (0.05 = 5 %), nunca un porcentaje entero.
+  double comisionSalarioContrato;
 
   /// Semanas que faltan para que el jugador pueda volver a cambiar de agente.
   /// Evita el ping-pong entre agentes (Parte 3A).
@@ -228,6 +251,11 @@ class Jugador {
       'representadoPorMi': representadoPorMi,
       'agenteId': agenteId,
       'satisfaccion': satisfaccion,
+      'expectativas': expectativas,
+      'quiereHablar': quiereHablar,
+      'semanasPromesaPendiente': semanasPromesaPendiente,
+      'semanasContratoRepresentacion': semanasContratoRepresentacion,
+      'comisionSalarioContrato': comisionSalarioContrato,
       'semanasEnfriamientoAgente': semanasEnfriamientoAgente,
       'semanasEsperaConvencer': semanasEsperaConvencer,
       'esReal': esReal,
@@ -273,6 +301,18 @@ class Jugador {
       agenteId: json['agenteId'] as String?,
       satisfaccion:
           ((json['satisfaccion'] as num?)?.toInt() ?? 70).clamp(0, 100),
+      expectativas:
+          ((json['expectativas'] as List?) ?? const [])
+              .map((e) => e as String)
+              .toList(),
+      quiereHablar: json['quiereHablar'] as bool? ?? false,
+      semanasPromesaPendiente:
+          (json['semanasPromesaPendiente'] as num?)?.toInt() ?? 0,
+      semanasContratoRepresentacion:
+          (json['semanasContratoRepresentacion'] as num?)?.toInt() ?? 52,
+      comisionSalarioContrato:
+          ((json['comisionSalarioContrato'] as num?)?.toDouble() ?? 0.05)
+              .clamp(0.03, 0.10),
       semanasEnfriamientoAgente:
           (json['semanasEnfriamientoAgente'] as num?)?.toInt() ?? 0,
       semanasEsperaConvencer:

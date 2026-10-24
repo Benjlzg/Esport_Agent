@@ -156,6 +156,8 @@ void main() {
           )
           .first,
     );
+    await tester.ensureVisible(find.text('Ofrecer a un equipo'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Ofrecer a un equipo'));
     await tester.pumpAndSettle();
     expect(find.text('Enviar oferta'), findsOneWidget);

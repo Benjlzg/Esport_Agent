@@ -14,6 +14,7 @@ import '../calendario.dart';
 import '../formulas.dart';
 import '../liga.dart';
 import '../premios.dart';
+import '../satisfaccion.dart' as sat;
 import '../torneos.dart';
 import '../motor_juego.dart';
 
@@ -342,6 +343,13 @@ class CompeticionService {
           ganadorId: campeonId,
         ),
       );
+      // Un título de liga sube la satisfacción de mis representados del
+      // equipo campeón (Parte 3B).
+      for (final j in est.jugadores) {
+        if (j.representadoPorMi && j.equipoId == campeonId) {
+          sat.aplicarEfectoTitulo(j, mundial: false);
+        }
+      }
     }
   }
 }

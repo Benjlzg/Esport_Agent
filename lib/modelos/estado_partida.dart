@@ -12,13 +12,14 @@ import 'torneo.dart';
 
 /// Versión del formato de guardado. Si algún día cambia el formato,
 /// se sube este número para poder actualizar partidas antiguas.
-const int versionFormato = 10;
+const int versionFormato = 11;
 
 /// Versión más antigua que todavía se puede cargar. Las partidas de las
-/// versiones 3 a 9 se actualizan a la 10: los campos nuevos quedan vacíos o
+/// versiones 3 a 10 se actualizan a la 11: los campos nuevos quedan vacíos o
 /// con su valor por defecto, el contador de ids se reconstruye al cargar,
-/// se generan los agentes rivales y las competiciones/plantillas que falten
-/// se reparan. Las de la versión 1 o 2 siguen siendo incompatibles.
+/// se generan los agentes rivales, las expectativas de mis representados y las
+/// competiciones/plantillas que falten se reparan. Las de la versión 1 o 2
+/// siguen siendo incompatibles.
 const int versionMinimaCompatible = 3;
 
 /// Contiene todos los datos de la partida en curso.

@@ -73,5 +73,37 @@ void main() {
           'La reputación final fue ${resultado.reputacionFinal} '
           '(meta 30–45).',
     );
+
+    // Criterios de balance de la Parte 3B.
+    expect(
+      resultado.cumpleCriterioPerdidasSatisfaccion,
+      isTrue,
+      reason:
+          'El robot perdió ${resultado.maxPerdidasPorSatisfaccion} '
+          'representados por insatisfacción o robo en una temporada '
+          '(máximo 2).',
+    );
+    expect(
+      resultado.cumpleCriterioSatisfaccion,
+      isTrue,
+      reason:
+          'La satisfacción media final fue '
+          '${resultado.satisfaccionMedia.toStringAsFixed(1)} (meta 55–85).',
+    );
+    expect(
+      resultado.cumpleCriterioComision,
+      isTrue,
+      reason:
+          'La comisión media fue '
+          '${(resultado.comisionMedia * 100).toStringAsFixed(1)} % '
+          '(meta 4–6 %).',
+    );
+    expect(
+      resultado.cumpleCriterioPromesas,
+      isTrue,
+      reason:
+          'Hubo ${resultado.promesasIncumplidas} promesas incumplidas '
+          '(máximo 2).',
+    );
   }, timeout: const Timeout(Duration(minutes: 10)));
 }

@@ -770,3 +770,39 @@ Se corrigieron **I13, I14, todos los problemas menores M1–M19** y los duplicad
 - `flutter test --tags lento --run-skipped` → **2 pasan** (`balance_test.dart` y `robot_test.dart`), ya con las aserciones de los criterios 3A.
 - Capturas de `capturas/` regeneradas; se añadieron `agentes.png` y `detalle_agente_rival.png`.
 - `test/agentes_rivales_test.dart` cubre generación, carteras, disputas, robos, convencer, reputación, ranking, Agente del Año y rendimiento con 300+ agentes libres. `test/guardado_test.dart` cubre la migración v3–v9 a v10.
+
+## Fase 3B — Satisfacción y contratos de representación (terminada, 2026-10-24)
+
+### Implementación
+
+- **Nuevo `lib/logica/satisfaccion.dart`:** expectativas (`tenerEquipo`, `serTitular`, `primeraDivision`, `cobrarLoQueVale`, `equipoPrestigioAlto`), generación de 1–2 por jugador, comprobación de cumplimiento, delta semanal (+0,5 si todo se cumple; −1,5 por incumplida; −2 si quiere hablar), aviso a los 45, renuncia a los 25 con 25 % semanal, promesas a 13 semanas, bonos del 5 %, castigo por ignorar y contrato de representación.
+- **`Jugador`:** nuevos campos `expectativas`, `quiereHablar`, `semanasPromesaPendiente`, `semanasContratoRepresentacion` (52 por defecto) y `comisionSalarioContrato` (0,05 por defecto). La comisión se guarda siempre como fracción.
+- **`versionFormato` = 11:** las partidas v3–v10 cargan; la migración genera expectativas a mis representados y deja el contrato inicial de 52 semanas / 5 %. Las v10 no gastan RNG en reparar plantillas, porque ya son válidas desde 3A.
+- **Motor y servicios:** se retiró la satisfacción provisional; la semana procesa promesa, expectativas, aviso, contrato y posible renuncia. La comisión semanal usa `comisionSalarioContrato`. Los traspasos a mejor/peor equipo (±10 de prestigio), las renovaciones con más/menos salario, el split de suplencia y los títulos de liga, Mitad o Mundial mueven la satisfacción.
+- **Renegociación:** disponible con ≤ 8 semanas; comisión 3–10 %, duración 26/52/78/104. La aceptación usa `comisionMaximaAceptable` y los contratos de 78–104 semanas exigen un punto porcentual menos de comisión.
+- **Interfaz:** barra de satisfacción y avisos en las tarjetas de Mi agencia, contador de representados que quieren hablar, bloque de Satisfacción con expectativas e iconos, bloque de Contrato de representación, diálogo **Hablar con él** (prometer, bono o ignorar), pantalla de **Renegociar contrato** y tarjeta **Salud de la agencia** en Resumen.
+- **Robot:** responde a los avisos (promete si tiene reserva; si no, ignora), renueva contratos antes de que expiren y prioriza fichajes cuyas expectativas ya se cumplen. Así mide las pérdidas reales de 3B sin vaciar la cartera por decisiones que el jugador no tomó.
+
+### Criterios de la Fase 3B medidos
+
+`INFORME_BALANCE.md` regenerado el **2026-10-24 01:08:23**, semilla **20251019**:
+
+| Criterio | Medición | Meta | Resultado |
+| --- | --- | --- | --- |
+| Pérdidas del robot por insatisfacción o robo | T1 0 · T2 0 · T3 0 | ≤ 2 por temporada | cumple |
+| Satisfacción media de la cartera al final de la T3 | 80,1 | 55–85 | cumple |
+| Comisión media de los contratos | 5,0 % | 4–6 % | cumple |
+| Promesas incumplidas | 0 | ≤ 2 | cumple |
+
+- Violaciones duras: **0**; sin quiebra y con descuadre **0**.
+- Tiempo semanal T10 / T1: **1,21×** (meta ≤ 1,5×).
+- Guardado final: **4.447,7 KB**.
+
+### Verificación
+
+- `flutter analyze` → **No issues found!**
+- `flutter test` → **221 pasan, 2 saltan** (las `@Tags(['lento'])`).
+- `flutter test --tags lento --run-skipped test/balance_test.dart` → **1 pasa**.
+- `flutter test --tags lento --run-skipped test/robot_test.dart` → **1 pasa**.
+- Capturas de `capturas/` regeneradas con `flutter test --update-goldens test/golden_test.dart`; el fixture de Mi agencia recluta representados con equipo (no agentes sin equipo) para que la cartera llegue viva a la semana 47.
+- `test/satisfaccion_test.dart` cubre expectativas, delta semanal, avisos, promesas, bonos, renuncias, comisión contractual, renegociación, expiración, traspasos/renovaciones, títulos, migración v10 y la ficha del jugador.

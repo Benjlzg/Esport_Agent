@@ -17,6 +17,7 @@ import '../modelos/jugador.dart';
 import '../modelos/partido.dart';
 import '../modelos/torneo.dart';
 import 'formulas.dart';
+import 'satisfaccion.dart' as sat;
 import 'simulador_partidos.dart';
 
 // ------------------- CLASIFICACIÓN -------------------
@@ -540,6 +541,10 @@ List<Jugador> aplicarEfectosCampeon(
       j.moral = (j.moral + efectoCampeonMoral).clamp(0, 100);
       j.multiplicadorValor = (j.multiplicadorValor * efectoCampeonMultiplicador)
           .clamp(multiplicadorValorMinimo, multiplicadorValorMaximo);
+      sat.aplicarEfectoTitulo(
+        j,
+        mundial: torneo.tipo == TipoTorneo.mundial,
+      );
       premiados.add(j);
     }
   }

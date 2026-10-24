@@ -17,6 +17,7 @@ import '../formulas.dart';
 import '../mercado.dart' as mercado;
 import '../negociacion.dart';
 import '../renovaciones.dart' as renovaciones;
+import '../satisfaccion.dart' as sat;
 import '../motor_juego.dart';
 
 /// Acciones de mercado del motor.
@@ -108,6 +109,15 @@ class MercadoService {
     // El periodo mínimo de representación empieza de cero (corrección I1).
     jugador.semanasRepresentado = 0;
     jugador.semanasEnfriamientoAgente = 0;
+    // Contrato de representación y expectativas de la Parte 3B.
+    jugador.expectativas = sat.generarExpectativas(
+      jugador: jugador,
+      equipo: sat.equipoDe(est, jugador),
+    );
+    jugador.semanasContratoRepresentacion = sat.contratoRepresentacionInicial;
+    jugador.comisionSalarioContrato = sat.comisionSalarioContratoInicial;
+    jugador.quiereHablar = false;
+    jugador.semanasPromesaPendiente = 0;
     motor.indices.actualizar(jugador);
     motor.agregarNoticia(
       'Reclutaste a ${jugador.nick} por ${formatearDinero(costo)}.',
@@ -127,6 +137,12 @@ class MercadoService {
     jugador.representadoPorMi = false;
     jugador.agenteId = null;
     jugador.semanasRepresentado = 0;
+    // Romper el contrato de representación limpia expectativas y avisos.
+    jugador.expectativas = [];
+    jugador.quiereHablar = false;
+    jugador.semanasPromesaPendiente = 0;
+    jugador.semanasContratoRepresentacion = 0;
+    jugador.comisionSalarioContrato = sat.comisionSalarioContratoInicial;
     motor.indices.actualizar(jugador);
     // Las ofertas pendientes por este jugador dejan de tener sentido (I6).
     invalidarOfertasObsoletas();
@@ -187,6 +203,16 @@ class MercadoService {
       jugador.semanasRepresentado = 0;
       jugador.semanasEnfriamientoAgente = semanasEnfriamientoCambioAgente;
       jugador.semanasEsperaConvencer = 0;
+      // Nuevo contrato de representación y expectativas (Parte 3B).
+      jugador.expectativas = sat.generarExpectativas(
+        jugador: jugador,
+        equipo: sat.equipoDe(est, jugador),
+      );
+      jugador.semanasContratoRepresentacion =
+          sat.contratoRepresentacionInicial;
+      jugador.comisionSalarioContrato = sat.comisionSalarioContratoInicial;
+      jugador.quiereHablar = false;
+      jugador.semanasPromesaPendiente = 0;
       motor.indices.actualizar(jugador);
       motor.agregarNoticia(
         'Convenciste a ${jugador.nick}: deja a ${rival.nombre} y firma '
@@ -552,6 +578,14 @@ class MercadoService {
         salarioAnual ?? calcularSalarioAnual(jugador.valorMercado);
     // Queda bloqueado para otro traspaso hasta la próxima temporada.
     jugador.temporadaUltimoTraspaso = est.temporada;
+    // Un traspaso a un equipo mucho peor o mejor mueve su satisfacción.
+    if (jugador.representadoPorMi && vendedor != null) {
+      sat.aplicarEfectoSatisfaccionTraspaso(
+        jugador: jugador,
+        prestigioAnterior: vendedor.prestigio,
+        prestigioNuevo: equipo.prestigio,
+      );
+    }
     motor.indices.actualizar(jugador);
 
     // Reputación: cada traspaso cerrado suma. Un equipo de élite
@@ -755,8 +789,17 @@ class MercadoService {
       await motor.guardarYNotificar();
       return ResultadoAccion(false, 'La oferta de renovación ya no es válida.');
     }
+    final salarioAnterior = jugador.salarioAnual;
     jugador.salarioAnual = oferta.monto;
     jugador.semanasContrato = 52 + motor.rnd.nextInt(53);
+    // Renovar con más o menos salario mueve la satisfacción (Parte 3B).
+    if (jugador.representadoPorMi) {
+      sat.aplicarEfectoSatisfaccionRenovacion(
+        jugador: jugador,
+        salarioAnterior: salarioAnterior,
+        salarioNuevo: oferta.monto,
+      );
+    }
     final comision = motor.comisionNeta(
       (oferta.monto * comisionRenovacion).round(),
     );

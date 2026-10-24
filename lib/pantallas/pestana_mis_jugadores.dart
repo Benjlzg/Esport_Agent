@@ -67,6 +67,41 @@ class _PestanaMisJugadoresState extends State<PestanaMisJugadores> {
     final motor = widget.motor;
     final jugadores = motor.misJugadores;
     final ofertas = motor.ofertasPendientes.length;
+    final avisos = motor.avisosSatisfaccion;
+    final riesgo = motor.representadosEnRiesgo;
+
+    final avisoSatisfaccion = avisos == 0
+        ? null
+        : Card(
+            child: ListTile(
+              leading: Badge.count(
+                count: avisos,
+                backgroundColor: avisos == 1
+                    ? AppColores.dorado
+                    : AppColores.peligro,
+                child: const Icon(Icons.record_voice_over),
+              ),
+              title: Text(
+                avisos == 1
+                    ? '1 representado quiere hablar contigo'
+                    : '$avisos representados quieren hablar contigo',
+                style: const TextStyle(
+                  color: AppColores.textoPrincipal,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              subtitle: Text(
+                riesgo > 0
+                    ? '$riesgo en riesgo de marcharse. Abre su ficha para '
+                          'escucharle.'
+                    : 'Abre su ficha para escuchar su propuesta.',
+                style: const TextStyle(
+                  color: AppColores.textoSecundario,
+                  fontSize: 12,
+                ),
+              ),
+            ),
+          );
 
     final acceso = ofertas == 0
         ? null
@@ -126,6 +161,10 @@ class _PestanaMisJugadoresState extends State<PestanaMisJugadores> {
     return ListView(
       padding: const EdgeInsets.fromLTRB(12, 12, 12, margenBotonAvanzarSemana),
       children: [
+        if (avisoSatisfaccion != null) ...[
+          avisoSatisfaccion,
+          const SizedBox(height: 4),
+        ],
         if (acceso != null) ...[acceso, const SizedBox(height: 4)],
         for (final jugador in jugadores)
           TarjetaJugador(
@@ -133,6 +172,7 @@ class _PestanaMisJugadoresState extends State<PestanaMisJugadores> {
             equipo: jugador.equipoId == null
                 ? null
                 : motor.equipoPorId(jugador.equipoId!),
+            mostrarSatisfaccion: true,
             onTap: () {
               Navigator.of(context).push(
                 MaterialPageRoute(

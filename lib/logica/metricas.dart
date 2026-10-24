@@ -39,11 +39,46 @@ class MetricasSimulacion {
   /// depender del reinicio de [robos] al cambiar de temporada.
   int robosTotales = 0;
 
+  /// Representados que renunciaron por insatisfacción en la temporada actual.
+  int renuncias = 0;
+
+  /// Renuncias acumuladas desde el inicio de la partida.
+  int renunciasTotales = 0;
+
+  /// Contratos de representación vencidos sin renovar en la temporada actual.
+  int contratosVencidos = 0;
+
+  /// Contratos vencidos acumulados desde el inicio de la partida.
+  int contratosVencidosTotales = 0;
+
+  /// Promesas incumplidas acumuladas (criterio 3B: máximo 2).
+  int promesasIncumplidas = 0;
+
   /// Anota los robos de una semana en los contadores de temporada y total.
   void registrarRobos(int cantidad) {
     if (cantidad <= 0) return;
     robos += cantidad;
     robosTotales += cantidad;
+  }
+
+  /// Anota las renuncias de una semana en los contadores de temporada y total.
+  void registrarRenuncias(int cantidad) {
+    if (cantidad <= 0) return;
+    renuncias += cantidad;
+    renunciasTotales += cantidad;
+  }
+
+  /// Anota los contratos de representación vencidos.
+  void registrarContratosVencidos(int cantidad) {
+    if (cantidad <= 0) return;
+    contratosVencidos += cantidad;
+    contratosVencidosTotales += cantidad;
+  }
+
+  /// Anota las promesas que el agente no cumplió.
+  void registrarPromesasIncumplidas(int cantidad) {
+    if (cantidad <= 0) return;
+    promesasIncumplidas += cantidad;
   }
 
   /// Si cambió la temporada, reinicia los contadores de temporada y ventana.
@@ -55,6 +90,8 @@ class MetricasSimulacion {
     eventosGenerados = 0;
     eventosConDecision = 0;
     robos = 0;
+    renuncias = 0;
+    contratosVencidos = 0;
     reiniciarVentana();
   }
 
@@ -159,6 +196,43 @@ ResultadoInvariantes revisarInvariantes(
       violaciones.add(
         ViolacionInvariante(
           'moral fuera de 0–100: ${jugador.moral}',
+          jugadorId: jugador.id,
+        ),
+      );
+    }
+    if (jugador.satisfaccion < 0 || jugador.satisfaccion > 100) {
+      violaciones.add(
+        ViolacionInvariante(
+          'satisfacción fuera de 0–100: ${jugador.satisfaccion}',
+          jugadorId: jugador.id,
+        ),
+      );
+    }
+    if (jugador.representadoPorMi && jugador.expectativas.length > 2) {
+      violaciones.add(
+        ViolacionInvariante(
+          'más de 2 expectativas: ${jugador.expectativas.length}',
+          jugadorId: jugador.id,
+        ),
+      );
+    }
+    if (jugador.representadoPorMi &&
+        (jugador.comisionSalarioContrato < 0.03 ||
+            jugador.comisionSalarioContrato > 0.10)) {
+      violaciones.add(
+        ViolacionInvariante(
+          'comisión de representación fuera de 0,03–0,10: '
+          '${jugador.comisionSalarioContrato}',
+          jugadorId: jugador.id,
+        ),
+      );
+    }
+    if (jugador.representadoPorMi &&
+        jugador.semanasContratoRepresentacion < 0) {
+      violaciones.add(
+        ViolacionInvariante(
+          'semanas de contrato de representación negativas: '
+          '${jugador.semanasContratoRepresentacion}',
           jugadorId: jugador.id,
         ),
       );

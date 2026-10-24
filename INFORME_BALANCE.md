@@ -1,12 +1,13 @@
-# INFORME DE BALANCE — FASE 3A
+# INFORME DE BALANCE — FASE 3B
 
-- Generado: **2026-10-24 00:28:27** (hora local).
+- Generado: **2026-10-24 01:08:23** (hora local).
 - Generado por: `test/balance_test.dart`.
 
 - Semilla: **20251019**.
 - Partida observadora (10 temporadas): agente con 1.000.000.000 de dinero, sin reclutar.
 - Los eventos se resuelven solos eligiendo la opción más barata.
 - Parte 3A: los agentes rivales están activos en la partida observadora y en el robot. Sus criterios se miden en la sección «Criterios de la Fase 3A».
+- Parte 3B: la satisfacción usa expectativas y contratos de representación. El robot responde a los avisos y renueva sus contratos; sus criterios se miden en «Criterios de la Fase 3B».
 - Comando: `flutter test test/balance_test.dart --tags lento --run-skipped`. La suite normal (`flutter test`) salta estas pruebas.
 
 ## Ajustes de constantes
@@ -135,31 +136,41 @@ Para cada liga de 1ª División se cuentan las temporadas distintas en las que e
 
 | Temporada | Tiempo total | Media por semana |
 | --- | --- | --- |
-| 1 | 7380 ms | 141.9 ms |
-| 2 | 8741 ms | 168.1 ms |
-| 3 | 8562 ms | 164.7 ms |
-| 4 | 9077 ms | 174.6 ms |
-| 5 | 9261 ms | 178.1 ms |
-| 6 | 8249 ms | 158.6 ms |
-| 7 | 8683 ms | 167.0 ms |
-| 8 | 8900 ms | 171.2 ms |
-| 9 | 8553 ms | 164.5 ms |
-| 10 | 7989 ms | 153.6 ms |
+| 1 | 3932 ms | 75.6 ms |
+| 2 | 4683 ms | 90.1 ms |
+| 3 | 4645 ms | 89.3 ms |
+| 4 | 5073 ms | 97.6 ms |
+| 5 | 5045 ms | 97.0 ms |
+| 6 | 4896 ms | 94.2 ms |
+| 7 | 5125 ms | 98.6 ms |
+| 8 | 5189 ms | 99.8 ms |
+| 9 | 4978 ms | 95.7 ms |
+| 10 | 4771 ms | 91.8 ms |
 
 
 - Semanas medidas: 520.
-- Tiempo total de avance: 85835 ms.
-- Media global por semana: 160.1 ms.
+- Tiempo total de avance: 48538 ms.
+- Media global por semana: 90.5 ms.
 
 ## Criterios de la Fase 3A (agentes rivales)
 
 | Criterio | Medición | Meta | ¿Cumple? |
 | --- | --- | --- | --- |
 | Pérdidas del robot por robo | T1: 0 · T2: 0 · T3: 0 (máximo 0 por temporada) | ≤ 1 por temporada | cumple |
-| Reclutamientos del robot | T1: 14 · T2: 19 · T3: 14 (mínimo 14 por temporada) | ≥ 5 por temporada | cumple |
-| Jugadores que empezaron sin agente y acabaron en un rival | 111 de 1826 (6.1 %) | ≤ 40 % | cumple |
+| Reclutamientos del robot | T1: 19 · T2: 14 · T3: 15 (mínimo 14 por temporada) | ≥ 5 por temporada | cumple |
+| Jugadores que empezaron sin agente y acabaron en un rival | 118 de 1826 (6.5 %) | ≤ 40 % | cumple |
 | Reputación del robot al final de la T3 | 40 | 30–45 | cumple |
-| Tiempo semanal de la T10 frente a la T1 | 1.08× | ≤ 1,5× | cumple |
+| Tiempo semanal de la T10 frente a la T1 | 1.21× | ≤ 1,5× | cumple |
+
+
+## Criterios de la Fase 3B (satisfacción)
+
+| Criterio | Medición | Meta | ¿Cumple? |
+| --- | --- | --- | --- |
+| Pérdidas del robot por insatisfacción o robo | T1: 0 · T2: 0 · T3: 0 (máximo 0 por temporada) | ≤ 2 por temporada | cumple |
+| Satisfacción media de la cartera al final de la T3 | 80.1 | 55–85 | cumple |
+| Comisión media de los contratos | 5.0 % | 4–6 % | cumple |
+| Promesas incumplidas | 0 | ≤ 2 | cumple |
 
 
 ## Tamaño de los datos (corrección A3)
@@ -168,16 +179,16 @@ Se miden al final de cada temporada, antes de la limpieza de inicio de temporada
 
 | Temporada | Jugadores | Noticias | Resultados | Palmarés | Premios | Ofertas | Eventos | Guardado (KB) |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | 2607 | 200 | 5456 | 100 | 17 | 0 | 0 | 3165.1 |
-| 2 | 2808 | 200 | 5456 | 200 | 34 | 0 | 0 | 3878.3 |
-| 3 | 2867 | 200 | 5456 | 300 | 51 | 0 | 0 | 3860.7 |
-| 4 | 2882 | 200 | 5456 | 400 | 68 | 0 | 0 | 3960.4 |
-| 5 | 2893 | 200 | 5456 | 500 | 85 | 0 | 0 | 3939.3 |
-| 6 | 2880 | 200 | 5456 | 600 | 102 | 0 | 0 | 3960.3 |
-| 7 | 2885 | 200 | 5456 | 700 | 119 | 0 | 0 | 3958.2 |
-| 8 | 2868 | 200 | 5456 | 800 | 136 | 0 | 0 | 3981.8 |
-| 9 | 2848 | 200 | 5456 | 900 | 153 | 0 | 0 | 3959.3 |
-| 10 | 2858 | 200 | 5456 | 1000 | 170 | 0 | 0 | 4008.4 |
+| 1 | 2607 | 200 | 5456 | 100 | 17 | 0 | 0 | 3488.6 |
+| 2 | 2808 | 200 | 5456 | 200 | 34 | 0 | 0 | 4314.6 |
+| 3 | 2867 | 200 | 5456 | 300 | 51 | 0 | 0 | 4292.4 |
+| 4 | 2882 | 200 | 5456 | 400 | 68 | 0 | 0 | 4406.7 |
+| 5 | 2893 | 200 | 5456 | 500 | 85 | 0 | 0 | 4379.8 |
+| 6 | 2880 | 200 | 5456 | 600 | 102 | 0 | 0 | 4402.4 |
+| 7 | 2885 | 200 | 5456 | 700 | 119 | 0 | 0 | 4397.8 |
+| 8 | 2868 | 200 | 5456 | 800 | 136 | 0 | 0 | 4422.4 |
+| 9 | 2848 | 200 | 5456 | 900 | 153 | 0 | 0 | 4394.0 |
+| 10 | 2858 | 200 | 5456 | 1000 | 170 | 0 | 0 | 4447.7 |
 
 
 ## Invariantes
@@ -191,41 +202,45 @@ Sin violaciones duras en las 10 temporadas.
 - Progresión media de 16–21 años con equipo: 4.3 puntos/temporada (objetivo 4–8; sin equipo 4.7).
 - Mayor dominio en una liga de 1ª División: 6 de 10 temporadas del mismo equipo (orientativo ≤ 6): **cumple**.
 - Mayor relación presupuesto fin / inicio: 0.95×.
-- Tiempo de la temporada 10 / temporada 1: 1.08× (meta ≤ 1,5×).
-- Tamaño final del guardado: 4008.4 KB.
+- Tiempo de la temporada 10 / temporada 1: 1.21× (meta ≤ 1,5×).
+- Tamaño final del guardado: 4447.7 KB.
 - Fichajes IA registrados en las ventanas: 7404.
-- Robot de 3 temporadas: sobrevivió, racha máxima sin opciones 6 semanas.
-- Ingresos del robot: traspasos $1.090.020 vs eventos $127.761. Fuente principal: Traspasos.
+- Robot de 3 temporadas: sobrevivió, racha máxima sin opciones 8 semanas.
+- Ingresos del robot: traspasos $380.240 vs eventos $97.628. Fuente principal: Traspasos.
 - Reputación del robot: 10 → 40 (meta 30–45 al final de la T3): **cumple**.
+- Satisfacción media final del robot: 80.1 (meta 55–85): **cumple**.
+- Comisión media de los contratos: 5.0 % (meta 4–6 %): **cumple**.
+- Pérdidas máximas por insatisfacción o robo en una temporada: 0 (meta ≤ 2): **cumple**.
+- Promesas incumplidas: 0 (meta ≤ 2): **cumple**.
 
 <!-- ROBOT:INICIO -->
 ## Jugador robot (3 temporadas)
 
 - Economía real: empieza con $50.000 y reputación 10, igual que un jugador nuevo (B1).
-- Recluta agentes libres con habilidad ≤ reputación + 40, potencial alto (≥ habilidad + 10) y coste ≤ 25 % del dinero; máximo 8 representados. Si la cartera está llena, sustituye al representado con menos potencial cuando el agente libre lo iguala o mejora.
+- Recluta agentes libres con habilidad ≤ reputación + 40, potencial alto (≥ habilidad + 10), coste ≤ 25 % del dinero y expectativas ya cumplidas; máximo 8 representados. Si la cartera está llena, sustituye al representado con menos potencial cuando el agente libre lo iguala o mejora.
 - Vende en ventana pidiendo el valor de mercado y acepta contraofertas ≥ 90 %.
 - Responde eventos con la opción más barata y acepta traspasos ≥ 92 % del valor; las renovaciones solo si el salario no baja.
 
-| Temporada | Dinero inicio | Dinero fin | Reput. inicio | Reput. fin | Decisiones | Fichajes | Ventas | Eventos | Ofertas | Semanas sin opción | Racha máx. | Robos |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | 50.000 | 80.745 | 10 | 32 | 10 | 14 | 10 | 31 | 3 | 15 | 6 | 0 |
-| 2 | 80.745 | 192.226 | 32 | 44 | 11 | 19 | 16 | 36 | 10 | 17 | 5 | 0 |
-| 3 | 192.226 | 311.319 | 44 | 40 | 10 | 14 | 12 | 32 | 8 | 18 | 3 | 0 |
+| Temporada | Dinero inicio | Dinero fin | Reput. inicio | Reput. fin | Decisiones | Fichajes | Ventas | Eventos | Ofertas | Semanas sin opción | Racha máx. | Robos | Renuncias | Contratos | Promesas |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | 50.000 | 36.567 | 10 | 31 | 10 | 19 | 11 | 37 | 3 | 9 | 3 | 0 | 0 | 0 | 0 |
+| 2 | 36.567 | 29.982 | 31 | 40 | 14 | 14 | 9 | 46 | 2 | 15 | 8 | 0 | 0 | 0 | 0 |
+| 3 | 29.982 | 56.678 | 40 | 40 | 14 | 15 | 11 | 41 | 6 | 10 | 4 | 0 | 0 | 0 | 0 |
 
 
 ### Dinero, ingresos y gastos
 
-- Semana con menos dinero: T1 · S41 ($24.073).
-- Principal fuente de ingresos: Traspasos ($1.090.020).
-- Criterio B1 (sin quiebra y ≤ $5.000.000 al final de la T3): **cumple** (dinero final $311.319).
+- Semana con menos dinero: T1 · S17 ($3.499).
+- Principal fuente de ingresos: Traspasos ($380.240).
+- Criterio B1 (sin quiebra y ≤ $5.000.000 al final de la T3): **cumple** (dinero final $56.678).
 
 | Fuente de ingreso | Total |
 | --- | --- |
-| Comisiones de salario | 36.512 |
-| Traspasos | 1.090.020 |
-| Renovaciones | 0 |
-| Eventos | 127.761 |
-| **Total** | **1.254.293** |
+| Comisiones de salario | 44.673 |
+| Traspasos | 380.240 |
+| Renovaciones | 26.037 |
+| Eventos | 97.628 |
+| **Total** | **548.578** |
 
 
 ### Gastos
@@ -233,9 +248,9 @@ Sin violaciones duras en las 10 temporadas.
 | Fuente de gasto | Total |
 | --- | --- |
 | Oficina | 78.000 |
-| Reclutamientos | 873.900 |
-| Eventos | 41.074 |
-| **Total** | **992.974** |
+| Reclutamientos | 426.050 |
+| Eventos | 37.850 |
+| **Total** | **541.900** |
 
 
 ### Cuadre del dinero
@@ -243,9 +258,9 @@ Sin violaciones duras en las 10 temporadas.
 | Concepto | Importe |
 | --- | --- |
 | Dinero inicial | 50.000 |
-| Ingresos | 1.254.293 |
-| Gastos | −992.974 |
-| Dinero final | 311.319 |
+| Ingresos | 548.578 |
+| Gastos | −541.900 |
+| Dinero final | 56.678 |
 | Descuadre | 0 (cuadra) |
 
 
@@ -253,21 +268,26 @@ Sin violaciones duras en las 10 temporadas.
 
 | Evento | Veces |
 | --- | --- |
-| torneo_exhibicion | 8 |
-| polemica_redes | 7 |
-| oferta_otro_juego | 6 |
-| inversor_interesado | 4 |
-| burnout | 4 |
-| marca_perifericos | 2 |
+| oferta_otro_juego | 9 |
+| torneo_exhibicion | 9 |
+| marca_perifericos | 6 |
+| polemica_redes | 6 |
+| burnout | 5 |
+| inversor_interesado | 2 |
+| conflicto_agente | 1 |
 
 
 ### Veredicto del robot
 
 - Quiebra: **no**.
-- Eventos respondidos: 99 (31 con decisión).
-- Fichajes propios: 47 · ventas: 38.
-- Semanas sin ninguna opción: 50 · racha máxima: 6 (preocupante desde 12).
+- Eventos respondidos: 124 (38 con decisión).
+- Fichajes propios: 48 · ventas: 31.
+- Semanas sin ninguna opción: 34 · racha máxima: 8 (preocupante desde 12).
 - Racha preocupante: **no**.
-- Tiempo del robot: 40576 ms.
+- Satisfacción media final: 80.1 (meta 55–85): **cumple**.
+- Comisión media de los contratos: 5.0 % (meta 4–6 %): **cumple**.
+- Máximo de pérdidas por insatisfacción o robo en una temporada: 0 (meta ≤ 2): **cumple**.
+- Promesas incumplidas: 0 (meta ≤ 2): **cumple**.
+- Tiempo del robot: 26936 ms.
 
 <!-- ROBOT:FIN -->

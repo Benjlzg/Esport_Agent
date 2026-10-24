@@ -342,11 +342,15 @@ void main() {
     );
     expect(resumen, isNotEmpty);
 
-    // Criterios de balance de la Parte 3A.
+    // Criterios de balance de las Partes 3A y 3B.
     expect(robot.cumpleCriterioRobos, isTrue);
     expect(robot.cumpleCriterioFichajes, isTrue);
     expect(robot.cumpleCriterioRivales, isTrue);
     expect(robot.cumpleCriterioReputacion, isTrue);
+    expect(robot.cumpleCriterioPerdidasSatisfaccion, isTrue);
+    expect(robot.cumpleCriterioSatisfaccion, isTrue);
+    expect(robot.cumpleCriterioComision, isTrue);
+    expect(robot.cumpleCriterioPromesas, isTrue);
     expect(
       filas.last.milisegundos / filas.first.milisegundos,
       lessThanOrEqualTo(1.5),
@@ -375,7 +379,7 @@ String _escribirInforme({
       .toList();
 
   final buffer = StringBuffer()
-    ..writeln('# INFORME DE BALANCE — FASE 3A')
+    ..writeln('# INFORME DE BALANCE — FASE 3B')
     ..writeln()
     ..writeln('- Generado: **${_fechaHora(DateTime.now())}** (hora local).')
     ..writeln('- Generado por: `test/balance_test.dart`.')
@@ -392,6 +396,11 @@ String _escribirInforme({
       '- Parte 3A: los agentes rivales están activos en la partida '
       'observadora y en el robot. Sus criterios se miden en la sección '
       '«Criterios de la Fase 3A».',
+    )
+    ..writeln(
+      '- Parte 3B: la satisfacción usa expectativas y contratos de '
+      'representación. El robot responde a los avisos y renueva sus '
+      'contratos; sus criterios se miden en «Criterios de la Fase 3B».',
     )
     ..writeln(
       '- Comando: `flutter test test/balance_test.dart --tags lento '
@@ -898,6 +907,50 @@ String _escribirInforme({
     )
     ..writeln();
 
+  // Criterios de la Parte 3B (satisfacción y contratos).
+  final perdidasSatisfaccionPorTemporada = robot.filas
+      .map(
+        (fila) =>
+            'T${fila.temporada}: ${fila.perdidasPorInsatisfaccion}',
+      )
+      .join(' · ');
+  buffer
+    ..writeln('## Criterios de la Fase 3B (satisfacción)')
+    ..writeln()
+    ..writeln(
+      tablaMarkdown(
+        ['Criterio', 'Medición', 'Meta', '¿Cumple?'],
+        [
+          [
+            'Pérdidas del robot por insatisfacción o robo',
+            '$perdidasSatisfaccionPorTemporada (máximo '
+                '${robot.maxPerdidasPorSatisfaccion} por temporada)',
+            '≤ 2 por temporada',
+            robot.cumpleCriterioPerdidasSatisfaccion ? 'cumple' : 'no cumple',
+          ],
+          [
+            'Satisfacción media de la cartera al final de la T3',
+            decimal(robot.satisfaccionMedia, 1),
+            '55–85',
+            robot.cumpleCriterioSatisfaccion ? 'cumple' : 'no cumple',
+          ],
+          [
+            'Comisión media de los contratos',
+            '${decimal(robot.comisionMedia * 100, 1)} %',
+            '4–6 %',
+            robot.cumpleCriterioComision ? 'cumple' : 'no cumple',
+          ],
+          [
+            'Promesas incumplidas',
+            '${robot.promesasIncumplidas}',
+            '≤ 2',
+            robot.cumpleCriterioPromesas ? 'cumple' : 'no cumple',
+          ],
+        ],
+      ),
+    )
+    ..writeln();
+
   buffer
     ..writeln('## Tamaño de los datos (corrección A3)')
     ..writeln()
@@ -1022,6 +1075,25 @@ String _escribirInforme({
       '${robot.filas.isEmpty ? 'sin datos' : '${robot.filas.first.reputacionInicio} → ${robot.filas.last.reputacionFin}'} '
       '(meta 30–45 al final de la T3): '
       '**${robot.filas.isNotEmpty && robot.filas.last.reputacionFin >= 30 && robot.filas.last.reputacionFin <= 45 ? 'cumple' : 'no cumple'}**.',
+    )
+    ..writeln(
+      '- Satisfacción media final del robot: '
+      '${decimal(robot.satisfaccionMedia, 1)} (meta 55–85): '
+      '**${robot.cumpleCriterioSatisfaccion ? 'cumple' : 'no cumple'}**.',
+    )
+    ..writeln(
+      '- Comisión media de los contratos: '
+      '${decimal(robot.comisionMedia * 100, 1)} % (meta 4–6 %): '
+      '**${robot.cumpleCriterioComision ? 'cumple' : 'no cumple'}**.',
+    )
+    ..writeln(
+      '- Pérdidas máximas por insatisfacción o robo en una temporada: '
+      '${robot.maxPerdidasPorSatisfaccion} (meta ≤ 2): '
+      '**${robot.cumpleCriterioPerdidasSatisfaccion ? 'cumple' : 'no cumple'}**.',
+    )
+    ..writeln(
+      '- Promesas incumplidas: ${robot.promesasIncumplidas} (meta ≤ 2): '
+      '**${robot.cumpleCriterioPromesas ? 'cumple' : 'no cumple'}**.',
     )
     ..writeln()
     ..writeln(marcadorRobotInicio)

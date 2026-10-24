@@ -184,9 +184,7 @@ class EstadoPartida {
     if (json is! List) return staff;
     for (final item in json) {
       if (item is! Map) continue;
-      final miembro = MiembroStaff.fromJson(
-        Map<String, dynamic>.from(item),
-      );
+      final miembro = MiembroStaff.fromJson(Map<String, dynamic>.from(item));
       if (staff.any((m) => m.rol == miembro.rol)) continue;
       staff.add(miembro);
     }

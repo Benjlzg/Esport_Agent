@@ -138,5 +138,35 @@ void main() {
           '${resultado.top20Considerados} potenciales reales más altos '
           '(máximo 40 %).',
     );
+
+    // Criterios de balance de la Parte 3D.
+    expect(
+      resultado.cumpleCriterioAbogado,
+      isTrue,
+      reason:
+          'El abogado no llegó a nivel $robotNivelStaff en la T2 '
+          '(nivel final: ${resultado.filas.length >= 2 ? resultado.filas[1].abogadoNivel : 0}).',
+    );
+    expect(
+      resultado.cumpleCriterioRelacionesPublicas,
+      isTrue,
+      reason:
+          'Las relaciones públicas no llegaron a nivel $robotNivelStaff en '
+          'la T3 (nivel final: ${resultado.relacionesPublicasNivelFinal}).',
+    );
+    expect(
+      resultado.cumpleCriterioGastoStaff,
+      isTrue,
+      reason:
+          'El gasto en staff de la T3 supera el 20 % de los ingresos '
+          '(gasto ${resultado.gastoStaffT3}, ingresos ${resultado.ingresosT3}).',
+    );
+    expect(
+      resultado.cumpleDineroMinimoFinal,
+      isTrue,
+      reason:
+          'El robot terminó la T3 con ${resultado.dineroFinal} '
+          '(mínimo $robotDineroMinimoFinal).',
+    );
   }, timeout: const Timeout(Duration(minutes: 10)));
 }

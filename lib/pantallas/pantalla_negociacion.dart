@@ -145,8 +145,8 @@ class _PantallaNegociacionState extends State<PantallaNegociacion> {
     final limiteAceptacionActual = motor.limiteAceptacionPara(
       equipoSeleccionado,
     );
-    final precioMaximoAceptado =
-        (jugador.valorMercado * limiteAceptacionActual).round();
+    final precioMaximoAceptado = (jugador.valorMercado * limiteAceptacionActual)
+        .round();
 
     return Scaffold(
       appBar: AppBar(title: Text('Ofrecer a ${jugador.nick}')),

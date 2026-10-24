@@ -83,8 +83,7 @@ int costoMejoraStaff(MiembroStaff miembro) {
 // ------------------- ABOGADO -------------------
 
 /// Margen de aceptación que aporta el abogado según su nivel.
-double margenAbogado(int nivel) =>
-    margenAbogadoPorNivel * nivel.clamp(0, 5);
+double margenAbogado(int nivel) => margenAbogadoPorNivel * nivel.clamp(0, 5);
 
 /// Margen total de aceptación. El abogado y el contacto grande de 2E se suman,
 /// pero nunca superan [margenAceptacionMaximo] (+0,10).

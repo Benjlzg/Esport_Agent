@@ -45,6 +45,7 @@ class _FilaTemporada {
     required this.ofertas,
     required this.eventosPendientes,
     required this.guardadoKb,
+    required this.desglose,
     required this.progresoJoven,
   });
 
@@ -70,6 +71,9 @@ class _FilaTemporada {
   final int ofertas;
   final int eventosPendientes;
   final double guardadoKb;
+
+  /// Desglose por lista del guardado en ese momento (Parte 3D).
+  final Map<String, double> desglose;
 
   // Progresión media de los jugadores de 16–21 años (ajuste de balance).
   final _ProgresoJoven progresoJoven;
@@ -265,6 +269,7 @@ void main() {
       );
       final guardadoKb =
           utf8.encode(jsonEncode(estadoFin.toJson())).length / 1024;
+      final desglose = _desgloseGuardado(estadoFin);
       final progresoJoven = _ProgresoJoven.calcular(
         jovenesInicio,
         estadoFin.jugadores,
@@ -303,6 +308,7 @@ void main() {
           ofertas: estadoFin.ofertas.length,
           eventosPendientes: estadoFin.eventosPendientes.length,
           guardadoKb: guardadoKb,
+          desglose: desglose,
           progresoJoven: progresoJoven,
         ),
       );
@@ -335,6 +341,8 @@ void main() {
     expect(textoInforme, contains('## Criterios de la Fase 3A'));
     expect(textoInforme, contains('## Criterios de la Fase 3B'));
     expect(textoInforme, contains('## Criterios de la Fase 3C'));
+    expect(textoInforme, contains('## Criterios de la Fase 3D'));
+    expect(textoInforme, contains('## Desglose del guardado final'));
 
     // El test falla DESPUÉS de escribir el informe para poder diagnosticar.
     expect(
@@ -359,6 +367,12 @@ void main() {
     expect(robot.cumpleCriterioSemiancho, isTrue);
     expect(robot.cumpleCriterioGastoOjeadores, isTrue);
     expect(robot.cumpleCriterioTalentosRivales, isTrue);
+
+    // Criterios de balance de la Parte 3D.
+    expect(robot.cumpleCriterioAbogado, isTrue);
+    expect(robot.cumpleCriterioRelacionesPublicas, isTrue);
+    expect(robot.cumpleCriterioGastoStaff, isTrue);
+    expect(robot.cumpleDineroMinimoFinal, isTrue);
     expect(
       filas.last.milisegundos / filas.first.milisegundos,
       lessThanOrEqualTo(1.5),
@@ -366,8 +380,8 @@ void main() {
     );
     expect(
       filas.last.guardadoKb,
-      lessThanOrEqualTo(4890),
-      reason: 'El guardado final superó el límite de ~4.890 KB.',
+      lessThanOrEqualTo(4950),
+      reason: 'El guardado final superó el tope de 4.950 KB de la Fase 3D.',
     );
   }, timeout: const Timeout(Duration(minutes: 30)));
 }
@@ -392,7 +406,7 @@ String _escribirInforme({
       .toList();
 
   final buffer = StringBuffer()
-    ..writeln('# INFORME DE BALANCE — FASE 3C')
+    ..writeln('# INFORME DE BALANCE — FASE 3D')
     ..writeln()
     ..writeln('- Generado: **${_fechaHora(DateTime.now())}** (hora local).')
     ..writeln('- Generado por: `test/balance_test.dart`.')
@@ -420,6 +434,11 @@ String _escribirInforme({
       'los ojeadores lo estrechan. El robot contrata 2 ojeadores nivel 2 y '
       'ficha por el punto medio del rango; sus criterios se miden en '
       '«Criterios de la Fase 3C».',
+    )
+    ..writeln(
+      '- Parte 3D: el robot contrata abogado nivel 2 en la T2 y relaciones '
+      'públicas nivel 2 en la T3 si tiene reserva para 30 semanas del gasto '
+      'fijo total. Sus criterios se miden en «Criterios de la Fase 3D».',
     )
     ..writeln(
       '- Comando: `flutter test test/balance_test.dart --tags lento '
@@ -599,6 +618,17 @@ String _escribirInforme({
                 '(meta 30–45). No afecta al dominio: la reputación es solo '
                 'del agente.',
           ],
+          [
+            '3D-1',
+            'política de ventas del robot (no es una constante de balance)',
+            '1 venta por semana en ventana: la T3 terminó con \$11.325 y el '
+                'gasto de ojeadores fue el 24,6 % de los ingresos.',
+            'Hasta 2 ventas por semana en ventana.',
+            'La T3 termina con ${formatearDinero(robot.dineroFinal)} y el '
+                'gasto de ojeadores baja al '
+                '${decimal(robot.filas.isEmpty || robot.filas.last.ingresosTemporada == 0 ? 0 : robot.filas.last.gastoOjeadores / robot.filas.last.ingresosTemporada * 100, 1)} % '
+                'de los ingresos. Criterios 3A–3D verdes.',
+          ],
         ],
       ),
     )
@@ -609,6 +639,19 @@ String _escribirInforme({
       'fue la política fija del robot (2 ojeadores nivel 2 en los dos pares '
       'con más agentes libres de 21 años o menos) y el uso del punto medio '
       'del rango visible para fichar.',
+    )
+    ..writeln(
+      'La Parte 3D tampoco cambió las constantes de balance: usa los '
+      'salarios, márgenes y bonus del plan. La política del robot intenta '
+      'contratar/mejorar el abogado en la T2 y la RP en la T3 solo cuando '
+      'hay reserva para 30 semanas del gasto fijo total.',
+    )
+    ..writeln(
+      'La **ronda 3D-1** es un ajuste de política del robot, no de las '
+      'constantes: con una sola venta por semana el gasto del staff dejaba la '
+      'T3 en \$11.325 y los ojeadores superaban el 15 % de los ingresos. Se '
+      'permitieron hasta 2 ventas por semana en ventana y todos los criterios '
+      'volvieron a cumplirse.',
     )
     ..writeln()
     ..writeln('### Correcciones de lógica')
@@ -1023,6 +1066,64 @@ String _escribirInforme({
     )
     ..writeln();
 
+  // Criterios de la Parte 3D (staff de la agencia).
+  final gastoStaffT3 = robot.gastoStaffT3;
+  final ingresosT3Staff = robot.ingresosT3;
+  final porcentajeStaffT3 = robot.porcentajeGastoStaffT3 * 100;
+  final abogadoT2 = robot.filas.length >= 2 ? robot.filas[1].abogadoNivel : 0;
+  final ventasPorTemporada = robot.filas
+      .map((fila) => 'T${fila.temporada}: ${fila.ventas}')
+      .join(' · ');
+  buffer
+    ..writeln('## Criterios de la Fase 3D (staff)')
+    ..writeln()
+    ..writeln(
+      tablaMarkdown(
+        ['Criterio', 'Medición', 'Meta', '¿Cumple?'],
+        [
+          [
+            'Abogado nivel 2 al final de la T2',
+            '$abogadoT2',
+            '2',
+            robot.cumpleCriterioAbogado ? 'cumple' : 'no cumple',
+          ],
+          [
+            'Relaciones públicas nivel 2 al final de la T3',
+            '${robot.relacionesPublicasNivelFinal}',
+            '2',
+            robot.cumpleCriterioRelacionesPublicas ? 'cumple' : 'no cumple',
+          ],
+          [
+            'Gasto en staff de la T3 / ingresos de la T3',
+            '${formatearDinero(gastoStaffT3)} de '
+                '${formatearDinero(ingresosT3Staff)} '
+                '(${decimal(porcentajeStaffT3, 1)} %)',
+            '≤ 20 %',
+            robot.cumpleCriterioGastoStaff ? 'cumple' : 'no cumple',
+          ],
+          [
+            'Ventas del robot por temporada',
+            ventasPorTemporada,
+            'mínimo igual con abogado',
+            robot.cumpleCriterioAbogado ? 'cumple' : 'no cumple',
+          ],
+          [
+            'Dinero final de la T3',
+            formatearDinero(robot.dineroFinal),
+            '≥ ${formatearDinero(robotDineroMinimoFinal)}',
+            robot.cumpleDineroMinimoFinal ? 'cumple' : 'no cumple',
+          ],
+        ],
+      ),
+    )
+    ..writeln()
+    ..writeln(
+      '- **Tasa de aceptación con abogado:** prueba unitaria con semilla '
+      'fija. Sin abogado acepta 6 de 21 precios de 1,00–1,20; nivel 2, 10; '
+      'nivel 5, 16. Nunca baja de la base (`test/staff_test.dart`).',
+    )
+    ..writeln();
+
   buffer
     ..writeln('## Tamaño de los datos (corrección A3)')
     ..writeln()
@@ -1059,6 +1160,38 @@ String _escribirInforme({
               '${fila.eventosPendientes}',
               decimal(fila.guardadoKb, 1),
             ],
+        ],
+      ),
+    )
+    ..writeln();
+
+  // Desglose del guardado final por lista (Parte 3D): se toma el estado del
+  // final de la T10, antes del rollover que vacía resultados y torneos.
+  final desglose = filas.isEmpty ? <String, double>{} : filas.last.desglose;
+  final totalDesglose = desglose.values.fold<double>(
+    0,
+    (suma, valor) => suma + valor,
+  );
+  buffer
+    ..writeln('## Desglose del guardado final (T10)')
+    ..writeln()
+    ..writeln(
+      'Tamaño aproximado de cada lista del JSON final. Los resultados se '
+      'muestran aparte de las competiciones para ver cuánto ocupan los '
+      'partidos de la temporada. El total es el JSON completo.',
+    )
+    ..writeln()
+    ..writeln(
+      tablaMarkdown(
+        ['Lista', 'Tamaño (KB)', '% del total'],
+        [
+          for (final entrada in desglose.entries)
+            [
+              entrada.key,
+              decimal(entrada.value, 1),
+              '${decimal(entrada.value / totalDesglose * 100, 1)} %',
+            ],
+          ['**Total**', '**${decimal(totalDesglose, 1)}**', '**100 %**'],
         ],
       ),
     )
@@ -1188,6 +1321,25 @@ String _escribirInforme({
       '(${decimal(robot.porcentajeTop20EnRivales * 100, 1)} %, meta ≤ 40 %): '
       '**${robot.cumpleCriterioTalentosRivales ? 'cumple' : 'no cumple'}**.',
     )
+    ..writeln(
+      '- Abogado nivel 2 en la T2: '
+      '**${robot.cumpleCriterioAbogado ? 'cumple' : 'no cumple'}**.',
+    )
+    ..writeln(
+      '- Relaciones públicas nivel 2 en la T3: '
+      '**${robot.cumpleCriterioRelacionesPublicas ? 'cumple' : 'no cumple'}**.',
+    )
+    ..writeln(
+      '- Gasto en staff de la T3: '
+      '${decimal(porcentajeStaffT3, 1)} % de los ingresos (meta ≤ 20 %): '
+      '**${robot.cumpleCriterioGastoStaff ? 'cumple' : 'no cumple'}**.',
+    )
+    ..writeln(
+      '- Dinero final del robot en la T3: '
+      '${formatearDinero(robot.dineroFinal)} '
+      '(meta ≥ ${formatearDinero(robotDineroMinimoFinal)}): '
+      '**${robot.cumpleDineroMinimoFinal ? 'cumple' : 'no cumple'}**.',
+    )
     ..writeln()
     ..writeln(marcadorRobotInicio)
     ..writeln(seccionRobotMarkdown(robot))
@@ -1196,6 +1348,60 @@ String _escribirInforme({
   final texto = buffer.toString();
   File('INFORME_BALANCE.md').writeAsStringSync(texto);
   return texto;
+}
+
+/// Desglose aproximado del guardado por lista (Parte 3D).
+///
+/// Los resultados se separan de las competiciones para que el informe muestre
+/// cuánto ocupan los partidos. El resto de claves de nivel superior se agrupa
+/// en «Otros» para que la suma coincida con el JSON completo.
+Map<String, double> _desgloseGuardado(EstadoPartida estado) {
+  final mapa = estado.toJson();
+  double kb(Object? valor) => utf8.encode(jsonEncode(valor)).length / 1024;
+
+  final resultados = <Map<String, dynamic>>[
+    for (final comp in estado.competiciones) ...[
+      ...comp.resultadosSplit1.map((r) => r.toJson()),
+      ...comp.resultadosSplit2.map((r) => r.toJson()),
+      ...comp.resultadosPlayoffs1.map((r) => r.toJson()),
+      ...comp.resultadosPlayoffs2.map((r) => r.toJson()),
+    ],
+  ];
+
+  final competicionesSinResultados = (mapa['competiciones'] as List).map((
+    comp,
+  ) {
+    final copia = Map<String, dynamic>.from(comp as Map);
+    copia['resultadosSplit1'] = <dynamic>[];
+    copia['resultadosSplit2'] = <dynamic>[];
+    copia['resultadosPlayoffs1'] = <dynamic>[];
+    copia['resultadosPlayoffs2'] = <dynamic>[];
+    return copia;
+  }).toList();
+
+  final desglose = <String, double>{
+    'Jugadores': kb(mapa['jugadores']),
+    'Noticias': kb(mapa['noticias']),
+    'Ofertas': kb(mapa['ofertas']),
+    'Resultados': kb(resultados),
+    'Competiciones (sin resultados)': kb(competicionesSinResultados),
+    'Palmarés': kb(mapa['palmares']),
+    'Premios': kb(mapa['premios']),
+    'Torneos': kb(mapa['torneos']),
+    'Staff': kb(mapa['staff']),
+    'Agentes rivales': kb(mapa['agentesRivales']),
+    'Ojeadores': kb(mapa['ojeadores']),
+    'Eventos pendientes': kb(mapa['eventosPendientes']),
+  };
+
+  final total = kb(mapa);
+  final sumaLists = desglose.values.fold<double>(
+    0,
+    (suma, valor) => suma + valor,
+  );
+  final otros = (total - sumaLists).clamp(0.0, double.infinity);
+  desglose['Otros (agente, mapas, contratos...)'] = otros;
+  return desglose;
 }
 
 /// Fecha y hora legible para demostrar que el informe se regeneró.

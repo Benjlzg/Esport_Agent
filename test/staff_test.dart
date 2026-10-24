@@ -225,9 +225,7 @@ void main() {
             precioPedido: precio,
             valorMercado: 100000,
             rnd: rnd,
-            margenExtraAceptacion: margenAceptacionTotal(
-              nivelAbogado: nivel,
-            ),
+            margenExtraAceptacion: margenAceptacionTotal(nivelAbogado: nivel),
           );
           if (resultado.respuesta == RespuestaEquipo.acepta) total++;
         }
@@ -509,25 +507,27 @@ void main() {
       expect((await motor.mejorarStaff(miembro)).ok, isFalse);
     });
 
-    test('el salario del staff se cobra cada semana y el despido lo corta',
-        () async {
-      final motor = await crearPartidaSembrada(dinero: 100000);
-      await motor.contratarStaff(RolStaff.abogado);
-      await motor.contratarStaff(RolStaff.relacionesPublicas);
+    test(
+      'el salario del staff se cobra cada semana y el despido lo corta',
+      () async {
+        final motor = await crearPartidaSembrada(dinero: 100000);
+        await motor.contratarStaff(RolStaff.abogado);
+        await motor.contratarStaff(RolStaff.relacionesPublicas);
 
-      await motor.avanzarSemana();
-      expect(
-        motor.estado!.gastosUltimaSemana,
-        gastoOficinaSemanal + salarioStaff(1) * 2,
-      );
+        await motor.avanzarSemana();
+        expect(
+          motor.estado!.gastosUltimaSemana,
+          gastoOficinaSemanal + salarioStaff(1) * 2,
+        );
 
-      final abogado = motor.miembroStaff(RolStaff.abogado)!;
-      await motor.despedirStaff(abogado);
-      await motor.avanzarSemana();
-      expect(
-        motor.estado!.gastosUltimaSemana,
-        gastoOficinaSemanal + salarioStaff(1),
-      );
-    });
+        final abogado = motor.miembroStaff(RolStaff.abogado)!;
+        await motor.despedirStaff(abogado);
+        await motor.avanzarSemana();
+        expect(
+          motor.estado!.gastosUltimaSemana,
+          gastoOficinaSemanal + salarioStaff(1),
+        );
+      },
+    );
   });
 }

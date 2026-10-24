@@ -109,10 +109,7 @@ class ContextoEventos {
     required this.indiceEquipos,
     required this.rnd,
     required this.nuevoIdJugador,
-  }) : nivelRP = staff_logica.nivelDeRol(
-         estado,
-         RolStaff.relacionesPublicas,
-       );
+  }) : nivelRP = staff_logica.nivelDeRol(estado, RolStaff.relacionesPublicas);
 
   final EstadoPartida estado;
   final Map<String, Jugador> indiceJugadores;
@@ -175,7 +172,10 @@ class ContextoEventos {
     if (cambio < 0) {
       cambio = -staff_logica.perdidaReducidaRP(-cambio, nivelRP);
     }
-    estado.agente.reputacion = (estado.agente.reputacion + cambio).clamp(0, 100);
+    estado.agente.reputacion = (estado.agente.reputacion + cambio).clamp(
+      0,
+      100,
+    );
   }
 
   /// Multiplica el valor de mercado respetando los límites globales.

@@ -9,11 +9,13 @@ import 'package:esport_agent/logica/motor_juego.dart';
 import 'package:esport_agent/logica/negociacion.dart';
 import 'package:esport_agent/logica/ojeadores.dart';
 import 'package:esport_agent/logica/satisfaccion.dart';
+import 'package:esport_agent/logica/staff.dart';
 import 'package:esport_agent/modelos/equipo.dart';
 import 'package:esport_agent/modelos/evento.dart';
 import 'package:esport_agent/modelos/juego.dart';
 import 'package:esport_agent/modelos/jugador.dart';
 import 'package:esport_agent/modelos/oferta.dart';
+import 'package:esport_agent/modelos/staff.dart';
 
 import 'entorno_simulacion.dart';
 
@@ -45,6 +47,22 @@ const int robotSemanasReserva = 8;
 const int robotNumeroOjeadores = 2;
 const int robotOjeadoresNivel = 2;
 const int robotSemanasReservaOjeadores = 30;
+
+/// Política de staff del robot (Parte 3D): abogado nivel 2 en la T2 y
+/// relaciones públicas nivel 2 en la T3, solo si tiene reserva para 30 semanas
+/// del gasto fijo total (oficina + ojeadores + staff).
+const int robotNivelStaff = 2;
+const int robotSemanasReservaStaff = 30;
+
+/// Dinero mínimo con el que debe terminar el robot la T3 tras pagar el staff.
+/// Si baja de esta cifra, se ajusta la política del robot (no las constantes
+/// de balance) y se anota en el informe.
+const int robotDineroMinimoFinal = 30000;
+
+/// Ventas máximas por semana durante una ventana. La política original vendía
+/// como máximo una; la Parte 3D permite dos para compensar el gasto del staff
+/// sin tocar las constantes de balance.
+const int robotMaxVentasPorSemana = 2;
 
 /// Una racha de esta cantidad de semanas sin opciones es preocupante.
 /// La competencia de la Parte 3A puede llenar la cartera antes de la ventana;
@@ -80,12 +98,14 @@ const String gastoOficina = 'Oficina';
 const String gastoReclutamientos = 'Reclutamientos';
 const String gastoEventos = 'Eventos';
 const String gastoOjeadores = 'Ojeadores';
+const String gastoStaff = 'Staff';
 
 /// Orden fijo de las fuentes de gasto en el informe.
 const List<String> robotFuentesGasto = [
   gastoOficina,
   gastoReclutamientos,
   gastoOjeadores,
+  gastoStaff,
   gastoEventos,
 ];
 
@@ -116,6 +136,10 @@ class FilaRobot {
     this.semianchoMedioFichajes = 0,
     this.ingresosTemporada = 0,
     this.gastoOjeadores = 0,
+    this.gastoStaff = 0,
+    this.abogadoNivel = 0,
+    this.relacionesPublicasNivel = 0,
+    this.ventasImporte = 0,
   });
 
   final int temporada;
@@ -152,6 +176,18 @@ class FilaRobot {
 
   /// Gasto en salarios de ojeadores durante la temporada.
   final int gastoOjeadores;
+
+  /// Gasto total en staff durante la temporada: salarios semanales y mejoras.
+  final int gastoStaff;
+
+  /// Nivel de abogado al terminar la temporada.
+  final int abogadoNivel;
+
+  /// Nivel de relaciones públicas al terminar la temporada.
+  final int relacionesPublicasNivel;
+
+  /// Importe cobrado por las ventas de la temporada (comisiones de traspaso).
+  final int ventasImporte;
 }
 
 /// Resumen completo de la partida del robot.
@@ -250,6 +286,39 @@ class ResultadoRobot {
   /// Porcentaje del top 20 que está con rivales.
   double get porcentajeTop20EnRivales =>
       top20Considerados == 0 ? 0 : top20ConRival / top20Considerados;
+
+  /// Nivel de abogado al final de la última temporada jugada.
+  int get abogadoNivelFinal => filas.isEmpty ? 0 : filas.last.abogadoNivel;
+
+  /// Nivel de relaciones públicas al final de la última temporada jugada.
+  int get relacionesPublicasNivelFinal =>
+      filas.isEmpty ? 0 : filas.last.relacionesPublicasNivel;
+
+  /// Gasto total en staff de la última temporada (T3).
+  int get gastoStaffT3 => filas.isEmpty ? 0 : filas.last.gastoStaff;
+
+  /// Ingresos de la última temporada (T3).
+  int get ingresosT3 => filas.isEmpty ? 0 : filas.last.ingresosTemporada;
+
+  /// Porcentaje de los ingresos de la T3 que se gastó en staff.
+  double get porcentajeGastoStaffT3 =>
+      ingresosT3 == 0 ? 0 : gastoStaffT3 / ingresosT3;
+
+  /// Criterio 3D: abogado nivel 2 al terminar la T2.
+  bool get cumpleCriterioAbogado =>
+      filas.length >= 2 && filas[1].abogadoNivel >= robotNivelStaff;
+
+  /// Criterio 3D: relaciones públicas nivel 2 al terminar la T3.
+  bool get cumpleCriterioRelacionesPublicas =>
+      filas.length >= 3 && filas[2].relacionesPublicasNivel >= robotNivelStaff;
+
+  /// Criterio 3D: gasto en staff ≤ 20 % de los ingresos de la T3.
+  bool get cumpleCriterioGastoStaff =>
+      ingresosT3 > 0 && gastoStaffT3 <= ingresosT3 * 0.20;
+
+  /// Criterio de política: la T3 no termina por debajo de $30.000.
+  bool get cumpleDineroMinimoFinal =>
+      !quiebra && dineroFinal >= robotDineroMinimoFinal;
 
   /// Pérdidas por robo sumadas a todas las temporadas.
   int get perdidasPorRobo =>
@@ -388,6 +457,12 @@ class RobotJugador {
   /// Gasto en ojeadores de la temporada en curso.
   int _gastoOjeadoresTemporada = 0;
 
+  /// Gasto en staff de la temporada en curso (salarios y mejoras).
+  int _gastoStaffTemporada = 0;
+
+  /// Importe cobrado por las ventas de la temporada en curso.
+  int _ventasImporteTemporada = 0;
+
   /// Dinero mínimo y semana en que se alcanzó (B1).
   int _dineroMinimo = robotDineroInicial;
   int? _temporadaMenosDinero;
@@ -437,6 +512,8 @@ class RobotJugador {
       final ingresosInicioTemporada = _ingresosTotalesActuales();
       _semianchosFichajesTemporada.clear();
       _gastoOjeadoresTemporada = 0;
+      _gastoStaffTemporada = 0;
+      _ventasImporteTemporada = 0;
       final robosInicioTemporada = motor.metricas.robosTotales;
       final renunciasInicioTemporada = motor.metricas.renunciasTotales;
       final contratosInicioTemporada = motor.metricas.contratosVencidosTotales;
@@ -506,6 +583,12 @@ class RobotJugador {
               ingresosTemporada:
                   _ingresosTotalesActuales() - ingresosInicioTemporada,
               gastoOjeadores: _gastoOjeadoresTemporada,
+              gastoStaff: _gastoStaffTemporada,
+              abogadoNivel: motor.nivelStaff(RolStaff.abogado),
+              relacionesPublicasNivel: motor.nivelStaff(
+                RolStaff.relacionesPublicas,
+              ),
+              ventasImporte: _ventasImporteTemporada,
             ),
           );
           final sinAgenteEnRivales = _jugadoresSinAgenteEnRivales();
@@ -558,6 +641,12 @@ class RobotJugador {
           ingresosTemporada:
               _ingresosTotalesActuales() - ingresosInicioTemporada,
           gastoOjeadores: _gastoOjeadoresTemporada,
+          gastoStaff: _gastoStaffTemporada,
+          abogadoNivel: motor.nivelStaff(RolStaff.abogado),
+          relacionesPublicasNivel: motor.nivelStaff(
+            RolStaff.relacionesPublicas,
+          ),
+          ventasImporte: _ventasImporteTemporada,
         ),
       );
     }
@@ -691,6 +780,52 @@ class RobotJugador {
     _ojeadoresContratados = true;
   }
 
+  /// Intenta cumplir la política de staff de la Parte 3D.
+  ///
+  /// [temporada] es la temporada que se está jugando. El abogado se busca
+  /// desde la T2 y las relaciones públicas desde la T3. La reserva se calcula
+  /// con el gasto fijo total (oficina + ojeadores + staff), tal como pide la
+  /// sesión de balance.
+  Future<void> _gestionarStaff(int temporada) async {
+    if (temporada >= 2) {
+      await _asegurarStaffNivel2(RolStaff.abogado);
+    }
+    if (temporada >= 3) {
+      await _asegurarStaffNivel2(RolStaff.relacionesPublicas);
+    }
+  }
+
+  /// Contrata y mejora un puesto hasta nivel 2 si la reserva lo permite.
+  Future<void> _asegurarStaffNivel2(RolStaff rol) async {
+    var miembro = motor.miembroStaff(rol);
+    if (miembro == null) {
+      // Al contratar, el gasto fijo proyectado incluye el salario del nivel 1.
+      final proyectado = motor.gastoFijoSemanalTotal + salarioStaff(1);
+      if (motor.agente.dinero < proyectado * robotSemanasReservaStaff) return;
+      final resultado = await motor.contratarStaff(rol);
+      if (!resultado.ok) return;
+      miembro = motor.miembroStaff(rol);
+    }
+
+    while (miembro != null && miembro.nivel < robotNivelStaff) {
+      final costeMejora = motor.costoMejoraStaff(miembro);
+      final extraSemanal =
+          salarioStaff(miembro.nivel + 1) - salarioStaff(miembro.nivel);
+      final proyectado = motor.gastoFijoSemanalTotal + extraSemanal;
+      if (motor.agente.dinero <
+          proyectado * robotSemanasReservaStaff + costeMejora) {
+        return;
+      }
+      final dineroAntes = motor.agente.dinero;
+      final resultado = await motor.mejorarStaff(miembro);
+      if (!resultado.ok) return;
+      final gasto = dineroAntes - motor.agente.dinero;
+      _sumarGasto(gastoStaff, gasto);
+      _gastoStaffTemporada += gasto;
+      miembro = motor.miembroStaff(rol);
+    }
+  }
+
   /// Avanza una semana, comprueba si había opciones y actúa.
   /// Devuelve true si la semana no ofrecía ninguna opción.
   Future<bool> _jugarSemana({
@@ -718,7 +853,17 @@ class RobotJugador {
     final gastoOjeadoresSemana = motor.gastoOjeadoresSemanal;
     _sumarGasto(gastoOjeadores, gastoOjeadoresSemana);
     _gastoOjeadoresTemporada += gastoOjeadoresSemana;
+    // El staff cobra su salario semanal en el mismo avance.
+    final gastoStaffSemana = motor.gastoStaffSemanal;
+    _sumarGasto(gastoStaff, gastoStaffSemana);
+    _gastoStaffTemporada += gastoStaffSemana;
     _actualizarVentana();
+
+    // Política de staff: abogado nivel 2 en la T2 y RP nivel 2 en la T3,
+    // solo cuando hay reserva para 30 semanas del gasto fijo total. Se pasa
+    // la temporada que se acaba de jugar: si la semana 52 hizo el rollover,
+    // el motor ya está en la temporada siguiente y no debe adelantar el staff.
+    await _gestionarStaff(temporadaSemana);
 
     final enVentana = enVentanaFichajes(motor.semana);
     final haySatisfaccion = motor.representadosQueQuierenHablar.isNotEmpty;
@@ -741,8 +886,11 @@ class RobotJugador {
     final reclutado = await _reclutar();
     if (reclutado) alFichar();
     if (enVentana) {
-      final vendido = await _vender();
-      if (vendido) alVender();
+      for (var i = 0; i < robotMaxVentasPorSemana; i++) {
+        final vendido = await _vender();
+        if (!vendido) break;
+        alVender();
+      }
     }
 
     _registrarDinero(temporadaSemana, semanaSemana);
@@ -874,8 +1022,12 @@ class RobotJugador {
           final fuente = oferta.tipo == TipoOferta.traspaso
               ? ingresoTraspasos
               : ingresoRenovaciones;
-          _sumarIngreso(fuente, motor.agente.dinero - dineroAntes);
-          if (oferta.tipo == TipoOferta.traspaso) alVender();
+          final importe = motor.agente.dinero - dineroAntes;
+          _sumarIngreso(fuente, importe);
+          if (oferta.tipo == TipoOferta.traspaso) {
+            _ventasImporteTemporada += importe;
+            alVender();
+          }
         }
       } else {
         await motor.rechazarOferta(oferta);
@@ -1021,7 +1173,9 @@ class RobotJugador {
       precioPedido: jugador.valorMercado,
     );
     if (resultado.respuesta == RespuestaEquipo.acepta) {
-      _sumarIngreso(ingresoTraspasos, motor.agente.dinero - dineroAntes);
+      final importe = motor.agente.dinero - dineroAntes;
+      _sumarIngreso(ingresoTraspasos, importe);
+      _ventasImporteTemporada += importe;
       _vendidosEnVentana.add(jugador.id);
       return true;
     }
@@ -1033,7 +1187,9 @@ class RobotJugador {
         equipo: equipo,
         precio: resultado.contraoferta,
       );
-      _sumarIngreso(ingresoTraspasos, motor.agente.dinero - dineroAntes);
+      final importe = motor.agente.dinero - dineroAntes;
+      _sumarIngreso(ingresoTraspasos, importe);
+      _ventasImporteTemporada += importe;
       _vendidosEnVentana.add(jugador.id);
       return true;
     }
@@ -1079,12 +1235,20 @@ String seccionRobotMarkdown(ResultadoRobot resultado) {
       '$robotSemanasReservaOjeadores semanas de su salario total.',
     )
     ..writeln(
+      '- Staff (3D): abogado nivel $robotNivelStaff en la T2 y relaciones '
+      'públicas nivel $robotNivelStaff en la T3, solo si tiene reserva para '
+      '$robotSemanasReservaStaff semanas del gasto fijo total (oficina + '
+      'ojeadores + staff). Mejorar paga la diferencia de salario de '
+      '$semanasCostoMejoraStaff semanas.',
+    )
+    ..writeln(
       '- Ficha usando el punto medio del rango visible del potencial, no el '
       'potencial real.',
     )
     ..writeln(
-      '- Vende en ventana pidiendo el valor de mercado y acepta '
-      'contraofertas ≥ ${(robotMinimoContraoferta * 100).round()} %.',
+      '- Vende en ventana pidiendo el valor de mercado (hasta '
+      '$robotMaxVentasPorSemana por semana) y acepta contraofertas ≥ '
+      '${(robotMinimoContraoferta * 100).round()} %.',
     )
     ..writeln(
       '- Responde eventos con la opción más barata y acepta traspasos ≥ '
@@ -1173,6 +1337,55 @@ String seccionRobotMarkdown(ResultadoRobot resultado) {
       '- Semiancho medio de fichajes: T1 '
       '${decimal(resultado.semianchoT1, 1)} → T3 '
       '${decimal(resultado.semianchoT3, 1)} (meta: baja).',
+    );
+
+  buffer
+    ..writeln()
+    ..writeln('### Staff (3D)')
+    ..writeln()
+    ..writeln(
+      tablaMarkdown(
+        [
+          'Temporada',
+          'Abogado',
+          'Relaciones públicas',
+          'Gasto staff',
+          'Ingresos temporada',
+          '% staff',
+          'Ventas',
+          'Importe ventas',
+        ],
+        [
+          for (final fila in resultado.filas)
+            [
+              '${fila.temporada}',
+              '${fila.abogadoNivel}',
+              '${fila.relacionesPublicasNivel}',
+              miles(fila.gastoStaff),
+              miles(fila.ingresosTemporada),
+              fila.ingresosTemporada == 0
+                  ? '—'
+                  : '${decimal(fila.gastoStaff / fila.ingresosTemporada * 100, 1)} %',
+              '${fila.ventas}',
+              miles(fila.ventasImporte),
+            ],
+        ],
+      ),
+    )
+    ..writeln()
+    ..writeln(
+      '- Abogado nivel $robotNivelStaff al final de la T2: '
+      '${resultado.filas.length >= 2 ? resultado.filas[1].abogadoNivel : 0} '
+      '(meta $robotNivelStaff).',
+    )
+    ..writeln(
+      '- Relaciones públicas nivel $robotNivelStaff al final de la T3: '
+      '${resultado.relacionesPublicasNivelFinal} (meta $robotNivelStaff).',
+    )
+    ..writeln(
+      '- Ventas del robot por temporada: '
+      '${resultado.filas.map((f) => 'T${f.temporada}: ${f.ventas} '
+          '(${miles(f.ventasImporte)})').join(' · ')}.',
     );
 
   final principal = resultado.fuentePrincipalIngresos;
@@ -1343,6 +1556,25 @@ String seccionRobotMarkdown(ResultadoRobot resultado) {
       '${resultado.top20ConRival} de ${resultado.top20Considerados} '
       '(${decimal(resultado.porcentajeTop20EnRivales * 100, 1)} %, meta ≤ 40 %): '
       '**${resultado.cumpleCriterioTalentosRivales ? 'cumple' : 'no cumple'}**.',
+    )
+    ..writeln(
+      '- Abogado nivel $robotNivelStaff en la T2: '
+      '**${resultado.cumpleCriterioAbogado ? 'cumple' : 'no cumple'}**.',
+    )
+    ..writeln(
+      '- Relaciones públicas nivel $robotNivelStaff en la T3: '
+      '**${resultado.cumpleCriterioRelacionesPublicas ? 'cumple' : 'no cumple'}**.',
+    )
+    ..writeln(
+      '- Gasto en staff de la T3: '
+      '${decimal(resultado.porcentajeGastoStaffT3 * 100, 1)} % de los '
+      'ingresos (meta ≤ 20 %): '
+      '**${resultado.cumpleCriterioGastoStaff ? 'cumple' : 'no cumple'}**.',
+    )
+    ..writeln(
+      '- Dinero final de la T3 ≥ ${formatearDinero(robotDineroMinimoFinal)}: '
+      '${formatearDinero(resultado.dineroFinal)}: '
+      '**${resultado.cumpleDineroMinimoFinal ? 'cumple' : 'no cumple'}**.',
     )
     ..writeln('- Tiempo del robot: ${resultado.milisegundos} ms.');
 

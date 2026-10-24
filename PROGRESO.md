@@ -851,7 +851,7 @@ Se corrigieron **I13, I14, todos los problemas menores M1–M19** y los duplicad
 - Capturas de `capturas/` regeneradas; se añadió `ojeadores.png`.
 - Commits de la parte: **219c1b0** (modelo, lógica y migración), **8c8ff61** (interfaz) y el commit de cierre con el informe y esta sección.
 
-## Fase 3D — Staff de la agencia (en curso, 2026-10-24)
+## Fase 3D — Staff de la agencia (terminada, 2026-10-24)
 
 ### Punto 1 — Modelo, lógica y migración v13
 
@@ -886,3 +886,42 @@ Se corrigieron **I13, I14, todos los problemas menores M1–M19** y los duplicad
 - `flutter analyze` → **No issues found!**
 - `flutter test` → **264 pasan, 2 saltan** (las `lento`).
 - `test/interfaz_test.dart` → **18 pasan**, incluidas las 3 pruebas nuevas de 3D.
+
+### Punto 3 — Robot, criterios de balance e informe
+
+- **Política de staff del robot:** desde la T2 intenta contratar y mejorar al abogado; desde la T3 hace lo mismo con relaciones públicas. Solo actúa si tiene reserva para **30 semanas del gasto fijo total** (oficina + ojeadores + staff). Nunca cambia las constantes de balance.
+- **Primera medición (1 venta por semana):** el robot terminó la T3 con **$11.325** y el gasto de ojeadores de la T3 quedó en **24,6 %** de los ingresos, por encima del 15 % de 3C.
+- **Ajuste de política (ronda 3D-1, no es una constante):** se permitieron **hasta 2 ventas por semana** durante las ventanas. Resultado: T3 con **$379.880**, ingresos de la T3 **$1.163.656**, **14 ventas** y gasto de ojeadores del **1,8 %**. La tabla de «Ajustes de constantes» del informe registra la ronda 3D-1 con antes/después.
+- **Informe:** se añadió la sección «Criterios de la Fase 3D (staff)», la tabla de staff por temporada con ventas e importe, y el «Desglose del guardado final (T10)».
+- **Desglose del guardado (T10):** jugadores **3.738,0 KB** (76,6 %), resultados **826,9 KB** (16,9 %), palmarés **121,2 KB**, premios **33,3 KB**, noticias **21,0 KB**, torneos **18,1 KB**, competiciones sin resultados **14,7 KB**, resto **~105 KB**. Total **4.878,8 KB**, por debajo del tope de **4.950 KB**; no hizo falta recortar nada en `mantenimiento.dart`.
+- **Pérdidas de 1 punto:** `polemica_redes` y `rumor_negativo` siguen quitando **1** de reputación aunque la RP esté al nivel 5. No es un bug: la regla «nunca por debajo de 1 si había pérdida» lo impide y está cubierto por `test/staff_test.dart`.
+
+### Criterios de la Fase 3D medidos
+
+`INFORME_BALANCE.md` regenerado el **2026-10-24 12:14:56**, semilla **20251019**:
+
+| Criterio | Medición | Meta | Resultado |
+| --- | --- | --- | --- |
+| Abogado nivel 2 al final de la T2 | 2 | 2 | cumple |
+| Relaciones públicas nivel 2 al final de la T3 | 2 | 2 | cumple |
+| Gasto en staff de la T3 / ingresos de la T3 | $17.520 de $1.163.656 (1,5 %) | ≤ 20 % | cumple |
+| Ventas del robot por temporada | T1 12 · T2 12 · T3 14 | al menos lo mismo con abogado | cumple |
+| Tasa de aceptación con abogado (semilla fija) | sin abogado 6/21 · nivel 2 10/21 · nivel 5 16/21 | no baja de la base | cumple |
+| Dinero final de la T3 | $379.880 | ≥ $30.000 | cumple |
+| Quiebra | no | no | cumple |
+
+- **3A:** robos máximos **0** por temporada, reclutamientos mínimos **19**, **7,2 %** de los jugadores iniciales sin agente en rivales, reputación final **41** y tiempo **0,94×**.
+- **3B:** pérdidas máximas por insatisfacción o robo **0**, satisfacción media **74,3**, comisión media **5,0 %** y **0** promesas incumplidas.
+- **3C:** **2** ojeadores nivel 2, semiancho medio **13,0 → 2,8**, gasto de ojeadores **1,8 %** de los ingresos y **3 de 20** potenciales reales con rivales.
+- **Invariantes:** **0 violaciones duras**; salto máximo de habilidad **2,85** (≤ 3); progresión de 16–21 años con equipo **4,4** puntos/temporada (4–8).
+- **Tiempo T10/T1:** **0,94×** (meta ≤ 1,5×).
+- **Guardado final:** **4.878,8 KB** (meta ≤ 4.950 KB).
+
+### Verificación final
+
+- `flutter analyze` → **No issues found!**
+- `flutter test` → **268 pasan, 2 saltan** (las `@Tags(['lento'])`).
+- `flutter test --tags lento --run-skipped` → **2 pasan** (`balance_test.dart` y `robot_test.dart`).
+- Capturas golden: `staff.png` añadida y las capturas afectadas por la interfaz regeneradas en el punto 2. El punto 3 no cambia la interfaz ni el fixture, así que no hizo falta regenerarlas otra vez.
+- `versionFormato` = **13**; `versionMinimaCompatible` = **3**. Una v12 carga con staff vacío y sin gastar RNG.
+- Sin cambios pendientes en `mantenimiento.dart`: el guardado quedó por debajo del tope.

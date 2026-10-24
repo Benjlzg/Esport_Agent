@@ -283,29 +283,26 @@ void main() {
     },
   );
 
-  test(
-    'una partida v12 carga con staff vacío y sin gastar RNG',
-    () async {
-      final motor = await _partidaNueva();
-      final mapa = Map<String, dynamic>.from(motor.estado!.toJson());
-      mapa['version'] = 12;
-      // Una v12 no tenía staff: la lista debe quedar vacía y la migración no
-      // puede consumir números aleatorios.
-      mapa.remove('staff');
-      SharedPreferences.setMockInitialValues({clavePartida: jsonEncode(mapa)});
+  test('una partida v12 carga con staff vacío y sin gastar RNG', () async {
+    final motor = await _partidaNueva();
+    final mapa = Map<String, dynamic>.from(motor.estado!.toJson());
+    mapa['version'] = 12;
+    // Una v12 no tenía staff: la lista debe quedar vacía y la migración no
+    // puede consumir números aleatorios.
+    mapa.remove('staff');
+    SharedPreferences.setMockInitialValues({clavePartida: jsonEncode(mapa)});
 
-      final cargado = MotorJuego(semilla: _semilla);
-      expect(await cargado.cargar(), ResultadoCarga.ok);
-      expect(cargado.estado!.staff, isEmpty);
-      expect(cargado.estado!.toJson()['version'], 13);
+    final cargado = MotorJuego(semilla: _semilla);
+    expect(await cargado.cargar(), ResultadoCarga.ok);
+    expect(cargado.estado!.staff, isEmpty);
+    expect(cargado.estado!.toJson()['version'], 13);
 
-      // El motor recién creado no ha usado su RNG al cargar una v12 válida.
-      final esperado = Random(_semilla);
-      for (var i = 0; i < 5; i++) {
-        expect(cargado.rnd.nextDouble(), esperado.nextDouble());
-      }
-    },
-  );
+    // El motor recién creado no ha usado su RNG al cargar una v12 válida.
+    final esperado = Random(_semilla);
+    for (var i = 0; i < 5; i++) {
+      expect(cargado.rnd.nextDouble(), esperado.nextDouble());
+    }
+  });
 
   test('guarda en un archivo con respaldo .bak y sin temporales', () async {
     final motor = await _partidaNueva();

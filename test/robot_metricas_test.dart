@@ -18,6 +18,11 @@ FilaRobot _fila({
   double semiancho = 0,
   int ingresos = 0,
   int gastoOjeadores = 0,
+  int gastoStaff = 0,
+  int abogadoNivel = 0,
+  int relacionesPublicasNivel = 0,
+  int ventas = 0,
+  int ventasImporte = 0,
 }) => FilaRobot(
   temporada: temporada,
   dineroInicio: dineroInicio,
@@ -27,7 +32,7 @@ FilaRobot _fila({
   decisiones: 0,
   decisionesPorTipo: const {},
   fichajes: fichajes,
-  ventas: 0,
+  ventas: ventas,
   eventos: 0,
   ofertasRespondidas: 0,
   semanasSinOpcion: 0,
@@ -36,6 +41,10 @@ FilaRobot _fila({
   semianchoMedioFichajes: semiancho,
   ingresosTemporada: ingresos,
   gastoOjeadores: gastoOjeadores,
+  gastoStaff: gastoStaff,
+  abogadoNivel: abogadoNivel,
+  relacionesPublicasNivel: relacionesPublicasNivel,
+  ventasImporte: ventasImporte,
 );
 
 /// Resultado mínimo para probar los cálculos del informe.
@@ -289,6 +298,88 @@ void main() {
       expect(resultado.cumpleCriterioSemiancho, isFalse);
       expect(resultado.cumpleCriterioGastoOjeadores, isFalse);
       expect(resultado.cumpleCriterioTalentosRivales, isFalse);
+    });
+  });
+
+  group('staff del robot (3D)', () {
+    test('el abogado se mide al final de la T2 y la RP al final de la T3', () {
+      final resultado = _resultado(
+        filas: [
+          _fila(temporada: 1),
+          _fila(temporada: 2, abogadoNivel: 2),
+          _fila(temporada: 3, abogadoNivel: 2, relacionesPublicasNivel: 2),
+        ],
+      );
+
+      expect(resultado.cumpleCriterioAbogado, isTrue);
+      expect(resultado.cumpleCriterioRelacionesPublicas, isTrue);
+    });
+
+    test('falla si el abogado no llega a nivel 2 en la T2', () {
+      final resultado = _resultado(
+        filas: [
+          _fila(temporada: 1),
+          _fila(temporada: 2, abogadoNivel: 1),
+          _fila(temporada: 3, abogadoNivel: 2, relacionesPublicasNivel: 2),
+        ],
+      );
+
+      expect(resultado.cumpleCriterioAbogado, isFalse);
+    });
+
+    test('el gasto de staff no puede superar el 20 % de los ingresos', () {
+      final dentro = _resultado(
+        filas: [
+          _fila(temporada: 1),
+          _fila(temporada: 2),
+          _fila(
+            temporada: 3,
+            ingresos: 100000,
+            gastoStaff: 20000,
+            abogadoNivel: 2,
+            relacionesPublicasNivel: 2,
+          ),
+        ],
+      );
+      expect(dentro.cumpleCriterioGastoStaff, isTrue);
+      expect(dentro.porcentajeGastoStaffT3, closeTo(0.20, 1e-9));
+
+      final fuera = _resultado(
+        filas: [
+          _fila(temporada: 1),
+          _fila(temporada: 2),
+          _fila(
+            temporada: 3,
+            ingresos: 100000,
+            gastoStaff: 20001,
+            abogadoNivel: 2,
+            relacionesPublicasNivel: 2,
+          ),
+        ],
+      );
+      expect(fuera.cumpleCriterioGastoStaff, isFalse);
+    });
+
+    test('el informe incluye la sección de staff y las ventas', () {
+      final resultado = _resultado(
+        filas: [
+          _fila(temporada: 1, ventas: 2, ventasImporte: 30000),
+          _fila(temporada: 2, abogadoNivel: 2),
+          _fila(
+            temporada: 3,
+            abogadoNivel: 2,
+            relacionesPublicasNivel: 2,
+            ventas: 3,
+            ventasImporte: 45000,
+          ),
+        ],
+      );
+
+      final texto = seccionRobotMarkdown(resultado);
+      expect(texto, contains('### Staff (3D)'));
+      expect(texto, contains('Abogado'));
+      expect(texto, contains('Relaciones públicas'));
+      expect(texto, contains('Ventas del robot por temporada'));
     });
   });
 }

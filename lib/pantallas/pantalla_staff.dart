@@ -81,10 +81,7 @@ class PantallaStaff extends StatelessWidget {
             const Text(
               'Hay un miembro por puesto y los niveles van de 1 a 5. '
               'El salario se cobra cada semana, como la oficina.',
-              style: TextStyle(
-                color: AppColores.textoSecundario,
-                fontSize: 11,
-              ),
+              style: TextStyle(color: AppColores.textoSecundario, fontSize: 11),
             ),
           ],
         ),
@@ -197,10 +194,7 @@ class PantallaStaff extends StatelessWidget {
                   if (nivel >= 5) ...[
                     const Text(
                       'Nivel máximo',
-                      style: TextStyle(
-                        color: AppColores.dorado,
-                        fontSize: 11,
-                      ),
+                      style: TextStyle(color: AppColores.dorado, fontSize: 11),
                     ),
                     const SizedBox(width: 8),
                   ],

@@ -49,12 +49,7 @@ class MiembroStaff {
 
   /// Convierte el miembro a un mapa para guardarlo en JSON.
   Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'rol': rol.name,
-      'nombre': nombre,
-      'nivel': nivel,
-    };
+    return {'id': id, 'rol': rol.name, 'nombre': nombre, 'nivel': nivel};
   }
 
   /// Reconstruye un miembro desde JSON.

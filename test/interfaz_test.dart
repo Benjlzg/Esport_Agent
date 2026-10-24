@@ -13,6 +13,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:esport_agent/logica/motor_juego.dart';
+import 'package:esport_agent/logica/ojeadores.dart';
 import 'package:esport_agent/modelos/equipo.dart';
 import 'package:esport_agent/modelos/evento.dart';
 import 'package:esport_agent/modelos/juego.dart';
@@ -20,6 +21,7 @@ import 'package:esport_agent/pantallas/pantalla_competicion.dart';
 import 'package:esport_agent/pantallas/pantalla_detalle_jugador.dart';
 import 'package:esport_agent/pantallas/pantalla_eventos.dart';
 import 'package:esport_agent/pantallas/pantalla_negociacion.dart';
+import 'package:esport_agent/pantallas/pantalla_ojeadores.dart';
 import 'package:esport_agent/pantallas/pestana_calendario.dart';
 import 'package:esport_agent/pantallas/pestana_equipos.dart';
 import 'package:esport_agent/pantallas/pestana_ligas.dart';
@@ -245,6 +247,55 @@ void main() {
         reason: '$ruta contiene un texto visible que nombra el potencial real.',
       );
     }
+  });
+
+  testWidgets('3C: Ojeadores muestra cupos y abre la contratación', (
+    tester,
+  ) async {
+    await _pintarPantalla(tester, PantallaOjeadores(motor: motor));
+
+    expect(find.text('Red de ojeadores'), findsOneWidget);
+    expect(find.textContaining('0 de 6'), findsOneWidget);
+    expect(find.textContaining('Aún no tienes ojeadores'), findsOneWidget);
+
+    await tester.tap(find.text('Contratar ojeador'));
+    await tester.pumpAndSettle();
+    expect(find.byType(AlertDialog), findsOneWidget);
+    expect(find.text('Videojuego'), findsOneWidget);
+    expect(find.text('Región'), findsOneWidget);
+    expect(find.text('Nivel'), findsOneWidget);
+  });
+
+  testWidgets('3C: el Mercado muestra los talentos descubiertos', (
+    tester,
+  ) async {
+    final oculto = motor.jugadores.firstWhere((j) => j.oculto);
+    final region = oculto.region!;
+    await motor.contratarOjeador(juego: oculto.juego, region: region, nivel: 1);
+
+    await _pintarPestana(tester, PestanaMercado(motor: motor));
+
+    expect(find.text('Talentos descubiertos'), findsOneWidget);
+    expect(find.text('Potencial ${textoPotencial(oculto)}'), findsWidgets);
+  });
+
+  testWidgets('3C: la ficha muestra el rango y la nota del ojeador', (
+    tester,
+  ) async {
+    final oculto = motor.jugadores.firstWhere((j) => j.oculto);
+    await motor.contratarOjeador(
+      juego: oculto.juego,
+      region: oculto.region!,
+      nivel: 2,
+    );
+
+    await _pintarPantalla(
+      tester,
+      PantallaDetalleJugador(motor: motor, jugadorId: oculto.id),
+    );
+
+    expect(find.text('Potencial ${textoPotencial(oculto)}'), findsOneWidget);
+    expect(find.textContaining('Ojeador nivel 2'), findsOneWidget);
   });
 
   testWidgets('C5: Ligas abre con videojuego, región y 1ª División', (

@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 
 import '../logica/formulas.dart';
+import '../logica/ojeadores.dart';
 import '../modelos/equipo.dart';
 import '../modelos/jugador.dart';
 import '../tema/tema_app.dart';
@@ -18,6 +19,7 @@ class TarjetaJugador extends StatelessWidget {
     this.equipo,
     this.onTap,
     this.mostrarSatisfaccion = false,
+    this.notaPotencial,
   });
 
   final Jugador jugador;
@@ -29,6 +31,10 @@ class TarjetaJugador extends StatelessWidget {
 
   /// true para mostrar la barra de satisfacción (pestaña Mi agencia).
   final bool mostrarSatisfaccion;
+
+  /// Nota de precisión del potencial ("Ojeador nivel 3 · 6 semanas"). Se
+  /// muestra en el Mercado y en Mi agencia; en otras listas puede ser null.
+  final String? notaPotencial;
 
   @override
   Widget build(BuildContext context) {
@@ -91,6 +97,39 @@ class TarjetaJugador extends StatelessWidget {
                     ),
                     const SizedBox(height: 6),
                     BarraHabilidad(valor: jugador.habilidad),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.search,
+                          color: AppColores.acento2,
+                          size: 14,
+                        ),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            'Potencial ${textoPotencial(jugador)}',
+                            style: const TextStyle(
+                              color: AppColores.textoSecundario,
+                              fontSize: 11,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (notaPotencial != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 2),
+                        child: Text(
+                          notaPotencial!,
+                          style: const TextStyle(
+                            color: AppColores.textoSecundario,
+                            fontSize: 10,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
                     const SizedBox(height: 4),
                     EstrellasForma(
                       estrellas: estrellasDeNotas(jugador.ultimasNotas),

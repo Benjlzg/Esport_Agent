@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../logica/filtros_mercado.dart';
 import '../logica/motor_juego.dart';
+import '../logica/ojeadores.dart';
 import '../modelos/juego.dart';
 import '../modelos/jugador.dart';
 import '../tema/tema_app.dart';
@@ -61,9 +62,25 @@ class _PestanaMercadoState extends State<PestanaMercado> {
     return lista;
   }
 
+  /// Talentos ocultos que el jugador puede ver y que respetan los filtros.
+  List<Jugador> _talentosDescubiertos() {
+    final equipos = widget.motor.indices.equipos;
+    return widget.motor.talentosDescubiertos.where((jugador) {
+      if (_juego != null && jugador.juego != _juego) return false;
+      if (_region != null && regionDeJugador(jugador, equipos) != _region) {
+        return false;
+      }
+      return true;
+    }).toList()..sort(
+      (a, b) => puntoMedioPotencial(b).compareTo(puntoMedioPotencial(a)),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final jugadores = _filtrar();
+    final talentos = _talentosDescubiertos();
+    final mostrarTalentos = talentos.isNotEmpty;
     final regiones = _juego == null
         ? const <String>[]
         : widget.motor.regionesDeJuego(_juego!);
@@ -149,29 +166,99 @@ class _PestanaMercadoState extends State<PestanaMercado> {
               12,
               margenBotonAvanzarSemana,
             ),
-            itemCount: jugadores.length,
-            itemBuilder: (context, i) {
-              final jugador = jugadores[i];
-              return TarjetaJugador(
-                jugador: jugador,
-                equipo: jugador.equipoId == null
-                    ? null
-                    : widget.motor.equipoPorId(jugador.equipoId!),
-                onTap: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => PantallaDetalleJugador(
-                        motor: widget.motor,
-                        jugadorId: jugador.id,
-                      ),
-                    ),
-                  );
-                },
-              );
+            itemCount:
+                jugadores.length + (mostrarTalentos ? talentos.length + 2 : 0),
+            itemBuilder: (context, indice) {
+              if (mostrarTalentos) {
+                if (indice == 0) return _encabezadoTalentos();
+                if (indice <= talentos.length) {
+                  return _tarjeta(context, talentos[indice - 1]);
+                }
+                if (indice == talentos.length + 1) {
+                  return _encabezadoMercado();
+                }
+                final jugador = jugadores[indice - talentos.length - 2];
+                return _tarjeta(context, jugador);
+              }
+              return _tarjeta(context, jugadores[indice]);
             },
           ),
         ),
       ],
+    );
+  }
+
+  /// Tarjeta de jugador con su rango de potencial y la nota de precisión.
+  Widget _tarjeta(BuildContext context, Jugador jugador) {
+    return TarjetaJugador(
+      jugador: jugador,
+      equipo: jugador.equipoId == null
+          ? null
+          : widget.motor.equipoPorId(jugador.equipoId!),
+      notaPotencial: widget.motor.notaPrecisionPotencial(jugador),
+      onTap: () {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => PantallaDetalleJugador(
+              motor: widget.motor,
+              jugadorId: jugador.id,
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  /// Cabecera de la sección de talentos que solo ven los ojeadores.
+  Widget _encabezadoTalentos() {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.visibility, color: AppColores.acento2),
+                const SizedBox(width: 8),
+                const Text(
+                  'Talentos descubiertos',
+                  style: TextStyle(
+                    color: AppColores.textoPrincipal,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Jóvenes con potencial muy alto que solo aparecen si tienes un '
+              'ojeador en su región.',
+              style: const TextStyle(
+                color: AppColores.textoSecundario,
+                fontSize: 12,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Separador entre los talentos descubiertos y el mercado normal.
+  Widget _encabezadoMercado() {
+    return const Padding(
+      padding: EdgeInsets.fromLTRB(4, 8, 4, 8),
+      child: Text(
+        'Mercado',
+        style: TextStyle(
+          color: AppColores.textoPrincipal,
+          fontWeight: FontWeight.bold,
+          fontSize: 16,
+        ),
+      ),
     );
   }
 

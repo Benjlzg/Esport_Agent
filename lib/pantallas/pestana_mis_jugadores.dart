@@ -4,12 +4,14 @@
 // dentro de Mi agencia, como permite el plan.
 import 'package:flutter/material.dart';
 
+import '../logica/formulas.dart';
 import '../logica/motor_juego.dart';
 import '../tema/tema_app.dart';
 import '../widgets/tarjeta_jugador.dart';
 import 'pantalla_agentes.dart';
 import 'pantalla_detalle_jugador.dart';
 import 'pantalla_ofertas.dart';
+import 'pantalla_ojeadores.dart';
 
 class PestanaMisJugadores extends StatefulWidget {
   const PestanaMisJugadores({super.key, required this.motor});
@@ -45,20 +47,58 @@ class _PestanaMisJugadoresState extends State<PestanaMisJugadores> {
             ],
             selected: {_seccion},
             showSelectedIcon: false,
-            style: const ButtonStyle(
-              visualDensity: VisualDensity.compact,
-            ),
+            style: const ButtonStyle(visualDensity: VisualDensity.compact),
             onSelectionChanged: (seleccion) {
               setState(() => _seccion = seleccion.first);
             },
           ),
         ),
+        if (_seccion == 0) _accesoOjeadores(context),
         Expanded(
           child: _seccion == 0
               ? _misJugadores(context)
               : VistaAgentes(motor: widget.motor),
         ),
       ],
+    );
+  }
+
+  /// Acceso a la pantalla de ojeadores con cupos y gasto semanal.
+  Widget _accesoOjeadores(BuildContext context) {
+    final motor = widget.motor;
+    final cantidad = motor.ojeadores.length;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+      child: Card(
+        child: ListTile(
+          leading: const Icon(Icons.travel_explore, color: AppColores.acento2),
+          title: const Text(
+            'Ojeadores',
+            style: TextStyle(
+              color: AppColores.textoPrincipal,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          subtitle: Text(
+            cantidad == 0
+                ? 'Sin ojeadores · contrata uno para descubrir talento.'
+                : '$cantidad contratados · ${motor.cuposOjeadores} cupos · '
+                      '${formatearDinero(motor.gastoOjeadoresSemanal)}/semana',
+            style: const TextStyle(
+              color: AppColores.textoSecundario,
+              fontSize: 12,
+            ),
+          ),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => PantallaOjeadores(motor: motor),
+              ),
+            );
+          },
+        ),
+      ),
     );
   }
 
@@ -172,6 +212,7 @@ class _PestanaMisJugadoresState extends State<PestanaMisJugadores> {
             equipo: jugador.equipoId == null
                 ? null
                 : motor.equipoPorId(jugador.equipoId!),
+            notaPotencial: motor.notaPrecisionPotencial(jugador),
             mostrarSatisfaccion: true,
             onTap: () {
               Navigator.of(context).push(

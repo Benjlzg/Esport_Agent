@@ -821,3 +821,16 @@ Se corrigieron **I13, I14, todos los problemas menores M1–M19** y los duplicad
 - **Golden regeneradas en este commit 1:** el RNG cambió al asignar el error/rango inicial y la ficha muestra el rango de potencial; además se actualizó una expectativa frágil de `widget_flujo_test.dart` para leer la reputación real de la partida.
 - `flutter analyze` → **No issues found!**
 - `flutter test` → **236 pasan, 2 saltan** (las pruebas `@tags lento`).
+
+### Commit 2 — interfaz de ojeadores y potencial visible
+
+- Nueva pantalla `PantallaOjeadores`: lista de ojeadores con nombre, videojuego, región, estrellas de nivel, salario semanal, semanas contratadas y despido con confirmación.
+- Contratación con diálogo de videojuego → región → nivel, salario mostrado y confirmación; sin cuota de contratación. Máximo de 6 y cupos visibles.
+- Acceso a Ojeadores desde Mi agencia, con número de contratados, cupos y gasto semanal.
+- `TarjetaJugador` muestra el potencial con `Icons.search` y `textoPotencial`; el Mercado añade la nota de precisión del ojeador.
+- El Mercado incorpora la sección **Talentos descubiertos**, solo con ojeador en la región, y mantiene esos jugadores fuera del listado normal.
+- La ficha del jugador muestra el rango de potencial y la nota de observación (`Ojeador nivel N · X semanas`, `Sin ojeador` o `Potencial conocido`).
+- Se añadieron pruebas de interfaz para Ojeadores, talentos descubiertos y la ficha, además de la prueba que prohíbe `.potencial` directo en pantallas y widgets.
+- Capturas golden regeneradas, incluida la nueva `capturas/ojeadores.png`.
+- `flutter analyze` → **No issues found!**
+- `flutter test` → **240 pasan, 2 saltan** (las pruebas `@tags lento`).

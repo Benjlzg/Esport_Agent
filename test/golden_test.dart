@@ -26,6 +26,7 @@ import 'package:esport_agent/pantallas/pantalla_detalle_jugador.dart';
 import 'package:esport_agent/pantallas/pantalla_inicio.dart';
 import 'package:esport_agent/pantallas/pantalla_negociacion.dart';
 import 'package:esport_agent/pantallas/pantalla_ofertas.dart';
+import 'package:esport_agent/pantallas/pantalla_ojeadores.dart';
 import 'package:esport_agent/pantallas/pantalla_palmares.dart';
 import 'package:esport_agent/pantallas/pantalla_principal.dart';
 import 'package:esport_agent/tema/tema_app.dart';
@@ -96,6 +97,10 @@ void main() {
       PantallaDetalleAgenteRival(motor: _base, agenteId: rival.id),
       'detalle_agente_rival',
     );
+  });
+
+  testWidgets('ojeadores', (tester) async {
+    await _capturar(tester, PantallaOjeadores(motor: _base), 'ojeadores');
   });
 
   testWidgets('mercado', (tester) async {
@@ -266,6 +271,29 @@ Future<MotorJuego> _prepararBase() async {
   final motor = await crearPartidaSembrada(dinero: 50000000);
   motor.agente.reputacion = 100;
 
+  // Dos ojeadores nivel 2 en las regiones donde hay talentos ocultos: así la
+  // captura de Ojeadores tiene contenido y la de Mercado muestra la sección
+  // «Talentos descubiertos».
+  final paresOjeador = <({Juego juego, String region})>[];
+  for (final jugador in motor.jugadores.where((j) => j.oculto)) {
+    final region = jugador.region;
+    if (region == null) continue;
+    if (paresOjeador.any(
+      (par) => par.juego == jugador.juego && par.region == region,
+    )) {
+      continue;
+    }
+    paresOjeador.add((juego: jugador.juego, region: region));
+    if (paresOjeador.length >= 2) break;
+  }
+  for (final par in paresOjeador) {
+    await motor.contratarOjeador(
+      juego: par.juego,
+      region: par.region,
+      nivel: 2,
+    );
+  }
+
   // La captura debe seguir teniendo representados al llegar a la semana 47.
   // Se eligen jugadores de equipo titular (no suplentes) de 1ª División que
   // no sean de élite; así sus expectativas quedan cumplidas y la satisfacción
@@ -334,8 +362,7 @@ Future<MotorJuego> _prepararEvento() async {
 Future<MotorJuego> _prepararOferta() async {
   final motor = await crearPartidaSembrada(dinero: 50000000);
   motor.agente.reputacion = 100;
-  final candidatos =
-      motor.estado!.jugadores.where((j) => j.sinAgente).toList();
+  final candidatos = motor.estado!.jugadores.where((j) => j.sinAgente).toList();
   Jugador? jugador;
   for (final candidato in candidatos) {
     final resultado = await motor.reclutar(candidato);

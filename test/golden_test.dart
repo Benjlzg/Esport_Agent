@@ -17,6 +17,7 @@ import 'package:esport_agent/modelos/evento.dart';
 import 'package:esport_agent/modelos/juego.dart';
 import 'package:esport_agent/modelos/jugador.dart';
 import 'package:esport_agent/modelos/oferta.dart';
+import 'package:esport_agent/modelos/staff.dart';
 import 'package:esport_agent/pantallas/pantalla_ajustes.dart';
 import 'package:esport_agent/pantallas/pantalla_ceremonia_premios.dart';
 import 'package:esport_agent/pantallas/pantalla_crear_agente.dart';
@@ -29,6 +30,7 @@ import 'package:esport_agent/pantallas/pantalla_ofertas.dart';
 import 'package:esport_agent/pantallas/pantalla_ojeadores.dart';
 import 'package:esport_agent/pantallas/pantalla_palmares.dart';
 import 'package:esport_agent/pantallas/pantalla_principal.dart';
+import 'package:esport_agent/pantallas/pantalla_staff.dart';
 import 'package:esport_agent/tema/tema_app.dart';
 
 import 'apoyo/entorno_simulacion.dart';
@@ -41,6 +43,7 @@ late MotorJuego _base;
 late MotorJuego _conEvento;
 late MotorJuego _conOferta;
 late MotorJuego _conCeremonia;
+late MotorJuego _conStaff;
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -52,6 +55,7 @@ void main() {
     _base = await _prepararBase();
     _conEvento = await _prepararEvento();
     _conOferta = await _prepararOferta();
+    _conStaff = await _prepararStaff();
     // La ceremonia usa la misma partida avanzada: ya tiene premios reales.
     _conCeremonia = _base;
   });
@@ -101,6 +105,10 @@ void main() {
 
   testWidgets('ojeadores', (tester) async {
     await _capturar(tester, PantallaOjeadores(motor: _base), 'ojeadores');
+  });
+
+  testWidgets('staff', (tester) async {
+    await _capturar(tester, PantallaStaff(motor: _conStaff), 'staff');
   });
 
   testWidgets('mercado', (tester) async {
@@ -355,6 +363,24 @@ Future<MotorJuego> _prepararEvento() async {
       semana: motor.semana,
     ),
   );
+  return motor;
+}
+
+/// Partida con staff contratado para la captura de la pantalla Staff.
+Future<MotorJuego> _prepararStaff() async {
+  final motor = await crearPartidaSembrada(dinero: 50000000);
+  motor.agente.reputacion = 100;
+
+  await motor.contratarStaff(RolStaff.abogado);
+  final abogado = motor.miembroStaff(RolStaff.abogado)!;
+  await motor.mejorarStaff(abogado); // Nivel 2.
+
+  await motor.contratarStaff(RolStaff.relacionesPublicas);
+  final rp = motor.miembroStaff(RolStaff.relacionesPublicas)!;
+  await motor.mejorarStaff(rp);
+  await motor.mejorarStaff(rp); // Nivel 3.
+
+  await motor.contratarStaff(RolStaff.preparador); // Nivel 1.
   return motor;
 }
 

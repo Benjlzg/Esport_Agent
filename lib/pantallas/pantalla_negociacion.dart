@@ -141,6 +141,12 @@ class _PantallaNegociacionState extends State<PantallaNegociacion> {
     final recienFichado = jugador.bloqueadoTraspaso(motor.temporada);
     final semanasFaltantes =
         semanasMinimasRepresentacion - jugador.semanasRepresentado;
+    final margenAceptacion = motor.margenAceptacionPara(equipoSeleccionado);
+    final limiteAceptacionActual = motor.limiteAceptacionPara(
+      equipoSeleccionado,
+    );
+    final precioMaximoAceptado =
+        (jugador.valorMercado * limiteAceptacionActual).round();
 
     return Scaffold(
       appBar: AppBar(title: Text('Ofrecer a ${jugador.nick}')),
@@ -245,6 +251,17 @@ class _PantallaNegociacionState extends State<PantallaNegociacion> {
                       color: AppColores.acento2,
                       fontSize: 22,
                       fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Límite de aceptación: '
+                    '${formatearDinero(precioMaximoAceptado)} '
+                    '(${(limiteAceptacionActual * 100).round()} % del valor)'
+                    '${margenAceptacion > 0 ? '. Incluye el margen de tu staff.' : '.'}',
+                    style: const TextStyle(
+                      color: AppColores.textoSecundario,
+                      fontSize: 12,
                     ),
                   ),
                 ],

@@ -17,11 +17,13 @@ import 'package:esport_agent/logica/ojeadores.dart';
 import 'package:esport_agent/modelos/equipo.dart';
 import 'package:esport_agent/modelos/evento.dart';
 import 'package:esport_agent/modelos/juego.dart';
+import 'package:esport_agent/modelos/staff.dart';
 import 'package:esport_agent/pantallas/pantalla_competicion.dart';
 import 'package:esport_agent/pantallas/pantalla_detalle_jugador.dart';
 import 'package:esport_agent/pantallas/pantalla_eventos.dart';
 import 'package:esport_agent/pantallas/pantalla_negociacion.dart';
 import 'package:esport_agent/pantallas/pantalla_ojeadores.dart';
+import 'package:esport_agent/pantallas/pantalla_staff.dart';
 import 'package:esport_agent/pantallas/pestana_calendario.dart';
 import 'package:esport_agent/pantallas/pestana_equipos.dart';
 import 'package:esport_agent/pantallas/pestana_ligas.dart';
@@ -478,6 +480,70 @@ void main() {
 
     expect(find.textContaining(r'−$1.000'), findsOneWidget);
     expect(find.textContaining('30 %'), findsOneWidget);
+  });
+
+  testWidgets('3D: Staff muestra los tres puestos y el gasto semanal', (
+    tester,
+  ) async {
+    await motor.contratarStaff(RolStaff.abogado);
+    await _pintarPantalla(tester, PantallaStaff(motor: motor));
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('Staff de la agencia'), findsOneWidget);
+    for (final rol in ['Abogado', 'Relaciones públicas', 'Preparador']) {
+      expect(find.text(rol), findsOneWidget);
+    }
+    // Un puesto contratado y dos vacantes.
+    expect(find.text('Vacante'), findsNWidgets(2));
+    expect(find.textContaining('Gasto fijo total:'), findsOneWidget);
+    expect(find.textContaining('nivel 1'), findsOneWidget);
+  });
+
+  testWidgets('3D: Mi agencia muestra la línea de gasto fijo total', (
+    tester,
+  ) async {
+    final jugador = motor.jugadores.firstWhere(
+      (j) => j.equipoId == null && j.sinAgente,
+    );
+    motor.estado!.agentesRivales.clear();
+    await motor.reclutar(jugador);
+
+    await _pintarPestana(tester, PestanaMisJugadores(motor: motor));
+    expect(tester.takeException(), isNull);
+    expect(find.textContaining('Gasto fijo semanal:'), findsOneWidget);
+    expect(find.textContaining('Academia'), findsOneWidget);
+    expect(find.text('Staff'), findsOneWidget);
+  });
+
+  testWidgets('3D: la negociación muestra el límite con abogado nivel 5', (
+    tester,
+  ) async {
+    final jugador = motor.jugadores.firstWhere((j) {
+      if (j.equipoId != null) return false;
+      return motor
+          .equiposDeJuego(j.juego)
+          .any(
+            (e) =>
+                motor.interesDe(j, e) != NivelInteres.sinInteres &&
+                !motor.bloqueado(j, e),
+          );
+    });
+    await motor.reclutar(jugador);
+    await motor.contratarStaff(RolStaff.abogado);
+    final abogado = motor.miembroStaff(RolStaff.abogado)!;
+    while (abogado.nivel < 5) {
+      await motor.mejorarStaff(abogado);
+    }
+
+    await _pintarPantalla(
+      tester,
+      PantallaNegociacion(motor: motor, jugadorId: jugador.id),
+      tamano: _pantallaPequena,
+    );
+
+    expect(tester.takeException(), isNull);
+    expect(find.textContaining('Límite de aceptación:'), findsOneWidget);
+    expect(find.textContaining('115 % del valor'), findsOneWidget);
   });
 }
 

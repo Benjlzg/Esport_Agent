@@ -6,12 +6,14 @@ import 'package:flutter/material.dart';
 
 import '../logica/formulas.dart';
 import '../logica/motor_juego.dart';
+import '../modelos/staff.dart';
 import '../tema/tema_app.dart';
 import '../widgets/tarjeta_jugador.dart';
 import 'pantalla_agentes.dart';
 import 'pantalla_detalle_jugador.dart';
 import 'pantalla_ofertas.dart';
 import 'pantalla_ojeadores.dart';
+import 'pantalla_staff.dart';
 
 class PestanaMisJugadores extends StatefulWidget {
   const PestanaMisJugadores({super.key, required this.motor});
@@ -53,7 +55,7 @@ class _PestanaMisJugadoresState extends State<PestanaMisJugadores> {
             },
           ),
         ),
-        if (_seccion == 0) _accesoOjeadores(context),
+        if (_seccion == 0) _accesosAgencia(context),
         Expanded(
           child: _seccion == 0
               ? _misJugadores(context)
@@ -63,43 +65,125 @@ class _PestanaMisJugadoresState extends State<PestanaMisJugadores> {
     );
   }
 
-  /// Acceso a la pantalla de ojeadores con cupos y gasto semanal.
-  Widget _accesoOjeadores(BuildContext context) {
+  /// Accesos a ojeadores y staff, con la línea del gasto fijo semanal.
+  ///
+  /// El gasto total suma oficina + ojeadores + staff + academia. La academia
+  /// todavía no existe (Parte 3E), así que su hueco vale 0 por ahora.
+  Widget _accesosAgencia(BuildContext context) {
     final motor = widget.motor;
-    final cantidad = motor.ojeadores.length;
+    final cantidadOjeadores = motor.ojeadores.length;
+    final resumenStaff = _resumenStaff();
     return Padding(
       padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
       child: Card(
-        child: ListTile(
-          leading: const Icon(Icons.travel_explore, color: AppColores.acento2),
-          title: const Text(
-            'Ojeadores',
-            style: TextStyle(
-              color: AppColores.textoPrincipal,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          subtitle: Text(
-            cantidad == 0
-                ? 'Sin ojeadores · contrata uno para descubrir talento.'
-                : '$cantidad contratados · ${motor.cuposOjeadores} cupos · '
-                      '${formatearDinero(motor.gastoOjeadoresSemanal)}/semana',
-            style: const TextStyle(
-              color: AppColores.textoSecundario,
-              fontSize: 12,
-            ),
-          ),
-          trailing: const Icon(Icons.chevron_right),
-          onTap: () {
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => PantallaOjeadores(motor: motor),
+        child: Column(
+          children: [
+            ListTile(
+              leading: const Icon(
+                Icons.travel_explore,
+                color: AppColores.acento2,
               ),
-            );
-          },
+              title: const Text(
+                'Ojeadores',
+                style: TextStyle(
+                  color: AppColores.textoPrincipal,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              subtitle: Text(
+                cantidadOjeadores == 0
+                    ? 'Sin ojeadores · contrata uno para descubrir talento.'
+                    : '$cantidadOjeadores contratados · '
+                          '${motor.cuposOjeadores} cupos · '
+                          '${formatearDinero(motor.gastoOjeadoresSemanal)}/semana',
+                style: const TextStyle(
+                  color: AppColores.textoSecundario,
+                  fontSize: 12,
+                ),
+              ),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => PantallaOjeadores(motor: motor),
+                  ),
+                );
+              },
+            ),
+            const Divider(height: 1),
+            ListTile(
+              leading: const Icon(Icons.badge, color: AppColores.acento),
+              title: const Text(
+                'Staff',
+                style: TextStyle(
+                  color: AppColores.textoPrincipal,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              subtitle: Text(
+                resumenStaff,
+                style: const TextStyle(
+                  color: AppColores.textoSecundario,
+                  fontSize: 12,
+                ),
+              ),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => PantallaStaff(motor: motor),
+                  ),
+                );
+              },
+            ),
+            const Divider(height: 1),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Gasto fijo semanal: '
+                    '${formatearDinero(motor.gastoFijoSemanalTotal)}',
+                    style: const TextStyle(
+                      color: AppColores.textoPrincipal,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Oficina ${formatearDinero(gastoOficinaSemanal)} · '
+                    'Ojeadores ${formatearDinero(motor.gastoOjeadoresSemanal)} · '
+                    'Staff ${formatearDinero(motor.gastoStaffSemanal)} · '
+                    'Academia ${formatearDinero(motor.gastoAcademiaSemanal)}',
+                    style: const TextStyle(
+                      color: AppColores.textoSecundario,
+                      fontSize: 11,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );
+  }
+
+  /// Resumen corto del staff para la tarjeta de Mi agencia.
+  String _resumenStaff() {
+    final motor = widget.motor;
+    final abogado = motor.nivelStaff(RolStaff.abogado);
+    final rp = motor.nivelStaff(RolStaff.relacionesPublicas);
+    final preparador = motor.nivelStaff(RolStaff.preparador);
+    if (abogado == 0 && rp == 0 && preparador == 0) {
+      return 'Sin staff · mejora tu agencia con abogado, relaciones '
+          'públicas y preparador.';
+    }
+    String nivel(int valor) => valor == 0 ? 'vacante' : 'nivel $valor';
+    return 'Abogado ${nivel(abogado)} · Relaciones públicas ${nivel(rp)} · '
+        'Preparador ${nivel(preparador)}';
   }
 
   /// Lista de mis representados y acceso a las ofertas pendientes.
@@ -187,6 +271,8 @@ class _PestanaMisJugadoresState extends State<PestanaMisJugadores> {
             mainAxisSize: MainAxisSize.min,
             children: [
               if (acceso != null) ...[acceso, const SizedBox(height: 16)],
+              _accesosAgencia(context),
+              const SizedBox(height: 16),
               const Text(
                 'Aún no representas a nadie. Ve al Mercado para reclutar tu primer jugador.',
                 textAlign: TextAlign.center,

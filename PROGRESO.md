@@ -872,3 +872,17 @@ Se corrigieron **I13, I14, todos los problemas menores M1–M19** y los duplicad
 - `flutter test` → **260 pasan, 2 saltan** (las `lento`).
 - `test/staff_test.dart` cubre modelo, tope del abogado con contacto, tasa de aceptación con semilla fija, retirada, RP (reputación/moral/valor, costos y jugadores de la IA), idempotencia, preparador (jóvenes, adultos y 28+), salarios y acciones.
 - `test/guardado_test.dart` carga una v12 con staff vacío y sin gastar RNG, y comprueba que se reguarda como v13.
+
+### Punto 2 — Interfaz
+
+- **Nueva `lib/pantallas/pantalla_staff.dart`:** tres puestos fijos con nombre, nivel en estrellas (`Icons.star` / `Icons.star_border`), salario semanal y efecto explicado. Contratar entra en nivel 1; Mejorar muestra el coste de la diferencia de 13 semanas; Despedir es gratis. Las tres acciones piden confirmación.
+- **Mi agencia:** la tarjeta de ojeadores pasa a ser una tarjeta de agencia con dos accesos (Ojeadores y Staff) y una línea de **gasto fijo semanal** con el desglose Oficina + Ojeadores + Staff + Academia. La academia vale 0 hasta la Parte 3E, pero el hueco ya está preparado.
+- **Negociación:** la tarjeta del valor de mercado muestra el **límite de aceptación** en dinero y porcentaje (1,05 → 1,15 con el abogado y el contacto grande).
+- **Pruebas de interfaz:** `test/interfaz_test.dart` comprueba los tres puestos, el gasto fijo de Mi agencia y el límite del 115 % con abogado nivel 5 a 320 px.
+- **Golden:** se añadió `capturas/staff.png`; también se regeneraron `mi_agencia.png`, `negociacion.png` y las capturas afectadas por la nueva tarjeta de agencia.
+
+### Verificación del punto 2
+
+- `flutter analyze` → **No issues found!**
+- `flutter test` → **264 pasan, 2 saltan** (las `lento`).
+- `test/interfaz_test.dart` → **18 pasan**, incluidas las 3 pruebas nuevas de 3D.

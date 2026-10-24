@@ -925,3 +925,64 @@ Se corrigieron **I13, I14, todos los problemas menores M1–M19** y los duplicad
 - Capturas golden: `staff.png` añadida y las capturas afectadas por la interfaz regeneradas en el punto 2. El punto 3 no cambia la interfaz ni el fixture, así que no hizo falta regenerarlas otra vez.
 - `versionFormato` = **13**; `versionMinimaCompatible` = **3**. Una v12 carga con staff vacío y sin gastar RNG.
 - Sin cambios pendientes en `mantenimiento.dart`: el guardado quedó por debajo del tope.
+
+## Fase 3E — Academia (terminada, 2026-10-24)
+
+### Implementación
+
+- **Nuevos campos de `Jugador`:** `enAcademia`, `semanasEnAcademia` y `candidatoAcademia`. Se serializan **solo cuando no valen su valor por defecto**, así el guardado no crece con cientos de `false` y `0`.
+- **`versionFormato` = 14**; `versionMinimaCompatible` sigue en **3**. Una partida v13 carga con los tres campos en `false`, sin generar candidatos y sin gastar RNG; los candidatos llegan al empezar la siguiente temporada.
+- **Nuevo `lib/logica/academia.dart`:** capacidad de 4 plazas, coste de fichaje $500, mantenimiento $150 por joven y semana, 8 candidatos por temporada (2 por videojuego) de 15–17 años, habilidad 25–45 y potencial 60–95.
+- **Reglas de colocación:** solo en ventanas de fichajes (semanas 1–4, 23–26 y 47–52), edad ≥ 17, 4 semanas de entrenamiento y habilidad ≥ 45. Solo equipos de 2ª División del mismo videojuego con presupuesto suficiente.
+- **Dinero de la colocación:** el equipo paga el valor de mercado completo, sin club vendedor. La agencia cobra los derechos de formación en la fila **Academia**; `porcentajeDerechosFormacion` queda en 1,0. El joven firma 52 semanas con su equipo y recibe contrato de representación de 52 semanas / 5 % y expectativas de 3B.
+- **Potencial oculto:** los candidatos nacen con `inicializarPotencialJugador` (error fijo ±15) y solo los estrecha un ojeador si coinciden juego y región. Ya en la academia, el semiancho baja por `floor(semanasEnAcademia / 2)` aunque no haya ojeador y nunca se reabre.
+- **Aislamiento:** los jóvenes de la academia no cuentan en `misJugadores`, ranking ni valor de cartera; no pagan comisión, no tienen expectativas ni satisfacción, no renuncian ni pueden ser robados; no reciben ofertas ni eventos de jugador; los rivales, la IA, el mercado y el mantenimiento no los consideran. La ficha oculta satisfacción, contrato de representación, «Hablar con él», «Renegociar» y «Ofrecer a un equipo», y muestra un acceso directo a Academia.
+- **Progresión:** ×1.5 mientras entrenan. El preparador no se apila (el multiplicador del staff se ignora con `enAcademia`).
+- **Salida:** a los 18 sin colocar, 20 % semanal de quedar libre; «Soltar» también los deja como agentes libres.
+- **Cambio de temporada:** primero se destapan los talentos ocultos y los candidatos no reclutados; después se generan los ocultos nuevos y los 8 candidatos. Los candidatos antiguos pasan a agentes libres normales.
+- **Interfaz:** nueva pantalla **Academia** con plazas, gasto, candidatos, entrenamiento, colocación y salida. Mi agencia muestra un contador aparte (jóvenes, plazas y gasto) y la lista normal no los mezcla. Resumen avisa **«Tienes jóvenes listos para colocar»**. Noticias de fichaje, colocación y salida.
+- **Robot:** recluta 2 jóvenes en la T1 (16–17 años, mayor habilidad y punto medio del rango) solo si tiene reserva para 30 semanas del gasto fijo total. Coloca en cuanto hay ventana. Sus reclutamientos de academia llevan métrica aparte y **no cuentan** para el criterio 3A de ≥ 5 reclutamientos normales. No revende a los jóvenes colocados y mantiene la política de hasta 2 ventas por semana.
+
+### Criterios de la Fase 3E medidos
+
+`INFORME_BALANCE.md` regenerado el **2026-10-24 13:22:52**, semilla **20251019**:
+
+| Criterio | Medición | Meta | Resultado |
+| --- | --- | --- | --- |
+| Jóvenes reclutados en la T1 / colocados antes de terminar la T2 | 2 / 2 | 2 / ≥ 1 | cumple |
+| Saldo neto de la academia | $333.600 | ≥ $0 o pérdida ≤ $30.000 | cumple |
+| Habilidad media al colocar | 46,5 | 45–65 | cumple |
+| Jóvenes de la academia en manos de rivales | 0 | 0 | cumple |
+| Ingreso de academia de la T3 / ingresos de la T3 | $0 de $1.057.083 (0,0 %) | ≤ 20 % | cumple |
+
+- **Sin rondas de ajuste:** el ingreso de academia de la T3 no superó el 20 %, así que `porcentajeDerechosFormacion` se mantiene en 1,0 y `habilidadMinimaColocar` en 45.
+- **Robot conservador (solo informativo):** misma semilla y 1 venta por semana; termina la T3 con **$104.913**, sin quiebra, y el gasto fijo de la T3 es el **16,8 %** de los ingresos.
+
+### Retrocesos comprobados (3A–3D)
+
+- **3A:** robos máximos **0** por temporada, reclutamientos mínimos **17** (sin contar academia), **7,2 %** de los jugadores iniciales sin agente en rivales, reputación final **45** y tiempo **1,33×**.
+- **3B:** pérdidas máximas por insatisfacción o robo **1**, satisfacción media **80,1**, comisión media **5,0 %** y **1** promesa incumplida.
+- **3C:** **2** ojeadores nivel 2, semiancho medio **13,7 → 1,6**, gasto de ojeadores **2,0 %** de los ingresos y **4 de 20** potenciales reales con rivales.
+- **3D:** abogado **2** al final de la T2, RP **2** al final de la T3, gasto de staff **1,7 %** de los ingresos, **13/14/10** ventas y dinero final **$720.289**.
+- **Invariantes:** **0 violaciones duras**; salto máximo de habilidad **2,87** (≤ 3); progresión de 16–21 años con equipo **4,4** puntos/temporada (4–8).
+- **Tiempo T10/T1:** **1,33×** (meta ≤ 1,5×).
+- **Guardado final:** **4.875,9 KB** (tope 5.000 KB). No hizo falta borrar datos históricos ni tocar `mantenimiento.dart`.
+
+### Pruebas automáticas y pruebas manuales
+
+- `test/academia_test.dart` cubre generación de candidatos, plazas y costos, mantenimiento semanal, potencial de academia, progresión ×1.5, preparador sin apilar, salida a los 18, colocación (ventana, edad, semanas, habilidad, 2ª División, valor completo y derechos), aislamiento de rivales/IA/mantenimiento/eventos, y destape de candidatos al cambiar de temporada.
+- `test/guardado_test.dart` cubre la carga de una v13 sin gastar RNG y la serialización condicional de los tres campos.
+- `test/interfaz_test.dart` cubre la ficha de un joven de academia, el acceso a Academia, el contador separado en Mi agencia y el aviso de Resumen.
+- `test/robot_metricas_test.dart` y `test/robot_test.dart` cubren las métricas y los criterios 3E, incluida la separación de los reclutamientos de academia del criterio 3A.
+- **La lista de pruebas manuales de `PLAN_FASE3.md` se deja sin marcar**: las valida el usuario jugando.
+
+### Verificación final
+
+- `flutter analyze` → **No issues found!**
+- `flutter test` → **297 pasan, 2 saltan** (las pruebas `@Tags(['lento'])`).
+- `flutter test --tags lento --run-skipped` → **2 pasan** (`balance_test.dart` y `robot_test.dart`).
+- `versionFormato` = **14**; `versionMinimaCompatible` = **3**.
+- Capturas regeneradas; se añadió `capturas/academia.png`.
+- Commits de la parte: **635b389** (modelo, lógica y migración v14), **356d3e5** (interfaz de Academia y capturas) y el commit de cierre de 3E (robot, criterios 3E e informe de balance).
+
+Fase 3 terminada

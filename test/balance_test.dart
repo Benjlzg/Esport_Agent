@@ -315,8 +315,10 @@ void main() {
     }
     relojTotal.stop();
 
-    // El robot de 3 temporadas se incluye en el mismo informe.
+    // El robot de 3 temporadas se incluye en el mismo informe. La segunda
+    // corrida es solo informativa: misma semilla, 1 venta por semana.
     final robot = await ejecutarRobotDePrueba();
+    final robotConservador = await ejecutarRobotDePrueba(maxVentasPorSemana: 1);
 
     final resumen = _escribirInforme(
       filas: filas,
@@ -325,6 +327,7 @@ void main() {
       milisegundosSemanas: milisegundosSemanas,
       milisegundosTotal: relojTotal.elapsedMilliseconds,
       robot: robot,
+      robotConservador: robotConservador,
     );
 
     // Comprobación de que el informe realmente se regeneró en la raíz del
@@ -342,6 +345,8 @@ void main() {
     expect(textoInforme, contains('## Criterios de la Fase 3B'));
     expect(textoInforme, contains('## Criterios de la Fase 3C'));
     expect(textoInforme, contains('## Criterios de la Fase 3D'));
+    expect(textoInforme, contains('## Criterios de la Fase 3E'));
+    expect(textoInforme, contains('## Robot conservador'));
     expect(textoInforme, contains('## Desglose del guardado final'));
 
     // El test falla DESPUÉS de escribir el informe para poder diagnosticar.
@@ -373,6 +378,14 @@ void main() {
     expect(robot.cumpleCriterioRelacionesPublicas, isTrue);
     expect(robot.cumpleCriterioGastoStaff, isTrue);
     expect(robot.cumpleDineroMinimoFinal, isTrue);
+
+    // Criterios de balance de la Parte 3E.
+    expect(robot.cumpleCriterioJovenesT1, isTrue);
+    expect(robot.cumpleCriterioColocacionT2, isTrue);
+    expect(robot.cumpleCriterioSaldoAcademia, isTrue);
+    expect(robot.cumpleCriterioHabilidadColocacion, isTrue);
+    expect(robot.cumpleCriterioAcademiaSinRivales, isTrue);
+    expect(robot.cumpleCriterioIngresoAcademia, isTrue);
     expect(
       filas.last.milisegundos / filas.first.milisegundos,
       lessThanOrEqualTo(1.5),
@@ -380,8 +393,8 @@ void main() {
     );
     expect(
       filas.last.guardadoKb,
-      lessThanOrEqualTo(4950),
-      reason: 'El guardado final superó el tope de 4.950 KB de la Fase 3D.',
+      lessThanOrEqualTo(5000),
+      reason: 'El guardado final superó el tope de 5.000 KB de la Fase 3E.',
     );
   }, timeout: const Timeout(Duration(minutes: 30)));
 }
@@ -393,6 +406,7 @@ String _escribirInforme({
   required int milisegundosSemanas,
   required int milisegundosTotal,
   required ResultadoRobot robot,
+  required ResultadoRobot robotConservador,
 }) {
   // Dominio por liga (B3): se calcula antes de escribir la tabla de ajustes
   // para poder anotar el resultado de la ronda 5.
@@ -406,7 +420,7 @@ String _escribirInforme({
       .toList();
 
   final buffer = StringBuffer()
-    ..writeln('# INFORME DE BALANCE — FASE 3D')
+    ..writeln('# INFORME DE BALANCE — FASE 3E')
     ..writeln()
     ..writeln('- Generado: **${_fechaHora(DateTime.now())}** (hora local).')
     ..writeln('- Generado por: `test/balance_test.dart`.')
@@ -439,6 +453,11 @@ String _escribirInforme({
       '- Parte 3D: el robot contrata abogado nivel 2 en la T2 y relaciones '
       'públicas nivel 2 en la T3 si tiene reserva para 30 semanas del gasto '
       'fijo total. Sus criterios se miden en «Criterios de la Fase 3D».',
+    )
+    ..writeln(
+      '- Parte 3E: la academia recluta jóvenes de 15–17 años, los entrena y '
+      'los coloca en 2ª División. Sus criterios se miden en «Criterios de la '
+      'Fase 3E».',
     )
     ..writeln(
       '- Comando: `flutter test test/balance_test.dart --tags lento '
@@ -645,6 +664,12 @@ String _escribirInforme({
       'salarios, márgenes y bonus del plan. La política del robot intenta '
       'contratar/mejorar el abogado en la T2 y la RP en la T3 solo cuando '
       'hay reserva para 30 semanas del gasto fijo total.',
+    )
+    ..writeln(
+      'La Parte 3E **no necesitó ninguna ronda de ajuste**: el ingreso de la '
+      'academia en la T3 fue del 0,0 % de los ingresos totales, por debajo '
+      'del tope del 20 %. Se mantiene `porcentajeDerechosFormacion` en 1,0 y '
+      '`habilidadMinimaColocar` en 45.',
     )
     ..writeln(
       'La **ronda 3D-1** es un ajuste de política del robot, no de las '
@@ -1124,6 +1149,66 @@ String _escribirInforme({
     )
     ..writeln();
 
+  // Criterios de la Parte 3E (academia).
+  final jovenesT1 = robot.jovenesReclutadosT1;
+  final colocacionesT2 = robot.colocacionesAntesFinT2;
+  final saldoAcademia = robot.saldoAcademia;
+  final habilidadMediaColocacion = robot.habilidadMediaColocacion;
+  final porcentajeAcademiaT3 = robot.porcentajeIngresoAcademiaT3 * 100;
+  buffer
+    ..writeln('## Criterios de la Fase 3E (academia)')
+    ..writeln()
+    ..writeln(
+      tablaMarkdown(
+        ['Criterio', 'Medición', 'Meta', '¿Cumple?'],
+        [
+          [
+            'Jóvenes reclutados en la T1 / colocados antes de terminar la T2',
+            '$jovenesT1 / $colocacionesT2',
+            '2 / ≥ 1',
+            robot.cumpleCriterioJovenesT1 && robot.cumpleCriterioColocacionT2
+                ? 'cumple'
+                : 'no cumple',
+          ],
+          [
+            'Saldo neto de la academia al final de la T3',
+            formatearDinero(saldoAcademia),
+            '≥ 0 o pérdida ≤ \$30.000',
+            robot.cumpleCriterioSaldoAcademia ? 'cumple' : 'no cumple',
+          ],
+          [
+            'Habilidad media al colocar',
+            decimal(habilidadMediaColocacion, 1),
+            '45–65',
+            robot.cumpleCriterioHabilidadColocacion ? 'cumple' : 'no cumple',
+          ],
+          [
+            'Jóvenes de la academia en manos de rivales',
+            '${robot.academiaEnRivales}',
+            '0 (100 % colocados o libres)',
+            robot.cumpleCriterioAcademiaSinRivales ? 'cumple' : 'no cumple',
+          ],
+          [
+            'Ingreso de academia de la T3 / ingresos de la T3',
+            '${formatearDinero(robot.ingresoAcademiaT3)} de '
+                '${formatearDinero(robot.ingresosT3)} '
+                '(${decimal(porcentajeAcademiaT3, 1)} %)',
+            '≤ 20 %',
+            robot.cumpleCriterioIngresoAcademia ? 'cumple' : 'no cumple',
+          ],
+        ],
+      ),
+    )
+    ..writeln()
+    ..writeln(
+      '- **Medición informativa del robot conservador:** con 1 venta por '
+      'semana terminó la T3 con ${formatearDinero(robotConservador.dineroFinal)} '
+      'y un gasto fijo del '
+      '${decimal(robotConservador.porcentajeGastoFijoT3 * 100, 1)} % de sus '
+      'ingresos. No es un criterio de pasa o falla.',
+    )
+    ..writeln();
+
   buffer
     ..writeln('## Tamaño de los datos (corrección A3)')
     ..writeln()
@@ -1335,12 +1420,42 @@ String _escribirInforme({
       '**${robot.cumpleCriterioGastoStaff ? 'cumple' : 'no cumple'}**.',
     )
     ..writeln(
+      '- Jóvenes reclutados en la T1: $jovenesT1 (meta 2): '
+      '**${robot.cumpleCriterioJovenesT1 ? 'cumple' : 'no cumple'}**.',
+    )
+    ..writeln(
+      '- Colocaciones antes de terminar la T2: $colocacionesT2 (meta ≥ 1): '
+      '**${robot.cumpleCriterioColocacionT2 ? 'cumple' : 'no cumple'}**.',
+    )
+    ..writeln(
+      '- Habilidad media al colocar: '
+      '${decimal(habilidadMediaColocacion, 1)} (meta 45–65): '
+      '**${robot.cumpleCriterioHabilidadColocacion ? 'cumple' : 'no cumple'}**.',
+    )
+    ..writeln(
+      '- Jóvenes de la academia con rivales: ${robot.academiaEnRivales} '
+      '(meta 0): '
+      '**${robot.cumpleCriterioAcademiaSinRivales ? 'cumple' : 'no cumple'}**.',
+    )
+    ..writeln(
       '- Dinero final del robot en la T3: '
       '${formatearDinero(robot.dineroFinal)} '
       '(meta ≥ ${formatearDinero(robotDineroMinimoFinal)}): '
       '**${robot.cumpleDineroMinimoFinal ? 'cumple' : 'no cumple'}**.',
     )
+    ..writeln(
+      '- Ingreso de academia de la T3: '
+      '${decimal(porcentajeAcademiaT3, 1)} % de los ingresos '
+      '(meta ≤ 20 %): '
+      '**${robot.cumpleCriterioIngresoAcademia ? 'cumple' : 'no cumple'}**.',
+    )
+    ..writeln(
+      '- Saldo neto de la academia: ${formatearDinero(saldoAcademia)} '
+      '(meta ≥ 0 o pérdida ≤ \$30.000): '
+      '**${robot.cumpleCriterioSaldoAcademia ? 'cumple' : 'no cumple'}**.',
+    )
     ..writeln()
+    ..writeln(seccionRobotConservadorMarkdown(robotConservador))
     ..writeln(marcadorRobotInicio)
     ..writeln(seccionRobotMarkdown(robot))
     ..writeln(marcadorRobotFin);

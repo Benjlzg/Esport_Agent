@@ -168,5 +168,52 @@ void main() {
           'El robot terminó la T3 con ${resultado.dineroFinal} '
           '(mínimo $robotDineroMinimoFinal).',
     );
+
+    // Criterios de balance de la Parte 3E (academia). Los reclutamientos de
+    // academia no cuentan para el criterio de 3A.
+    expect(
+      resultado.cumpleCriterioJovenesT1,
+      isTrue,
+      reason:
+          'El robot reclutó ${resultado.jovenesReclutadosT1} jóvenes en la T1 '
+          '(meta $robotJovenesT1).',
+    );
+    expect(
+      resultado.cumpleCriterioColocacionT2,
+      isTrue,
+      reason:
+          'El robot colocó ${resultado.colocacionesAntesFinT2} jóvenes antes '
+          'de terminar la T2 (meta ≥ 1).',
+    );
+    expect(
+      resultado.cumpleCriterioSaldoAcademia,
+      isTrue,
+      reason:
+          'El saldo de la academia fue ${resultado.saldoAcademia} '
+          '(pérdida máxima 30.000).',
+    );
+    expect(
+      resultado.cumpleCriterioHabilidadColocacion,
+      isTrue,
+      reason:
+          'La habilidad media al colocar fue '
+          '${resultado.habilidadMediaColocacion.toStringAsFixed(1)} '
+          '(meta 45–65).',
+    );
+    expect(
+      resultado.cumpleCriterioAcademiaSinRivales,
+      isTrue,
+      reason:
+          '${resultado.academiaEnRivales} jóvenes de la academia acabaron con '
+          'un rival (meta 0).',
+    );
+    expect(
+      resultado.cumpleCriterioIngresoAcademia,
+      isTrue,
+      reason:
+          'El ingreso de academia de la T3 fue '
+          '${(resultado.porcentajeIngresoAcademiaT3 * 100).toStringAsFixed(1)} '
+          '% de los ingresos (meta ≤ 20 %).',
+    );
   }, timeout: const Timeout(Duration(minutes: 10)));
 }

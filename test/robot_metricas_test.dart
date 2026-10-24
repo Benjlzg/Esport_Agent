@@ -23,6 +23,12 @@ FilaRobot _fila({
   int relacionesPublicasNivel = 0,
   int ventas = 0,
   int ventasImporte = 0,
+  int jovenesReclutados = 0,
+  int jovenesColocados = 0,
+  int jovenesSalidosLibres = 0,
+  int sumaHabilidadColocaciones = 0,
+  int ingresoAcademia = 0,
+  int gastoAcademia = 0,
 }) => FilaRobot(
   temporada: temporada,
   dineroInicio: dineroInicio,
@@ -45,6 +51,12 @@ FilaRobot _fila({
   abogadoNivel: abogadoNivel,
   relacionesPublicasNivel: relacionesPublicasNivel,
   ventasImporte: ventasImporte,
+  jovenesReclutados: jovenesReclutados,
+  jovenesColocados: jovenesColocados,
+  jovenesSalidosLibres: jovenesSalidosLibres,
+  sumaHabilidadColocaciones: sumaHabilidadColocaciones,
+  ingresoAcademia: ingresoAcademia,
+  gastoAcademia: gastoAcademia,
 );
 
 /// Resultado mínimo para probar los cálculos del informe.
@@ -61,6 +73,7 @@ ResultadoRobot _resultado({
   int ojeadoresNivel2 = 0,
   int top20ConRival = 0,
   int top20Considerados = 0,
+  int academiaEnRivales = 0,
 }) => ResultadoRobot(
   filas: filas ?? [_fila()],
   rachaMaxima: 0,
@@ -79,6 +92,7 @@ ResultadoRobot _resultado({
   ojeadoresNivel2: ojeadoresNivel2,
   top20ConRival: top20ConRival,
   top20Considerados: top20Considerados,
+  academiaEnRivales: academiaEnRivales,
 );
 
 void main() {
@@ -380,6 +394,88 @@ void main() {
       expect(texto, contains('Abogado'));
       expect(texto, contains('Relaciones públicas'));
       expect(texto, contains('Ventas del robot por temporada'));
+    });
+  });
+
+  group('academia del robot (3E)', () {
+    test('mide reclutamiento, colocación, saldo y habilidad media', () {
+      final resultado = _resultado(
+        filas: [
+          _fila(
+            temporada: 1,
+            jovenesReclutados: 2,
+            jovenesColocados: 1,
+            jovenesSalidosLibres: 0,
+            sumaHabilidadColocaciones: 45,
+            ingresoAcademia: 120000,
+            gastoAcademia: 5000,
+            ingresos: 300000,
+          ),
+          _fila(
+            temporada: 2,
+            jovenesColocados: 1,
+            sumaHabilidadColocaciones: 46,
+            ingresoAcademia: 130000,
+            gastoAcademia: 4000,
+            ingresos: 400000,
+          ),
+          _fila(
+            temporada: 3,
+            ingresos: 500000,
+            abogadoNivel: 2,
+            relacionesPublicasNivel: 2,
+          ),
+        ],
+      );
+
+      expect(resultado.jovenesReclutadosT1, 2);
+      expect(resultado.colocacionesTotales, 2);
+      expect(resultado.colocacionesAntesFinT2, 2);
+      expect(resultado.saldoAcademia, 241000);
+      expect(resultado.habilidadMediaColocacion, 45.5);
+      expect(resultado.ingresoAcademiaT3, 0);
+      expect(resultado.cumpleCriterioJovenesT1, isTrue);
+      expect(resultado.cumpleCriterioColocacionT2, isTrue);
+      expect(resultado.cumpleCriterioSaldoAcademia, isTrue);
+      expect(resultado.cumpleCriterioHabilidadColocacion, isTrue);
+      expect(resultado.cumpleCriterioAcademiaSinRivales, isTrue);
+      expect(resultado.cumpleCriterioIngresoAcademia, isTrue);
+
+      final texto = seccionRobotMarkdown(resultado);
+      expect(texto, contains('### Academia (3E)'));
+      expect(texto, contains('Jóvenes reclutados en la T1: 2'));
+      expect(texto, contains('Saldo neto de la academia'));
+      expect(texto, contains('Ingreso de academia de la T3'));
+    });
+
+    test('los criterios 3E fallan fuera de rango', () {
+      final resultado = _resultado(
+        filas: [
+          _fila(
+            temporada: 1,
+            jovenesReclutados: 1,
+            jovenesColocados: 0,
+            ingresoAcademia: 1000,
+            gastoAcademia: 150000,
+            ingresos: 100000,
+          ),
+          _fila(temporada: 2, ingresos: 100000),
+          _fila(
+            temporada: 3,
+            ingresoAcademia: 60000,
+            gastoAcademia: 1000,
+            ingresos: 100000,
+          ),
+        ],
+        academiaEnRivales: 1,
+      );
+
+      expect(resultado.cumpleCriterioJovenesT1, isFalse);
+      expect(resultado.cumpleCriterioColocacionT2, isFalse);
+      expect(resultado.cumpleCriterioSaldoAcademia, isFalse);
+      expect(resultado.cumpleCriterioHabilidadColocacion, isFalse);
+      expect(resultado.cumpleCriterioAcademiaSinRivales, isFalse);
+      expect(resultado.cumpleCriterioIngresoAcademia, isFalse);
     });
   });
 }

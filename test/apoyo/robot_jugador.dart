@@ -4,6 +4,7 @@ import 'dart:io';
 import 'dart:math';
 
 import 'package:esport_agent/logica/calendario.dart';
+import 'package:esport_agent/logica/academia.dart';
 import 'package:esport_agent/logica/formulas.dart';
 import 'package:esport_agent/logica/motor_juego.dart';
 import 'package:esport_agent/logica/negociacion.dart';
@@ -54,6 +55,13 @@ const int robotSemanasReservaOjeadores = 30;
 const int robotNivelStaff = 2;
 const int robotSemanasReservaStaff = 30;
 
+/// Política de academia del robot (Parte 3E): recluta 2 jóvenes en la T1 y
+/// coloca a los que estén listos en cuanto se abra una ventana. Solo recluta
+/// si tiene reserva para 30 semanas del gasto fijo total.
+const int robotJovenesT1 = 2;
+const int robotSemanasReservaAcademia = 30;
+const int robotHabilidadMinimaJoven = 45;
+
 /// Dinero mínimo con el que debe terminar el robot la T3 tras pagar el staff.
 /// Si baja de esta cifra, se ajusta la política del robot (no las constantes
 /// de balance) y se anota en el informe.
@@ -84,6 +92,7 @@ const String ingresoSalarios = 'Comisiones de salario';
 const String ingresoTraspasos = 'Traspasos';
 const String ingresoRenovaciones = 'Renovaciones';
 const String ingresoEventos = 'Eventos';
+const String ingresoAcademia = 'Academia';
 
 /// Orden fijo de las fuentes de ingreso en el informe.
 const List<String> robotFuentesIngreso = [
@@ -91,6 +100,7 @@ const List<String> robotFuentesIngreso = [
   ingresoTraspasos,
   ingresoRenovaciones,
   ingresoEventos,
+  ingresoAcademia,
 ];
 
 /// Fuentes de gasto que se miden en el informe.
@@ -99,6 +109,7 @@ const String gastoReclutamientos = 'Reclutamientos';
 const String gastoEventos = 'Eventos';
 const String gastoOjeadores = 'Ojeadores';
 const String gastoStaff = 'Staff';
+const String gastoAcademia = 'Academia';
 
 /// Orden fijo de las fuentes de gasto en el informe.
 const List<String> robotFuentesGasto = [
@@ -106,6 +117,7 @@ const List<String> robotFuentesGasto = [
   gastoReclutamientos,
   gastoOjeadores,
   gastoStaff,
+  gastoAcademia,
   gastoEventos,
 ];
 
@@ -140,6 +152,12 @@ class FilaRobot {
     this.abogadoNivel = 0,
     this.relacionesPublicasNivel = 0,
     this.ventasImporte = 0,
+    this.jovenesReclutados = 0,
+    this.jovenesColocados = 0,
+    this.jovenesSalidosLibres = 0,
+    this.sumaHabilidadColocaciones = 0,
+    this.ingresoAcademia = 0,
+    this.gastoAcademia = 0,
   });
 
   final int temporada;
@@ -188,6 +206,24 @@ class FilaRobot {
 
   /// Importe cobrado por las ventas de la temporada (comisiones de traspaso).
   final int ventasImporte;
+
+  /// Jóvenes reclutados para la academia en esta temporada.
+  final int jovenesReclutados;
+
+  /// Jóvenes colocados en un equipo en esta temporada.
+  final int jovenesColocados;
+
+  /// Jóvenes que se marcharon solos de la academia al cumplir 18.
+  final int jovenesSalidosLibres;
+
+  /// Suma de la habilidad al colocar a los jóvenes (para la media).
+  final int sumaHabilidadColocaciones;
+
+  /// Ingresos por derechos de formación de la academia.
+  final int ingresoAcademia;
+
+  /// Gastos de la academia: fichajes y mantenimiento semanal.
+  final int gastoAcademia;
 }
 
 /// Resumen completo de la partida del robot.
@@ -210,6 +246,7 @@ class ResultadoRobot {
     this.ojeadoresNivel2 = 0,
     this.top20ConRival = 0,
     this.top20Considerados = 0,
+    this.academiaEnRivales = 0,
   });
 
   final List<FilaRobot> filas;
@@ -253,6 +290,10 @@ class ResultadoRobot {
 
   /// Tamaño del top 20 medido (normalmente 20).
   final int top20Considerados;
+
+  /// Jóvenes que pasaron por la academia del robot y acabaron con un rival.
+  /// Debe ser 0: los rivales nunca tocan la academia.
+  final int academiaEnRivales;
 
   /// Semiancho medio de los fichajes de la primera temporada.
   double get semianchoT1 =>
@@ -319,6 +360,79 @@ class ResultadoRobot {
   /// Criterio de política: la T3 no termina por debajo de $30.000.
   bool get cumpleDineroMinimoFinal =>
       !quiebra && dineroFinal >= robotDineroMinimoFinal;
+
+  /// Jóvenes reclutados para la academia en la T1.
+  int get jovenesReclutadosT1 =>
+      filas.isEmpty ? 0 : filas.first.jovenesReclutados;
+
+  /// Jóvenes colocados en total.
+  int get colocacionesTotales =>
+      filas.fold(0, (suma, fila) => suma + fila.jovenesColocados);
+
+  /// Jóvenes colocados antes de terminar la T2.
+  int get colocacionesAntesFinT2 =>
+      filas.take(2).fold(0, (suma, fila) => suma + fila.jovenesColocados);
+
+  /// Suma de la habilidad de todos los jóvenes colocados.
+  int get sumaHabilidadColocaciones =>
+      filas.fold(0, (suma, fila) => suma + fila.sumaHabilidadColocaciones);
+
+  /// Habilidad media de los jóvenes al colocarlos.
+  double get habilidadMediaColocacion => colocacionesTotales == 0
+      ? 0
+      : sumaHabilidadColocaciones / colocacionesTotales;
+
+  /// Ingresos totales por derechos de formación.
+  int get ingresosAcademiaTotales =>
+      filas.fold(0, (suma, fila) => suma + fila.ingresoAcademia);
+
+  /// Gastos totales de la academia (fichajes + mantenimiento).
+  int get gastosAcademiaTotales =>
+      filas.fold(0, (suma, fila) => suma + fila.gastoAcademia);
+
+  /// Saldo neto de la academia en las tres temporadas.
+  int get saldoAcademia => ingresosAcademiaTotales - gastosAcademiaTotales;
+
+  /// Ingresos de la academia en la T3.
+  int get ingresoAcademiaT3 => filas.isEmpty ? 0 : filas.last.ingresoAcademia;
+
+  /// Porcentaje de los ingresos de la T3 que vino de la academia.
+  double get porcentajeIngresoAcademiaT3 =>
+      ingresosT3 == 0 ? 0 : ingresoAcademiaT3 / ingresosT3;
+
+  /// Gasto fijo de la T3: oficina (52 semanas) + ojeadores + staff + academia.
+  int get gastoFijoT3 => filas.isEmpty
+      ? 0
+      : gastoOficinaSemanal * 52 +
+            filas.last.gastoOjeadores +
+            filas.last.gastoStaff +
+            filas.last.gastoAcademia;
+
+  /// Porcentaje de los ingresos de la T3 gastado en gasto fijo.
+  double get porcentajeGastoFijoT3 =>
+      ingresosT3 == 0 ? 0 : gastoFijoT3 / ingresosT3;
+
+  /// Criterio 3E: 2 jóvenes reclutados en la T1.
+  bool get cumpleCriterioJovenesT1 => jovenesReclutadosT1 >= robotJovenesT1;
+
+  /// Criterio 3E: al menos 1 colocación antes de terminar la T2.
+  bool get cumpleCriterioColocacionT2 => colocacionesAntesFinT2 >= 1;
+
+  /// Criterio 3E: saldo de la academia ≥ 0 o pérdida máxima de $30.000.
+  bool get cumpleCriterioSaldoAcademia => saldoAcademia >= -30000;
+
+  /// Criterio 3E: habilidad media al colocar entre 45 y 65.
+  bool get cumpleCriterioHabilidadColocacion {
+    if (colocacionesTotales == 0) return false;
+    final media = habilidadMediaColocacion;
+    return media >= 45 && media <= 65;
+  }
+
+  /// Criterio 3E: ningún joven de la academia acaba con un rival.
+  bool get cumpleCriterioAcademiaSinRivales => academiaEnRivales == 0;
+
+  /// Criterio 3E: el ingreso de la academia en la T3 no supera el 20 %.
+  bool get cumpleCriterioIngresoAcademia => porcentajeIngresoAcademiaT3 <= 0.20;
 
   /// Pérdidas por robo sumadas a todas las temporadas.
   int get perdidasPorRobo =>
@@ -438,9 +552,13 @@ class ResultadoRobot {
 
 /// Robot que recluta, vende, responde eventos y ofertas usando solo el motor.
 class RobotJugador {
-  RobotJugador(this.motor);
+  RobotJugador(this.motor, {this.maxVentasPorSemana = robotMaxVentasPorSemana});
 
   final MotorJuego motor;
+
+  /// Ventas máximas por semana en ventana. La política normal usa 2; la
+  /// corrida conservadora del informe usa 1.
+  final int maxVentasPorSemana;
 
   int _rachaSinOpcion = 0;
   int _rachaMaxima = 0;
@@ -462,6 +580,24 @@ class RobotJugador {
 
   /// Importe cobrado por las ventas de la temporada en curso.
   int _ventasImporteTemporada = 0;
+
+  /// Jóvenes reclutados para la academia en la temporada en curso.
+  int _jovenesReclutadosTemporada = 0;
+
+  /// Jóvenes colocados en la temporada en curso.
+  int _jovenesColocadosTemporada = 0;
+
+  /// Suma de la habilidad al colocar en la temporada en curso.
+  int _sumaHabilidadColocacionesTemporada = 0;
+
+  /// Ingresos y gastos de la academia en la temporada en curso.
+  int _ingresoAcademiaTemporada = 0;
+  int _gastoAcademiaTemporada = 0;
+
+  /// Jóvenes que pasaron por la academia y sus ids, para comprobar al final
+  /// que ninguno acabó representado por un rival.
+  final Set<String> _idsAcademia = {};
+  int _jovenesReclutadosAcademia = 0;
 
   /// Dinero mínimo y semana en que se alcanzó (B1).
   int _dineroMinimo = robotDineroInicial;
@@ -499,6 +635,8 @@ class RobotJugador {
         .where((j) => j.sinAgente)
         .map((j) => j.id)
         .toSet();
+    _idsAcademia.clear();
+    _jovenesReclutadosAcademia = 0;
 
     // Política fija de 3C: dos ojeadores nivel 2 si hay reserva para 30
     // semanas de su salario total.
@@ -514,10 +652,16 @@ class RobotJugador {
       _gastoOjeadoresTemporada = 0;
       _gastoStaffTemporada = 0;
       _ventasImporteTemporada = 0;
+      _jovenesReclutadosTemporada = 0;
+      _jovenesColocadosTemporada = 0;
+      _sumaHabilidadColocacionesTemporada = 0;
+      _ingresoAcademiaTemporada = 0;
+      _gastoAcademiaTemporada = 0;
       final robosInicioTemporada = motor.metricas.robosTotales;
       final renunciasInicioTemporada = motor.metricas.renunciasTotales;
       final contratosInicioTemporada = motor.metricas.contratosVencidosTotales;
       final promesasInicioTemporada = motor.metricas.promesasIncumplidas;
+      final salidasAcademiaInicio = motor.metricas.salidasAcademiaTotales;
       var decisiones = 0;
       var eventos = 0;
       var fichajes = 0;
@@ -589,6 +733,13 @@ class RobotJugador {
                 RolStaff.relacionesPublicas,
               ),
               ventasImporte: _ventasImporteTemporada,
+              jovenesReclutados: _jovenesReclutadosTemporada,
+              jovenesColocados: _jovenesColocadosTemporada,
+              jovenesSalidosLibres:
+                  motor.metricas.salidasAcademiaTotales - salidasAcademiaInicio,
+              sumaHabilidadColocaciones: _sumaHabilidadColocacionesTemporada,
+              ingresoAcademia: _ingresoAcademiaTemporada,
+              gastoAcademia: _gastoAcademiaTemporada,
             ),
           );
           final sinAgenteEnRivales = _jugadoresSinAgenteEnRivales();
@@ -610,6 +761,7 @@ class RobotJugador {
             ojeadoresNivel2: _ojeadoresNivel2(),
             top20ConRival: _top20ConRival(),
             top20Considerados: _top20Considerados(),
+            academiaEnRivales: _academiaEnRivales(),
           );
         }
       }
@@ -647,6 +799,13 @@ class RobotJugador {
             RolStaff.relacionesPublicas,
           ),
           ventasImporte: _ventasImporteTemporada,
+          jovenesReclutados: _jovenesReclutadosTemporada,
+          jovenesColocados: _jovenesColocadosTemporada,
+          jovenesSalidosLibres:
+              motor.metricas.salidasAcademiaTotales - salidasAcademiaInicio,
+          sumaHabilidadColocaciones: _sumaHabilidadColocacionesTemporada,
+          ingresoAcademia: _ingresoAcademiaTemporada,
+          gastoAcademia: _gastoAcademiaTemporada,
         ),
       );
     }
@@ -670,6 +829,7 @@ class RobotJugador {
       ojeadoresNivel2: _ojeadoresNivel2(),
       top20ConRival: _top20ConRival(),
       top20Considerados: _top20Considerados(),
+      academiaEnRivales: _academiaEnRivales(),
     );
   }
 
@@ -733,6 +893,18 @@ class RobotJugador {
     return top.take(20).where((j) => j.representadoPorRival).length;
   }
 
+  /// Jóvenes que pasaron por la academia del robot y acabaron con un rival.
+  /// Solo se mide mientras siguen en la academia: al colocarlos pasan a ser
+  /// representados normales y las reglas de 3A/3B vuelven a aplicar.
+  int _academiaEnRivales() {
+    return _idsAcademia.where((id) {
+      final jugador = motor.jugadorPorId(id);
+      return jugador != null &&
+          jugador.enAcademia &&
+          jugador.representadoPorRival;
+    }).length;
+  }
+
   /// Contrata dos ojeadores nivel 2 en los dos pares juego+región con más
   /// agentes libres de 21 años o menos, si hay reserva para 30 semanas.
   Future<void> _contratarOjeadoresIniciales() async {
@@ -747,6 +919,7 @@ class RobotJugador {
     final conteo = <(Juego, String), int>{};
     for (final jugador in motor.jugadores) {
       if (!jugador.sinAgente || jugador.oculto) continue;
+      if (jugador.candidatoAcademia || jugador.enAcademia) continue;
       if (jugador.edad > 21) continue;
       final region = jugador.equipoId == null
           ? jugador.region
@@ -826,6 +999,68 @@ class RobotJugador {
     }
   }
 
+  /// Intenta cumplir la política de academia de la Parte 3E.
+  Future<void> _gestionarAcademia(int temporada) async {
+    if (temporada == 1) {
+      while (_jovenesReclutadosAcademia < robotJovenesT1) {
+        final candidato = _candidatoAcademiaRobot();
+        if (candidato == null) break;
+        final gastoProyectado =
+            motor.gastoFijoSemanalTotal + costoSemanalAcademiaPorJoven;
+        final reserva =
+            gastoProyectado * robotSemanasReservaAcademia +
+            costoFichajeAcademia;
+        if (motor.agente.dinero < reserva) break;
+
+        final dineroAntes = motor.agente.dinero;
+        final resultado = await motor.reclutarJovenAcademia(candidato);
+        if (!resultado.ok) break;
+        final gasto = dineroAntes - motor.agente.dinero;
+        _sumarGasto(gastoAcademia, gasto);
+        _gastoAcademiaTemporada += gasto;
+        _idsAcademia.add(candidato.id);
+        _jovenesReclutadosAcademia++;
+        _jovenesReclutadosTemporada++;
+      }
+    }
+
+    if (!enVentanaFichajes(motor.semana)) return;
+    // Coloca como máximo un joven por semana en cuanto esté listo.
+    for (final joven in motor.jovenesListosParaColocar) {
+      final equipos = motor.equiposParaColocar(joven);
+      if (equipos.isEmpty) continue;
+      final equipo = equipos.first;
+      final dineroAntes = motor.agente.dinero;
+      final habilidad = joven.habilidad;
+      final resultado = await motor.colocarJovenAcademia(joven, equipo);
+      if (!resultado.ok) continue;
+      final ingreso = motor.agente.dinero - dineroAntes;
+      _sumarIngreso(ingresoAcademia, ingreso);
+      _ingresoAcademiaTemporada += ingreso;
+      _jovenesColocadosTemporada++;
+      _sumaHabilidadColocacionesTemporada += habilidad;
+      return;
+    }
+  }
+
+  /// Mejor candidato de 16–17 años: mayor habilidad y, a igualdad, mayor
+  /// punto medio del rango visible del potencial. No mira el potencial real.
+  Jugador? _candidatoAcademiaRobot() {
+    final candidatos =
+        motor.candidatosAcademia
+            .where((j) => j.edad == 16 || j.edad == 17)
+            .toList()
+          ..sort((a, b) {
+            final porHabilidad = b.habilidad.compareTo(a.habilidad);
+            if (porHabilidad != 0) return porHabilidad;
+            final porPotencial = puntoMedioPotencial(b)
+                .compareTo(puntoMedioPotencial(a));
+            if (porPotencial != 0) return porPotencial;
+            return b.edad.compareTo(a.edad);
+          });
+    return candidatos.isEmpty ? null : candidatos.first;
+  }
+
   /// Avanza una semana, comprueba si había opciones y actúa.
   /// Devuelve true si la semana no ofrecía ninguna opción.
   Future<bool> _jugarSemana({
@@ -838,6 +1073,9 @@ class RobotJugador {
     // La semana que se juega, para etiquetar el mínimo de dinero (B1).
     final temporadaSemana = motor.temporada;
     final semanaSemana = motor.semana;
+    // El mantenimiento de la academia se cobra usando los jóvenes que hay
+    // antes de avanzar; después de avanzar alguno puede haberse marchado.
+    final gastoAcademiaSemana = motor.gastoAcademiaSemanal;
 
     await motor.avanzarSemana();
     // Comisión de los salarios de esta semana (ya viene neta del inversor).
@@ -857,6 +1095,9 @@ class RobotJugador {
     final gastoStaffSemana = motor.gastoStaffSemanal;
     _sumarGasto(gastoStaff, gastoStaffSemana);
     _gastoStaffTemporada += gastoStaffSemana;
+    // La academia cobra $150 por cada joven que entrenaba esta semana.
+    _sumarGasto(gastoAcademia, gastoAcademiaSemana);
+    _gastoAcademiaTemporada += gastoAcademiaSemana;
     _actualizarVentana();
 
     // Política de staff: abogado nivel 2 en la T2 y RP nivel 2 en la T3,
@@ -864,6 +1105,11 @@ class RobotJugador {
     // la temporada que se acaba de jugar: si la semana 52 hizo el rollover,
     // el motor ya está en la temporada siguiente y no debe adelantar el staff.
     await _gestionarStaff(temporadaSemana);
+
+    // Academia: recluta en la T1 y coloca en cuanto hay ventana. Se pasa la
+    // temporada que se acaba de jugar para no adelantar el reclutamiento si
+    // la semana 52 hizo el rollover.
+    await _gestionarAcademia(temporadaSemana);
 
     final enVentana = enVentanaFichajes(motor.semana);
     final haySatisfaccion = motor.representadosQueQuierenHablar.isNotEmpty;
@@ -886,7 +1132,7 @@ class RobotJugador {
     final reclutado = await _reclutar();
     if (reclutado) alFichar();
     if (enVentana) {
-      for (var i = 0; i < robotMaxVentasPorSemana; i++) {
+      for (var i = 0; i < maxVentasPorSemana; i++) {
         final vendido = await _vender();
         if (!vendido) break;
         alVender();
@@ -1101,6 +1347,7 @@ class RobotJugador {
       if (!jugador.sinAgente) continue;
       // Los talentos ocultos no son visibles para el robot.
       if (jugador.oculto) continue;
+      if (jugador.candidatoAcademia || jugador.enAcademia) continue;
       if (jugador.habilidad > agente.reputacion + 40) continue;
       final potencialVisible = puntoMedioPotencial(jugador);
       if (potencialVisible < jugador.habilidad + robotMargenPotencial) {
@@ -1138,6 +1385,9 @@ class RobotJugador {
   Jugador? _jugadorVendible() {
     for (final jugador in motor.misJugadores) {
       if (_vendidosEnVentana.contains(jugador.id)) continue;
+      // Los jóvenes colocados desde la academia no se revenden: su objetivo
+      // era darles un equipo, no usarlos como moneda de cambio.
+      if (_idsAcademia.contains(jugador.id)) continue;
       // Recién fichado: no se puede vender hasta la próxima temporada.
       if (jugador.bloqueadoTraspaso(motor.temporada)) continue;
       // Periodo mínimo de representación antes de ofrecerlo (I1).
@@ -1201,13 +1451,14 @@ class RobotJugador {
 /// jugador nuevo (50.000 y reputación 10), como pide la corrección 2.5 B1.
 Future<ResultadoRobot> ejecutarRobotDePrueba({
   int semilla = semillaInforme,
+  int maxVentasPorSemana = robotMaxVentasPorSemana,
 }) async {
   final motor = await crearPartidaSembrada(
     semilla: semilla,
     dinero: robotDineroInicial,
     reputacion: robotReputacionInicial,
   );
-  final robot = RobotJugador(motor);
+  final robot = RobotJugador(motor, maxVentasPorSemana: maxVentasPorSemana);
   return robot.jugar();
 }
 
@@ -1240,6 +1491,13 @@ String seccionRobotMarkdown(ResultadoRobot resultado) {
       '$robotSemanasReservaStaff semanas del gasto fijo total (oficina + '
       'ojeadores + staff). Mejorar paga la diferencia de salario de '
       '$semanasCostoMejoraStaff semanas.',
+    )
+    ..writeln(
+      '- Academia (3E): recluta $robotJovenesT1 jóvenes de 16–17 años en la '
+      'T1, con la mayor habilidad y punto medio del rango visible, solo si '
+      'tiene reserva para $robotSemanasReservaAcademia semanas del gasto fijo '
+      'total. Coloca en cuanto hay ventana y el equipo puede pagar el valor '
+      'de mercado.',
     )
     ..writeln(
       '- Ficha usando el punto medio del rango visible del potencial, no el '
@@ -1386,6 +1644,72 @@ String seccionRobotMarkdown(ResultadoRobot resultado) {
       '- Ventas del robot por temporada: '
       '${resultado.filas.map((f) => 'T${f.temporada}: ${f.ventas} '
           '(${miles(f.ventasImporte)})').join(' · ')}.',
+    );
+
+  buffer
+    ..writeln()
+    ..writeln('### Academia (3E)')
+    ..writeln()
+    ..writeln(
+      tablaMarkdown(
+        [
+          'Temporada',
+          'Jóvenes reclutados',
+          'Colocados',
+          'Salidos libres',
+          'Ingreso academia',
+          'Gasto academia',
+          'Saldo',
+          'Habilidad media al colocar',
+        ],
+        [
+          for (final fila in resultado.filas)
+            [
+              '${fila.temporada}',
+              '${fila.jovenesReclutados}',
+              '${fila.jovenesColocados}',
+              '${fila.jovenesSalidosLibres}',
+              miles(fila.ingresoAcademia),
+              miles(fila.gastoAcademia),
+              miles(fila.ingresoAcademia - fila.gastoAcademia),
+              fila.jovenesColocados == 0
+                  ? '—'
+                  : decimal(
+                      fila.sumaHabilidadColocaciones / fila.jovenesColocados,
+                      1,
+                    ),
+            ],
+        ],
+      ),
+    )
+    ..writeln()
+    ..writeln(
+      '- Jóvenes reclutados en la T1: ${resultado.jovenesReclutadosT1} '
+      '(meta $robotJovenesT1).',
+    )
+    ..writeln(
+      '- Colocaciones antes de terminar la T2: '
+      '${resultado.colocacionesAntesFinT2} (meta ≥ 1).',
+    )
+    ..writeln(
+      '- Saldo neto de la academia: '
+      '${formatearDinero(resultado.saldoAcademia)} '
+      '(meta ≥ −${formatearDinero(30000)}).',
+    )
+    ..writeln(
+      '- Habilidad media al colocar: '
+      '${decimal(resultado.habilidadMediaColocacion, 1)} (meta 45–65).',
+    )
+    ..writeln(
+      '- Jóvenes de la academia en manos de rivales: '
+      '${resultado.academiaEnRivales} (meta 0).',
+    )
+    ..writeln(
+      '- Ingreso de academia de la T3: '
+      '${formatearDinero(resultado.ingresoAcademiaT3)} de '
+      '${formatearDinero(resultado.ingresosT3)} '
+      '(${decimal(resultado.porcentajeIngresoAcademiaT3 * 100, 1)} %, '
+      'meta ≤ 20 %).',
     );
 
   final principal = resultado.fuentePrincipalIngresos;
@@ -1572,12 +1896,103 @@ String seccionRobotMarkdown(ResultadoRobot resultado) {
       '**${resultado.cumpleCriterioGastoStaff ? 'cumple' : 'no cumple'}**.',
     )
     ..writeln(
+      '- Jóvenes reclutados en la T1: ${resultado.jovenesReclutadosT1} '
+      '(meta $robotJovenesT1): '
+      '**${resultado.cumpleCriterioJovenesT1 ? 'cumple' : 'no cumple'}**.',
+    )
+    ..writeln(
+      '- Colocaciones antes de terminar la T2: '
+      '${resultado.colocacionesAntesFinT2} (meta ≥ 1): '
+      '**${resultado.cumpleCriterioColocacionT2 ? 'cumple' : 'no cumple'}**.',
+    )
+    ..writeln(
+      '- Saldo neto de la academia: '
+      '${formatearDinero(resultado.saldoAcademia)} (meta ≥ -\$30.000): '
+      '**${resultado.cumpleCriterioSaldoAcademia ? 'cumple' : 'no cumple'}**.',
+    )
+    ..writeln(
+      '- Habilidad media al colocar: '
+      '${decimal(resultado.habilidadMediaColocacion, 1)} (meta 45–65): '
+      '**${resultado.cumpleCriterioHabilidadColocacion ? 'cumple' : 'no cumple'}**.',
+    )
+    ..writeln(
+      '- Jóvenes de la academia con rivales: ${resultado.academiaEnRivales} '
+      '(meta 0): '
+      '**${resultado.cumpleCriterioAcademiaSinRivales ? 'cumple' : 'no cumple'}**.',
+    )
+    ..writeln(
+      '- Ingreso de academia de la T3: '
+      '${decimal(resultado.porcentajeIngresoAcademiaT3 * 100, 1)} % de los '
+      'ingresos (meta ≤ 20 %): '
+      '**${resultado.cumpleCriterioIngresoAcademia ? 'cumple' : 'no cumple'}**.',
+    )
+    ..writeln(
       '- Dinero final de la T3 ≥ ${formatearDinero(robotDineroMinimoFinal)}: '
       '${formatearDinero(resultado.dineroFinal)}: '
       '**${resultado.cumpleDineroMinimoFinal ? 'cumple' : 'no cumple'}**.',
     )
     ..writeln('- Tiempo del robot: ${resultado.milisegundos} ms.');
 
+  return buffer.toString();
+}
+
+/// Sección informativa de la corrida conservadora del robot (1 venta por
+/// semana). No tiene criterio de pasa o falla: sirve para ver cómo queda la
+/// economía de un jugador que no exprime las ventanas.
+String seccionRobotConservadorMarkdown(ResultadoRobot resultado) {
+  final buffer = StringBuffer()
+    ..writeln('## Robot conservador (medición informativa)')
+    ..writeln()
+    ..writeln(
+      '- Misma semilla y misma política que el robot principal, pero con '
+      '**1 venta por semana** en ventana (sin la regla de 2).',
+    )
+    ..writeln(
+      '- Dinero final de la T3: '
+      '${formatearDinero(resultado.dineroFinal)}.',
+    )
+    ..writeln(
+      '- Gasto fijo de la T3 (oficina + ojeadores + staff + academia): '
+      '${formatearDinero(resultado.gastoFijoT3)} sobre ingresos de '
+      '${formatearDinero(resultado.ingresosT3)} '
+      '(${decimal(resultado.porcentajeGastoFijoT3 * 100, 1)} %).',
+    )
+    ..writeln(
+      '- Quiebra: **${resultado.quiebra ? 'sí' : 'no'}** · racha máxima sin '
+      'opciones: ${resultado.rachaMaxima} semanas.',
+    )
+    ..writeln()
+    ..writeln(
+      tablaMarkdown(
+        [
+          'Temporada',
+          'Dinero fin',
+          'Ingresos',
+          'Gasto fijo',
+          '% gasto fijo',
+          'Jóvenes colocados',
+        ],
+        [
+          for (final fila in resultado.filas)
+            [
+              '${fila.temporada}',
+              miles(fila.dineroFin),
+              miles(fila.ingresosTemporada),
+              miles(
+                gastoOficinaSemanal * 52 +
+                    fila.gastoOjeadores +
+                    fila.gastoStaff +
+                    fila.gastoAcademia,
+              ),
+              fila.ingresosTemporada == 0
+                  ? '—'
+                  : '${decimal((gastoOficinaSemanal * 52 + fila.gastoOjeadores + fila.gastoStaff + fila.gastoAcademia) / fila.ingresosTemporada * 100, 1)} %',
+              '${fila.jovenesColocados}',
+            ],
+        ],
+      ),
+    )
+    ..writeln();
   return buffer.toString();
 }
 

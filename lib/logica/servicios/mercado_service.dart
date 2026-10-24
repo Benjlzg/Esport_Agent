@@ -10,6 +10,7 @@ import '../../modelos/estado_partida.dart';
 import '../../modelos/jugador.dart';
 import '../../modelos/noticia.dart';
 import '../../modelos/oferta.dart';
+import '../../modelos/staff.dart';
 import '../agentes_rivales.dart';
 import '../calendario.dart';
 import '../eventos.dart' as eventos;
@@ -18,6 +19,7 @@ import '../mercado.dart' as mercado;
 import '../negociacion.dart';
 import '../renovaciones.dart' as renovaciones;
 import '../satisfaccion.dart' as sat;
+import '../staff.dart' as staff_logica;
 import '../motor_juego.dart';
 
 /// Acciones de mercado del motor.
@@ -410,16 +412,22 @@ class MercadoService {
     est.rondasNegociacion[clave] = (est.rondasNegociacion[clave] ?? 0) + 1;
 
     // El contacto con un equipo grande da más margen solo en equipos de élite.
+    // El abogado suma su margen, pero el total nunca supera +0,10 (límite
+    // máximo 1,15): ambos activos no se apilan por encima del tope.
     final margenContacto =
         est.semanasContactoGrande > 0 && equipo.prestigio >= 85
         ? eventos.margenContactoGrande
         : 0.0;
+    final margenAbogado = staff_logica.margenAceptacionTotal(
+      nivelAbogado: staff_logica.nivelDeRol(est, RolStaff.abogado),
+      margenContacto: margenContacto,
+    );
 
     final resultado = calcularRespuesta(
       precioPedido: precioPedido,
       valorMercado: jugador.valorMercado,
       rnd: motor.rnd,
-      margenExtraAceptacion: margenContacto,
+      margenExtraAceptacion: margenAbogado,
     );
 
     if (resultado.respuesta == RespuestaEquipo.acepta) {
@@ -889,7 +897,11 @@ class MercadoService {
       );
     }
 
-    if (motor.rnd.nextDouble() < probRetiradaPedirMas) {
+    final probabilidadRetirada = staff_logica.probabilidadRetiradaConAbogado(
+      probabilidadBase: probRetiradaPedirMas,
+      nivelAbogado: staff_logica.nivelDeRol(est, RolStaff.abogado),
+    );
+    if (motor.rnd.nextDouble() < probabilidadRetirada) {
       est.ofertas.remove(oferta);
       motor.agregarNoticia(
         '${equipo.nombre} retiró su oferta por ${jugador.nick}.',

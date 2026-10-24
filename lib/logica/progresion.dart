@@ -24,6 +24,9 @@ const int moralMinimaProgresoJoven = 30;
 const int moralAltaProgreso = 80;
 const double factorProgresoMoralAlta = 1.10;
 
+/// Tope del multiplicador externo de progresión (preparador de la Parte 3D).
+const double topeMultiplicadorProgreso = 1.4;
+
 /// Sin equipo la probabilidad de mejorar se reduce a la mitad.
 const double factorProgresoSinEquipo = 0.5;
 
@@ -51,7 +54,14 @@ double probabilidadProgresoJovenPorEdad(int edad) {
 
 /// Probabilidad semanal real de que [jugador] mejore, aplicando los factores
 /// de equipo, titularidad y moral.
-double probabilidadProgresoSemanal(Jugador jugador) {
+///
+/// [multiplicador] permite aplicar el bonus del preparador (Parte 3D). Siempre
+/// se acota al tope [topeMultiplicadorProgreso] para que ningún efecto lo
+/// apile por encima de ×1,4.
+double probabilidadProgresoSemanal(
+  Jugador jugador, {
+  double multiplicador = 1.0,
+}) {
   var probabilidad = probabilidadProgresoJovenPorEdad(jugador.edad);
   if (jugador.equipoId == null) {
     probabilidad *= factorProgresoSinEquipo;
@@ -61,7 +71,8 @@ double probabilidadProgresoSemanal(Jugador jugador) {
   if (jugador.moral > moralAltaProgreso) {
     probabilidad *= factorProgresoMoralAlta;
   }
-  return probabilidad;
+  final factor = multiplicador.clamp(1.0, topeMultiplicadorProgreso);
+  return (probabilidad * factor).clamp(0.0, 1.0);
 }
 
 /// Puntos que sube un joven cuando acierta la tirada semanal.
@@ -73,14 +84,31 @@ int subidaProgresoSemanal(Random rnd, int edad) {
 /// Aplica la progresión de una semana a [jugador] y devuelve cuántos puntos
 /// cambió su habilidad (positivo si subió, negativo si bajó, 0 si no cambió).
 ///
+/// [multiplicadorProbabilidad] es el bonus del preparador (Parte 3D). Solo se
+/// aplica a la probabilidad de MEJORAR: en los jóvenes multiplica la tirada de
+/// progresión y en los adultos (24–27) inclina la balanza hacia la mejora sin
+/// aumentar los descensos. Los mayores de 28 solo tienen probabilidad de bajar,
+/// así que no reciben este bonus.
+///
 /// Se mantiene una tirada por jugador y semana, igual que antes, para no
 /// alterar el orden general de los números aleatorios de la simulación.
-int aplicarProgresoSemanal(Jugador jugador, Random rnd) {
+int aplicarProgresoSemanal(
+  Jugador jugador,
+  Random rnd, {
+  double multiplicadorProbabilidad = 1.0,
+}) {
+  final multiplicador = multiplicadorProbabilidad.clamp(
+    1.0,
+    topeMultiplicadorProgreso,
+  );
   final dado = rnd.nextDouble();
 
   if (jugador.edad <= edadMaximaProgresoJoven) {
     if (jugador.habilidad >= jugador.potencial) return 0;
-    final probabilidad = probabilidadProgresoSemanal(jugador);
+    final probabilidad = probabilidadProgresoSemanal(
+      jugador,
+      multiplicador: multiplicador,
+    );
     if (jugador.moral < moralMinimaProgresoJoven || dado >= probabilidad) {
       return 0;
     }
@@ -93,9 +121,12 @@ int aplicarProgresoSemanal(Jugador jugador, Random rnd) {
   }
 
   if (jugador.edad <= edadMaximaProgresoAdulto) {
-    // Adultos: 15 % de subir o bajar 1 (no suben si la moral es muy baja).
+    // Adultos: 15 % de cambiar 1 punto. La dirección era 50/50; el preparador
+    // aumenta la parte de mejora y deja igual la de bajada. Los descensos no
+    // se multiplican para que el staff nunca perjudique a mis representados.
     if (dado < 0.15) {
-      final subir = rnd.nextBool();
+      final probabilidadSubir = (0.5 * multiplicador).clamp(0.0, 1.0);
+      final subir = rnd.nextDouble() < probabilidadSubir;
       if (subir) {
         if (jugador.moral >= moralMinimaProgresoJoven) {
           final antes = jugador.habilidad;
@@ -111,7 +142,8 @@ int aplicarProgresoSemanal(Jugador jugador, Random rnd) {
     return 0;
   }
 
-  // Mayores: 20 % de bajar 1.
+  // Mayores: 20 % de bajar 1. No hay probabilidad de progresión que el
+  // preparador pueda mejorar.
   if (dado < 0.20) {
     final antes = jugador.habilidad;
     jugador.habilidad = max(1, jugador.habilidad - 1);

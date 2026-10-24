@@ -12,9 +12,11 @@ import '../modelos/juego.dart';
 import '../modelos/jugador.dart';
 import '../modelos/noticia.dart';
 import '../modelos/oferta.dart';
+import '../modelos/staff.dart';
 import 'calendario.dart';
 import 'formulas.dart';
 import 'mercado.dart';
+import 'staff.dart' as staff_logica;
 
 // ------------------- CONSTANTES DE BALANCE -------------------
 
@@ -107,13 +109,20 @@ class ContextoEventos {
     required this.indiceEquipos,
     required this.rnd,
     required this.nuevoIdJugador,
-  });
+  }) : nivelRP = staff_logica.nivelDeRol(
+         estado,
+         RolStaff.relacionesPublicas,
+       );
 
   final EstadoPartida estado;
   final Map<String, Jugador> indiceJugadores;
   final Map<String, Equipo> indiceEquipos;
   final Random rnd;
   final String Function() nuevoIdJugador;
+
+  /// Nivel de relaciones públicas al crear el contexto. Se calcula una sola
+  /// vez por evento para no recorrer el staff en cada pérdida.
+  final int nivelRP;
 
   /// Se pone a true si un efecto añadió o quitó jugadores. El motor usará
   /// esta marca para reconstruir sus índices al terminar la resolución.
@@ -146,21 +155,46 @@ class ContextoEventos {
   }
 
   /// Cambia la moral entre 0 y 100.
+  ///
+  /// Si la pérdida afecta a un jugador representado por mí, la RP reduce el
+  /// daño. Las ganancias y los jugadores de la IA no se tocan.
   void cambiarMoral(Jugador jugador, int delta) {
-    jugador.moral = (jugador.moral + delta).clamp(0, 100);
+    var cambio = delta;
+    if (cambio < 0 && jugador.representadoPorMi) {
+      cambio = -staff_logica.perdidaReducidaRP(-cambio, nivelRP);
+    }
+    jugador.moral = (jugador.moral + cambio).clamp(0, 100);
   }
 
   /// Cambia la reputación del agente entre 0 y 100.
+  ///
+  /// La reputación siempre es mía, así que la RP reduce sus pérdidas. Las
+  /// ganancias no se modifican y los costos de dinero no pasan por aquí.
   void cambiarReputacion(int delta) {
-    estado.agente.reputacion = (estado.agente.reputacion + delta).clamp(0, 100);
+    var cambio = delta;
+    if (cambio < 0) {
+      cambio = -staff_logica.perdidaReducidaRP(-cambio, nivelRP);
+    }
+    estado.agente.reputacion = (estado.agente.reputacion + cambio).clamp(0, 100);
   }
 
   /// Multiplica el valor de mercado respetando los límites globales.
+  ///
+  /// En las pérdidas de valor de mis representados, la RP reduce el porcentaje
+  /// perdido. Un factor de 0,90 (10 % de pérdida) con RP nivel 5 se convierte
+  /// en 0,97 (3 % de pérdida). Los jugadores de la IA no se ven afectados.
   void multiplicarValor(Jugador jugador, double factor) {
-    jugador.multiplicadorValor = (jugador.multiplicadorValor * factor).clamp(
-      multiplicadorValorMinimo,
-      multiplicadorValorMaximo,
-    );
+    var factorFinal = factor;
+    if (factor < 1 && jugador.representadoPorMi) {
+      final perdidaPorcentaje = ((1 - factor) * 100).round();
+      final perdidaReducida = staff_logica.perdidaReducidaRP(
+        perdidaPorcentaje,
+        nivelRP,
+      );
+      factorFinal = 1 - perdidaReducida / 100;
+    }
+    jugador.multiplicadorValor = (jugador.multiplicadorValor * factorFinal)
+        .clamp(multiplicadorValorMinimo, multiplicadorValorMaximo);
     recalcularValor(jugador);
   }
 
@@ -584,10 +618,12 @@ List<DefinicionEvento> _crearCatalogo() {
           texto: 'Que siga jugando',
           efecto: (ctx, evento, jugador) {
             final j = jugador!;
+            final moralAntes = j.moral;
             ctx.cambiarMoral(j, -15);
+            final moralPerdida = moralAntes - j.moral;
             final lesionado = ctx.rnd.nextDouble() < 0.30;
             if (lesionado) ctx.cambiarHabilidad(j, -3);
-            return '${j.nick} siguió jugando: −15 de moral'
+            return '${j.nick} siguió jugando: −$moralPerdida de moral'
                 '${lesionado ? ' y −3 de habilidad por el desgaste.' : '.'}';
           },
         ),
@@ -616,11 +652,21 @@ List<DefinicionEvento> _crearCatalogo() {
           texto: 'Ignorarla',
           efecto: (ctx, evento, jugador) {
             final j = jugador!;
+            final moralAntes = j.moral;
+            final valorAntes = j.valorMercado;
+            final reputacionAntes = ctx.estado.agente.reputacion;
             ctx.cambiarMoral(j, -10);
             ctx.multiplicarValor(j, 0.90);
             ctx.cambiarReputacion(-1);
-            return 'La polémica de ${j.nick} sigue creciendo: −10 de moral, '
-                'su valor baja un 10 % y tu reputación −1.';
+            final moralPerdida = moralAntes - j.moral;
+            final valorPerdida = valorAntes <= 0
+                ? 0
+                : ((valorAntes - j.valorMercado) / valorAntes * 100).round();
+            final reputacionPerdida =
+                reputacionAntes - ctx.estado.agente.reputacion;
+            return 'La polémica de ${j.nick} sigue creciendo: −$moralPerdida '
+                'de moral, su valor baja un $valorPerdida % y tu reputación '
+                '−$reputacionPerdida.';
           },
         ),
       ],
@@ -681,7 +727,9 @@ List<DefinicionEvento> _crearCatalogo() {
           texto: 'Entendido',
           efecto: (ctx, evento, jugador) {
             final j = jugador!;
+            final moralAntes = j.moral;
             ctx.cambiarMoral(j, -20);
+            final moralPerdida = moralAntes - j.moral;
             final equipo = ctx.indiceEquipos[j.equipoId];
             final nombreEquipo = equipo?.nombre ?? 'su equipo';
             if (ctx.rnd.nextDouble() < 0.25) {
@@ -689,7 +737,8 @@ List<DefinicionEvento> _crearCatalogo() {
               return '${j.nick} rompió con $nombreEquipo y quedó libre. '
                   'El club ya repuso su puesto.';
             }
-            return '${j.nick} tuvo problemas con $nombreEquipo: −20 de moral.';
+            return '${j.nick} tuvo problemas con $nombreEquipo: '
+                '−$moralPerdida de moral.';
           },
         ),
       ],
@@ -791,9 +840,12 @@ List<DefinicionEvento> _crearCatalogo() {
           efecto: (ctx, evento, jugador) {
             final j = jugador!;
             final ganancia = evento.ingresoDe(0);
+            final moralAntes = j.moral;
             ctx.cambiarMoral(j, -5);
+            final moralPerdida = moralAntes - j.moral;
             return '${j.nick} firmó con una marca de periféricos: '
-                '${formatearDinero(ganancia)} para la agencia y −5 de moral.';
+                '${formatearDinero(ganancia)} para la agencia y '
+                '−$moralPerdida de moral.';
           },
         ),
         OpcionEvento(
@@ -1060,7 +1112,7 @@ List<DefinicionEvento> _crearCatalogo() {
               }
             }
             return '${equipo.nombre} cambió de entrenador: la moral de su '
-                'plantilla ${sube ? 'sube' : 'baja'} 10.';
+                'plantilla ${sube ? 'sube' : 'baja'}.';
           },
         ),
       ],

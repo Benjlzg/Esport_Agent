@@ -2,6 +2,7 @@
 // y migración de los agentes rivales (Parte 3A).
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -126,6 +127,7 @@ void main() {
         'premios',
         'ofertas',
         'agentesRivales',
+        'staff',
         'fichajesVentana',
         'rondasNegociacion',
         'paresBloqueados',
@@ -176,7 +178,7 @@ void main() {
       }
     }
 
-    expect(versionFormato, 12);
+    expect(versionFormato, 13);
     expect(versionMinimaCompatible, 3);
   });
 
@@ -195,6 +197,7 @@ void main() {
     final mapa = Map<String, dynamic>.from(estado.toJson());
     mapa['version'] = 9;
     mapa.remove('agentesRivales');
+    mapa.remove('staff');
     mapa['jugadores'] = (mapa['jugadores'] as List).map((j) {
       final jugador = Map<String, dynamic>.from(j as Map);
       jugador.remove('agenteId');
@@ -229,7 +232,7 @@ void main() {
     final jugadorLibre = est.jugadores.firstWhere((j) => j.id == libre.id);
     // Puede haber quedado sin agente o con uno, pero nunca representado por mí.
     expect(jugadorLibre.representadoPorMi, isFalse);
-    expect(est.toJson()['version'], 12);
+    expect(est.toJson()['version'], 13);
   });
 
   test(
@@ -240,6 +243,7 @@ void main() {
       final mapa = Map<String, dynamic>.from(estado.toJson());
       mapa['version'] = 11;
       mapa.remove('ojeadores');
+      mapa.remove('staff');
       // Una v11 no tenía ninguno de los campos de potencial oculto.
       mapa['jugadores'] = (mapa['jugadores'] as List).map((j) {
         final jugador = Map<String, dynamic>.from(j as Map);
@@ -257,7 +261,8 @@ void main() {
       final est = cargado.estado!;
 
       expect(est.ojeadores, isEmpty);
-      expect(est.toJson()['version'], 12);
+      expect(est.staff, isEmpty);
+      expect(est.toJson()['version'], 13);
       for (final jugador in est.jugadores) {
         expect(
           jugador.errorPotencial,
@@ -274,6 +279,30 @@ void main() {
           reason:
               'Una partida vieja conserva el potencial exacto que ya sabía.',
         );
+      }
+    },
+  );
+
+  test(
+    'una partida v12 carga con staff vacío y sin gastar RNG',
+    () async {
+      final motor = await _partidaNueva();
+      final mapa = Map<String, dynamic>.from(motor.estado!.toJson());
+      mapa['version'] = 12;
+      // Una v12 no tenía staff: la lista debe quedar vacía y la migración no
+      // puede consumir números aleatorios.
+      mapa.remove('staff');
+      SharedPreferences.setMockInitialValues({clavePartida: jsonEncode(mapa)});
+
+      final cargado = MotorJuego(semilla: _semilla);
+      expect(await cargado.cargar(), ResultadoCarga.ok);
+      expect(cargado.estado!.staff, isEmpty);
+      expect(cargado.estado!.toJson()['version'], 13);
+
+      // El motor recién creado no ha usado su RNG al cargar una v12 válida.
+      final esperado = Random(_semilla);
+      for (var i = 0; i < 5; i++) {
+        expect(cargado.rnd.nextDouble(), esperado.nextDouble());
       }
     },
   );
@@ -353,6 +382,7 @@ void main() {
       'palmares',
       'premios',
       'ofertas',
+      'staff',
       'fichajesVentana',
       'rondasNegociacion',
       'paresBloqueados',

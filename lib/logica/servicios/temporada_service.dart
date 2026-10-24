@@ -18,6 +18,7 @@ import '../motor_juego.dart';
 import '../ojeadores.dart' as ojeadores;
 import '../progresion.dart';
 import '../satisfaccion.dart' as sat;
+import '../staff.dart' as staff_logica;
 
 /// Orquesta el paso del tiempo y la evolución de los jugadores.
 class TemporadaService {
@@ -69,6 +70,8 @@ class TemporadaService {
     // El salario de los ojeadores se cobra junto a la oficina, sin reglas
     // nuevas de quiebra.
     gastos += ojeadores.gastoSemanalOjeadores(est.ojeadores);
+    // El staff (Parte 3D) cobra su salario semanal en el mismo punto.
+    gastos += staff_logica.gastoSemanalStaff(est.staff);
     for (final ojeador in est.ojeadores) {
       ojeador.semanasContratado++;
     }
@@ -343,7 +346,17 @@ class TemporadaService {
 
   /// Aplica el progreso semanal de un jugador (mejora o empeora).
   void _progresarJugador(Jugador j) {
-    aplicarProgresoSemanal(j, motor.rnd);
+    // El preparador se aplica dentro del recorrido único por jugador (R1).
+    // La guarda `enAcademia` de la Parte 3E se pasará aquí cuando exista.
+    final multiplicador = staff_logica.multiplicadorProgresionPreparador(
+      motor.estado!,
+      j,
+    );
+    aplicarProgresoSemanal(
+      j,
+      motor.rnd,
+      multiplicadorProbabilidad: multiplicador,
+    );
   }
 
   /// Cambio de temporada: envejecer, retiros, nuevos jóvenes y presupuestos.

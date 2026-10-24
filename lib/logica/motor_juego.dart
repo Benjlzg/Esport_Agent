@@ -19,6 +19,7 @@ import '../modelos/jugador.dart';
 import '../modelos/noticia.dart';
 import '../modelos/oferta.dart';
 import '../modelos/ojeador.dart';
+import '../modelos/staff.dart';
 import '../modelos/torneo.dart';
 import '../servicios/guardado.dart';
 import 'agentes_rivales.dart' as rivales;
@@ -37,6 +38,7 @@ import 'metricas.dart';
 import 'negociacion.dart';
 import 'ojeadores.dart' as ojeadores_logica;
 import 'satisfaccion.dart' as sat;
+import 'staff.dart' as staff_logica;
 
 /// Resultado simple de una acción (reclutar, dejar de representar...).
 class ResultadoAccion {
@@ -245,6 +247,55 @@ class MotorJuego extends ChangeNotifier {
 
   /// Ojeadores contratados por la agencia (Parte 3C).
   List<Ojeador> get ojeadores => estado?.ojeadores ?? const [];
+
+  /// Staff contratado por la agencia (Parte 3D).
+  List<MiembroStaff> get staff => estado?.staff ?? const [];
+
+  /// Miembro que ocupa un puesto del staff, o null si está vacante.
+  MiembroStaff? miembroStaff(RolStaff rol) =>
+      estado == null ? null : staff_logica.miembroDeRol(estado!, rol);
+
+  /// Nivel del staff en un puesto (0 si está vacante).
+  int nivelStaff(RolStaff rol) =>
+      estado == null ? 0 : staff_logica.nivelDeRol(estado!, rol);
+
+  /// Gasto semanal de todos los miembros del staff.
+  int get gastoStaffSemanal => staff_logica.gastoSemanalStaff(staff);
+
+  /// Gasto semanal de la academia. La Parte 3E todavía no existe: se deja el
+  /// hueco preparado para que el total lo sume sin cambiar la interfaz.
+  int get gastoAcademiaSemanal => 0;
+
+  /// Gasto fijo semanal total de la agencia: oficina + ojeadores + staff +
+  /// academia. Es la línea que se muestra en Mi agencia.
+  int get gastoFijoSemanalTotal =>
+      gastoOficinaSemanal +
+      gastoOjeadoresSemanal +
+      gastoStaffSemanal +
+      gastoAcademiaSemanal;
+
+  /// Costo de subir un nivel a un miembro del staff.
+  int costoMejoraStaff(MiembroStaff miembro) =>
+      staff_logica.costoMejoraStaff(miembro);
+
+  /// Margen de aceptación que tengo con un equipo: abogado + contacto grande,
+  /// con el tope de +0,10. Si [equipo] es null solo cuenta el abogado.
+  double margenAceptacionPara(Equipo? equipo) {
+    final contacto =
+        equipo != null &&
+            equipo.prestigio >= 85 &&
+            (estado?.semanasContactoGrande ?? 0) > 0
+        ? eventos.margenContactoGrande
+        : 0.0;
+    return staff_logica.margenAceptacionTotal(
+      nivelAbogado: nivelStaff(RolStaff.abogado),
+      margenContacto: contacto,
+    );
+  }
+
+  /// Límite de aceptación visible (1,05 + margen) para un equipo.
+  double limiteAceptacionPara(Equipo? equipo) =>
+      limiteAceptacion + margenAceptacionPara(equipo);
 
   /// Cupos de ojeadores que quedan libres.
   int get cuposOjeadores => ojeadores_logica.maxOjeadores - ojeadores.length;
@@ -745,6 +796,10 @@ class MotorJuego extends ChangeNotifier {
       return carga.resultado;
     }
     estado = carga.estado;
+    // El staff se normaliza en todas las versiones: nivel 1–5 y un solo
+    // miembro por puesto. Una v12 no trae la lista y queda vacía sin gastar
+    // RNG (Parte 3D).
+    staff_logica.normalizarStaff(estado!);
     _reconstruirIndices();
     // Las plantillas solo se reparan en partidas anteriores al formato
     // actual: en una partida v9 válida no hace falta gastar RNG ni alterar
@@ -912,6 +967,84 @@ class MotorJuego extends ChangeNotifier {
     );
     await _guardarYNotificar();
     return ResultadoAccion(true, '${ojeador.nombre} ya no trabaja contigo.');
+  }
+
+  // ------------------- STAFF (PARTE 3D) -------------------
+
+  /// Contrata al primer miembro de un puesto. Siempre entra en nivel 1 y no
+  /// tiene cuota de contratación: solo se paga su salario cada semana.
+  Future<ResultadoAccion> contratarStaff(RolStaff rol) async {
+    final est = estado!;
+    if (est.staff.any((m) => m.rol == rol)) {
+      return ResultadoAccion(
+        false,
+        'Ya tienes ${rol.etiqueta.toLowerCase()} contratado.',
+      );
+    }
+    final miembro = staff_logica.crearMiembroStaff(estado: est, rol: rol);
+    est.staff.add(miembro);
+    _agregarNoticia(
+      'Contrataste a ${miembro.nombre} como '
+      '${rol.etiqueta.toLowerCase()} (nivel 1).',
+      TipoNoticia.fichaje,
+    );
+    await _guardarYNotificar();
+    return ResultadoAccion(
+      true,
+      '${miembro.nombre} se une a la agencia como '
+      '${rol.etiqueta.toLowerCase()}.',
+    );
+  }
+
+  /// Sube un nivel a un miembro del staff. Paga la diferencia de salario de
+  /// [staff_logica.semanasCostoMejoraStaff] semanas.
+  Future<ResultadoAccion> mejorarStaff(MiembroStaff miembro) async {
+    final est = estado!;
+    if (!est.staff.contains(miembro)) {
+      return ResultadoAccion(false, 'Ese miembro ya no trabaja en la agencia.');
+    }
+    if (miembro.nivel >= 5) {
+      return ResultadoAccion(
+        false,
+        '${miembro.nombre} ya está en el nivel máximo.',
+      );
+    }
+    final costo = staff_logica.costoMejoraStaff(miembro);
+    if (agente.dinero < costo) {
+      return ResultadoAccion(
+        false,
+        'No tienes dinero suficiente para la mejora '
+        '(${formatearDinero(costo)}).',
+      );
+    }
+    agente.dinero -= costo;
+    registrarGasto(costo);
+    miembro.nivel++;
+    _agregarNoticia(
+      'Mejoraste a ${miembro.nombre} a nivel ${miembro.nivel}.',
+      TipoNoticia.fichaje,
+    );
+    await _guardarYNotificar();
+    return ResultadoAccion(
+      true,
+      '${miembro.nombre} sube a nivel ${miembro.nivel}.',
+    );
+  }
+
+  /// Despide a un miembro del staff. Es gratis y deja de cobrar desde la
+  /// próxima semana.
+  Future<ResultadoAccion> despedirStaff(MiembroStaff miembro) async {
+    final est = estado!;
+    if (!est.staff.remove(miembro)) {
+      return ResultadoAccion(false, 'Ese miembro ya no trabaja en la agencia.');
+    }
+    _agregarNoticia(
+      'Despediste a ${miembro.nombre}, '
+      '${miembro.rol.etiqueta.toLowerCase()} de la agencia.',
+      TipoNoticia.evento,
+    );
+    await _guardarYNotificar();
+    return ResultadoAccion(true, '${miembro.nombre} ya no trabaja contigo.');
   }
 
   // ------------------- NEGOCIACIÓN -------------------

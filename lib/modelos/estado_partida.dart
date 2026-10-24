@@ -9,19 +9,20 @@ import 'jugador.dart';
 import 'noticia.dart';
 import 'oferta.dart';
 import 'ojeador.dart';
+import 'staff.dart';
 import 'torneo.dart';
 
 /// Versión del formato de guardado. Si algún día cambia el formato,
 /// se sube este número para poder actualizar partidas antiguas.
-const int versionFormato = 12;
+const int versionFormato = 13;
 
 /// Versión más antigua que todavía se puede cargar. Las partidas de las
-/// versiones 3 a 11 se actualizan a la 12: los campos nuevos quedan vacíos o
+/// versiones 3 a 12 se actualizan a la 13: los campos nuevos quedan vacíos o
 /// con su valor por defecto, el contador de ids se reconstruye al cargar,
 /// se generan los agentes rivales, las expectativas de mis representados, se
-/// asigna el error de potencial a las partidas antiguas y las
-/// competiciones/plantillas que falten se reparan. Las de la versión 1 o 2
-/// siguen siendo incompatibles.
+/// asigna el error de potencial a las partidas antiguas, el staff queda vacío
+/// y las competiciones/plantillas que falten se reparan. Las de la versión 1
+/// o 2 siguen siendo incompatibles.
 const int versionMinimaCompatible = 3;
 
 /// Contiene todos los datos de la partida en curso.
@@ -39,6 +40,7 @@ class EstadoPartida {
     List<Oferta>? ofertas,
     List<AgenteRival>? agentesRivales,
     List<Ojeador>? ojeadores,
+    List<MiembroStaff>? staff,
     Map<String, int>? fichajesVentana,
     List<EventoPendiente>? eventosPendientes,
     Map<String, int>? ultimaSemanaEvento,
@@ -64,6 +66,7 @@ class EstadoPartida {
        ofertas = ofertas ?? [],
        agentesRivales = agentesRivales ?? [],
        ojeadores = ojeadores ?? [],
+       staff = staff ?? [],
        fichajesVentana = fichajesVentana ?? {},
        eventosPendientes = eventosPendientes ?? [],
        ultimaSemanaEvento = ultimaSemanaEvento ?? {},
@@ -105,6 +108,10 @@ class EstadoPartida {
 
   /// Ojeadores contratados por la agencia (Parte 3C).
   List<Ojeador> ojeadores;
+
+  /// Staff contratado por la agencia (Parte 3D): abogado, relaciones públicas
+  /// y preparador. Máximo un miembro por puesto.
+  List<MiembroStaff> staff;
 
   /// Fichajes de la IA hechos por cada equipo en la ventana en curso.
   /// La clave es el id del equipo. Se reinicia al empezar cada ventana.
@@ -168,6 +175,24 @@ class EstadoPartida {
   static String clavePar(String jugadorId, String equipoId) =>
       '$jugadorId|$equipoId';
 
+  /// Lee el staff de una partida y deja un solo miembro por puesto.
+  ///
+  /// Las partidas v12 y anteriores no tienen la clave `staff`: se devuelve una
+  /// lista vacía, sin gastar RNG y sin alterar el resto del estado.
+  static List<MiembroStaff> _leerStaff(dynamic json) {
+    final staff = <MiembroStaff>[];
+    if (json is! List) return staff;
+    for (final item in json) {
+      if (item is! Map) continue;
+      final miembro = MiembroStaff.fromJson(
+        Map<String, dynamic>.from(item),
+      );
+      if (staff.any((m) => m.rol == miembro.rol)) continue;
+      staff.add(miembro);
+    }
+    return staff;
+  }
+
   /// Convierte todo el estado a un mapa para guardarlo en JSON.
   Map<String, dynamic> toJson() {
     return {
@@ -184,6 +209,7 @@ class EstadoPartida {
       'ofertas': ofertas.map((o) => o.toJson()).toList(),
       'agentesRivales': agentesRivales.map((a) => a.toJson()).toList(),
       'ojeadores': ojeadores.map((o) => o.toJson()).toList(),
+      'staff': staff.map((m) => m.toJson()).toList(),
       'fichajesVentana': fichajesVentana,
       'eventosPendientes': eventosPendientes.map((e) => e.toJson()).toList(),
       'ultimaSemanaEvento': ultimaSemanaEvento,
@@ -241,6 +267,7 @@ class EstadoPartida {
       ojeadores: ((json['ojeadores'] as List?) ?? const [])
           .map((o) => Ojeador.fromJson(o as Map<String, dynamic>))
           .toList(),
+      staff: _leerStaff(json['staff']),
       fichajesVentana:
           (json['fichajesVentana'] as Map?)?.map(
             (k, v) => MapEntry(k as String, (v as num).toInt()),

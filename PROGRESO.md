@@ -850,3 +850,25 @@ Se corrigieron **I13, I14, todos los problemas menores M1–M19** y los duplicad
 - `test/guardado_test.dart` carga una partida v11 con ojeadores vacíos, rangos nulos y error determinista, y comprueba que se reguarda como v12.
 - Capturas de `capturas/` regeneradas; se añadió `ojeadores.png`.
 - Commits de la parte: **219c1b0** (modelo, lógica y migración), **8c8ff61** (interfaz) y el commit de cierre con el informe y esta sección.
+
+## Fase 3D — Staff de la agencia (en curso, 2026-10-24)
+
+### Punto 1 — Modelo, lógica y migración v13
+
+- **Nuevo `lib/modelos/staff.dart`:** `RolStaff` (abogado, relaciones públicas y preparador) y `MiembroStaff` (id, rol, nombre y nivel). El rol desconocido cae en abogado y el nivel se acota a 1–5 al cargar.
+- **Nuevo `lib/logica/staff.dart`:** salarios semanales (`[0, 80, 160, 280, 450, 650]`), coste de mejora `(salarioNuevo − salarioViejo) × 13`, margen del abogado, reducción de retirada, reducción de daño de RP, multiplicador del preparador y creación/normalización del staff.
+- **`EstadoPartida.staff`:** lista nueva con máximo un miembro por rol. `versionFormato` sube a **13** y `versionMinimaCompatible` sigue en **3**.
+- **Migración v12 → v13:** una partida v12 carga con `staff` vacío y **sin gastar RNG**. La prueba compara los siguientes valores del generador con una semilla fresca.
+- **Acciones del motor:** `contratarStaff` entra siempre en nivel 1 y no cobra cuota; `mejorarStaff` paga la diferencia de 13 semanas; `despedirStaff` es gratis. El salario se cobra cada semana junto a la oficina y los ojeadores.
+- **Abogado:** margen `0,02 × nivel`; con el contacto grande de 2E se suma, pero el total se limita a **+0,10** (límite 1,15). La retirada al pedir más se reduce un 5 % por nivel.
+- **Relaciones públicas:** reduce reputación, moral y valor de mis representados; nunca deja una pérdida por debajo de 1 y no toca costos de dinero ni jugadores de la IA. El multiplicador se aplica en los helpers de daño de `eventos_catalogo.dart`, que es el punto único usado al resolver el evento. La prueba de idempotencia confirma que resolver dos veces el mismo evento no descuenta dos veces.
+- **Preparador:** multiplica la progresión juvenil de mis representados con tope ×1,4 y dentro del recorrido único por jugador.
+- **Veteranos (condición 1):** `progresion.dart` sí tenía una probabilidad propia para 24–27 años: un 15 % de cambiar 1 punto, con dirección 50/50. El preparador ahora inclina esa dirección hacia la mejora (hasta ×1,4) sin aumentar los descensos. Los mayores de 28 años solo tienen un 20 % de bajar 1: no existe probabilidad de progresión que el preparador pueda mejorar, así que no se aplica ahí. Queda anotado también en el comentario del código.
+- **Golden (condición 3):** el cambio de RNG de la progresión adulta alteró el fixture determinista. Las 16 capturas existentes se regeneraron; los únicos fallos eran comparaciones de píxeles, no pruebas de lógica. En el cierre se añadirá `staff.png` y se regenerará el informe.
+
+### Verificación del punto 1
+
+- `flutter analyze` → **No issues found!**
+- `flutter test` → **260 pasan, 2 saltan** (las `lento`).
+- `test/staff_test.dart` cubre modelo, tope del abogado con contacto, tasa de aceptación con semilla fija, retirada, RP (reputación/moral/valor, costos y jugadores de la IA), idempotencia, preparador (jóvenes, adultos y 28+), salarios y acciones.
+- `test/guardado_test.dart` carga una v12 con staff vacío y sin gastar RNG, y comprueba que se reguarda como v13.

@@ -6,6 +6,7 @@
 import '../modelos/equipo.dart';
 import '../modelos/juego.dart';
 import '../modelos/jugador.dart';
+import 'ojeadores.dart';
 
 /// Opciones de orden de la lista del mercado.
 enum OrdenMercado { valor, habilidad, potencial, edad }
@@ -32,6 +33,9 @@ List<Jugador> filtrarJugadoresMercado({
   OrdenMercado orden = OrdenMercado.valor,
 }) {
   final lista = jugadores.where((jugador) {
+    // Los talentos ocultos se muestran aparte, solo si hay un ojeador en su
+    // región; nunca se mezclan con el mercado normal.
+    if (jugador.oculto) return false;
     if (juego != null && jugador.juego != juego) return false;
     if (soloLibres && jugador.equipoId != null) return false;
     if (region != null && regionDeJugador(jugador, equipos) != region) {
@@ -46,7 +50,13 @@ List<Jugador> filtrarJugadoresMercado({
     case OrdenMercado.habilidad:
       lista.sort((a, b) => b.habilidad.compareTo(a.habilidad));
     case OrdenMercado.potencial:
-      lista.sort((a, b) => b.potencial.compareTo(a.potencial));
+      // Se ordena por el punto medio del rango visible, nunca por el real.
+      lista.sort((a, b) {
+        final porMedio = puntoMedioPotencial(b)
+            .compareTo(puntoMedioPotencial(a));
+        if (porMedio != 0) return porMedio;
+        return b.habilidad.compareTo(a.habilidad);
+      });
     case OrdenMercado.edad:
       lista.sort((a, b) => a.edad.compareTo(b.edad));
   }

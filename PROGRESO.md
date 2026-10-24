@@ -806,3 +806,18 @@ Se corrigieron **I13, I14, todos los problemas menores M1–M19** y los duplicad
 - `flutter test --tags lento --run-skipped test/robot_test.dart` → **1 pasa**.
 - Capturas de `capturas/` regeneradas con `flutter test --update-goldens test/golden_test.dart`; el fixture de Mi agencia recluta representados con equipo (no agentes sin equipo) para que la cartera llegue viva a la semana 47.
 - `test/satisfaccion_test.dart` cubre expectativas, delta semanal, avisos, promesas, bonos, renuncias, comisión contractual, renegociación, expiración, traspasos/renovaciones, títulos, migración v10 y la ficha del jugador.
+
+## Fase 3C — Ojeadores (en curso)
+
+### Commit 1 — modelo, lógica y migración v12
+
+- Nuevo modelo `Ojeador` y lógica central en `lib/logica/ojeadores.dart`: `textoPotencial(jugador)`, rango visible, error fijo, observación semanal, cobertura por juego+región, talentos ocultos y migración determinista.
+- `Jugador` incorpora `errorPotencial`, `semanasObservado`, `potencialVisibleMin/Max` y `oculto`; `EstadoPartida` incorpora `ojeadores` y sube `versionFormato` a **12** (`versionMinimaCompatible` sigue en 3).
+- Todos los nacimientos de jugadores pasan por `inicializarPotencialJugador`: partida nueva, jóvenes, reemplazos y talentos ocultos.
+- La observación semanal se ejecuta dentro del recorrido único por jugador de `temporada_service.dart`, sin un segundo bucle.
+- La migración v11 asigna `errorPotencial` con un hash determinista del id, sin gastar RNG, y deja el rango visible en null para conservar el potencial exacto que ya conocía el jugador.
+- Los rivales y la IA de mercado usan `potencialEstimado`; los talentos ocultos quedan fuera de sus fichajes y protegidos del tope de 300 agentes libres.
+- Se cambiaron los textos de eventos que revelaban puntos o el número exacto de potencial. La ficha del jugador ya usa `textoPotencial` y se añadió la prueba que prohíbe `.potencial` directo en pantallas y widgets.
+- **Golden regeneradas en este commit 1:** el RNG cambió al asignar el error/rango inicial y la ficha muestra el rango de potencial; además se actualizó una expectativa frágil de `widget_flujo_test.dart` para leer la reputación real de la partida.
+- `flutter analyze` → **No issues found!**
+- `flutter test` → **236 pasan, 2 saltan** (las pruebas `@tags lento`).

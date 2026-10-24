@@ -14,6 +14,11 @@ class Jugador {
     required this.rol,
     required this.habilidad,
     required this.potencial,
+    this.errorPotencial = 0,
+    this.semanasObservado = 0,
+    this.potencialVisibleMin,
+    this.potencialVisibleMax,
+    this.oculto = false,
     this.moral = 70,
     this.equipoId,
     required this.salarioAnual,
@@ -76,6 +81,26 @@ class Jugador {
 
   /// Nivel máximo posible, de 1 a 100 (siempre mayor o igual que la habilidad).
   int potencial;
+
+  /// Error fijo de por vida que separa el potencial real del estimado
+  /// (Parte 3C). Está entre -15 y 15 y no cambia al guardar o cargar.
+  int errorPotencial;
+
+  /// Semanas que lleva observado por un ojeador (tope 20).
+  int semanasObservado;
+
+  /// Extremos del rango de potencial que ve el jugador. Si son null, la
+  /// partida es anterior a 3C y se muestra el potencial exacto que ya conocía.
+  int? potencialVisibleMin;
+  int? potencialVisibleMax;
+
+  /// true si es un talento oculto que solo aparece con un ojeador en su
+  /// región. Al terminar la temporada se destapa solo.
+  bool oculto;
+
+  /// Potencial estimado que usan los rivales (Parte 3C).
+  int get potencialEstimado =>
+      (potencial + errorPotencial).clamp(habilidad, 99).toInt();
 
   /// Estado de ánimo, de 0 a 100 (empieza en 70).
   int moral;
@@ -244,6 +269,11 @@ class Jugador {
       'rol': rol,
       'habilidad': habilidad,
       'potencial': potencial,
+      'errorPotencial': errorPotencial,
+      'semanasObservado': semanasObservado,
+      'potencialVisibleMin': potencialVisibleMin,
+      'potencialVisibleMax': potencialVisibleMax,
+      'oculto': oculto,
       'moral': moral,
       'equipoId': equipoId,
       'salarioAnual': salarioAnual,
@@ -293,26 +323,38 @@ class Jugador {
       rol: json['rol'] as String,
       habilidad: json['habilidad'] as int,
       potencial: json['potencial'] as int,
+      errorPotencial: ((json['errorPotencial'] as num?)?.toInt() ?? 0)
+          .clamp(-15, 15)
+          .toInt(),
+      semanasObservado: ((json['semanasObservado'] as num?)?.toInt() ?? 0)
+          .clamp(0, 20)
+          .toInt(),
+      potencialVisibleMin: (json['potencialVisibleMin'] as num?)?.toInt(),
+      potencialVisibleMax: (json['potencialVisibleMax'] as num?)?.toInt(),
+      oculto: json['oculto'] as bool? ?? false,
       moral: json['moral'] as int,
       equipoId: json['equipoId'] as String?,
       salarioAnual: json['salarioAnual'] as int,
       semanasContrato: json['semanasContrato'] as int,
       representadoPorMi: json['representadoPorMi'] as bool,
       agenteId: json['agenteId'] as String?,
-      satisfaccion:
-          ((json['satisfaccion'] as num?)?.toInt() ?? 70).clamp(0, 100),
-      expectativas:
-          ((json['expectativas'] as List?) ?? const [])
-              .map((e) => e as String)
-              .toList(),
+      satisfaccion: ((json['satisfaccion'] as num?)?.toInt() ?? 70).clamp(
+        0,
+        100,
+      ),
+      expectativas: ((json['expectativas'] as List?) ?? const [])
+          .map((e) => e as String)
+          .toList(),
       quiereHablar: json['quiereHablar'] as bool? ?? false,
       semanasPromesaPendiente:
           (json['semanasPromesaPendiente'] as num?)?.toInt() ?? 0,
       semanasContratoRepresentacion:
           (json['semanasContratoRepresentacion'] as num?)?.toInt() ?? 52,
       comisionSalarioContrato:
-          ((json['comisionSalarioContrato'] as num?)?.toDouble() ?? 0.05)
-              .clamp(0.03, 0.10),
+          ((json['comisionSalarioContrato'] as num?)?.toDouble() ?? 0.05).clamp(
+            0.03,
+            0.10,
+          ),
       semanasEnfriamientoAgente:
           (json['semanasEnfriamientoAgente'] as num?)?.toInt() ?? 0,
       semanasEsperaConvencer:

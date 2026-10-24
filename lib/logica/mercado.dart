@@ -10,6 +10,7 @@ import '../modelos/jugador.dart';
 import '../modelos/oferta.dart';
 import 'formulas.dart';
 import 'generador_jugadores.dart';
+import 'ojeadores.dart';
 
 /// Títulos de split de 1ª División en las últimas [temporadasVentanaDinastia]
 /// que convierten a un equipo en dinastía.
@@ -20,8 +21,10 @@ const int temporadasVentanaDinastia = 5;
 /// `habilidad + (potencial − habilidad) × factorEdad + (forma − 3) × 3`.
 double puntajeFichaje(Jugador j) {
   final forma = estrellasDeNotas(j.ultimasNotas);
+  // La IA tampoco ve el potencial real: usa su estimación con el error fijo.
+  final potencialEstimado = potencialEstimadoDe(j);
   return j.habilidad +
-      (j.potencial - j.habilidad) * factorEdadPuntaje(j.edad) +
+      (potencialEstimado - j.habilidad) * factorEdadPuntaje(j.edad) +
       (forma - formaNeutra) * 3;
 }
 
@@ -123,6 +126,8 @@ List<Jugador> candidatosPara({
   final grupo = porJuegoRol['${equipo.juego.name}|$rol'] ?? const <Jugador>[];
   final lista = grupo.where((j) {
     if (j.equipoId == equipo.id) return false;
+    // Los talentos ocultos no existen para la IA mientras sigan ocultos.
+    if (j.oculto) return false;
     // Recién fichado: la IA tampoco puede comprarlo esta temporada (A2).
     if (j.bloqueadoTraspaso(temporadaActual)) return false;
     if (j.habilidad < umbralHabilidad) return false;
@@ -202,6 +207,7 @@ void ficharJovenesDeSegunda({
     for (final j in estado.jugadores) {
       if (j.equipoId != null) continue;
       if (j.representadoPorMi) continue;
+      if (j.oculto) continue;
       if (j.edad > 21) continue;
       if (j.juego != equipo.juego) continue;
       if (j.region != equipo.region) continue;
@@ -247,6 +253,9 @@ Jugador? generarReemplazoSiFalta({
     ajusteHabilidad: ajusteHabilidadReemplazo,
     nicksUsados: nicksUsados,
   );
+  // El generador ya lo inicializa; esta llamada idempotente protege futuros
+  // cambios en la creación de reemplazos.
+  inicializarPotencialJugador(reemplazo, rnd);
   estado.jugadores.add(reemplazo);
   return reemplazo;
 }

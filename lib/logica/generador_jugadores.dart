@@ -7,6 +7,7 @@ import '../modelos/equipo.dart';
 import '../modelos/juego.dart';
 import '../modelos/jugador.dart';
 import 'formulas.dart';
+import 'ojeadores.dart';
 
 /// Devuelve un elemento aleatorio de una lista.
 T _elegir<T>(Random rnd, List<T> lista) => lista[rnd.nextInt(lista.length)];
@@ -97,6 +98,8 @@ Jugador generarJugadorLibre(
     region: region,
   );
   _calcularEconomia(jugador);
+  // Todo jugador nuevo nace con su error de potencial y su rango inicial.
+  inicializarPotencialJugador(jugador, rnd);
   return jugador;
 }
 
@@ -135,6 +138,7 @@ Jugador generarJovenDeRegion(
     region: region,
   );
   _calcularEconomia(jugador);
+  inicializarPotencialJugador(jugador, rnd);
   return jugador;
 }
 
@@ -175,6 +179,7 @@ Jugador generarJugadorParaEquipo(
     region: equipo.region,
   );
   _calcularEconomia(jugador);
+  inicializarPotencialJugador(jugador, rnd);
   return jugador;
 }
 

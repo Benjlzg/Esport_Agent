@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:esport_agent/logica/agentes_rivales.dart';
 import 'package:esport_agent/logica/motor_juego.dart';
+import 'package:esport_agent/logica/ojeadores.dart';
 import 'package:esport_agent/modelos/estado_partida.dart';
 import 'package:esport_agent/modelos/juego.dart';
 import 'package:esport_agent/modelos/jugador.dart';
@@ -175,7 +176,7 @@ void main() {
       }
     }
 
-    expect(versionFormato, 11);
+    expect(versionFormato, 12);
     expect(versionMinimaCompatible, 3);
   });
 
@@ -217,8 +218,10 @@ void main() {
       est.agentesRivales.length,
       inInclusiveRange(agentesRivalesMin, agentesRivalesMax),
     );
-    expect(est.agentesRivales.map((r) => r.id).toSet().length,
-        est.agentesRivales.length);
+    expect(
+      est.agentesRivales.map((r) => r.id).toSet().length,
+      est.agentesRivales.length,
+    );
     final jugadorMio = est.jugadores.firstWhere((j) => j.id == mio.id);
     expect(jugadorMio.representadoPorMi, isTrue);
     expect(jugadorMio.agenteId, 'yo');
@@ -226,8 +229,54 @@ void main() {
     final jugadorLibre = est.jugadores.firstWhere((j) => j.id == libre.id);
     // Puede haber quedado sin agente o con uno, pero nunca representado por mí.
     expect(jugadorLibre.representadoPorMi, isFalse);
-    expect(est.toJson()['version'], 11);
+    expect(est.toJson()['version'], 12);
   });
+
+  test(
+    'una partida v11 carga con ojeadores vacíos y potencial exacto',
+    () async {
+      final motor = await _partidaNueva();
+      final estado = motor.estado!;
+      final mapa = Map<String, dynamic>.from(estado.toJson());
+      mapa['version'] = 11;
+      mapa.remove('ojeadores');
+      // Una v11 no tenía ninguno de los campos de potencial oculto.
+      mapa['jugadores'] = (mapa['jugadores'] as List).map((j) {
+        final jugador = Map<String, dynamic>.from(j as Map);
+        jugador.remove('errorPotencial');
+        jugador.remove('semanasObservado');
+        jugador.remove('potencialVisibleMin');
+        jugador.remove('potencialVisibleMax');
+        jugador.remove('oculto');
+        return jugador;
+      }).toList();
+      SharedPreferences.setMockInitialValues({clavePartida: jsonEncode(mapa)});
+
+      final cargado = MotorJuego(semilla: _semilla);
+      expect(await cargado.cargar(), ResultadoCarga.ok);
+      final est = cargado.estado!;
+
+      expect(est.ojeadores, isEmpty);
+      expect(est.toJson()['version'], 12);
+      for (final jugador in est.jugadores) {
+        expect(
+          jugador.errorPotencial,
+          errorPotencialDeterminista(jugador.id),
+          reason: 'El error de ${jugador.id} debe ser determinista y sin RNG.',
+        );
+        expect(jugador.potencialVisibleMin, isNull);
+        expect(jugador.potencialVisibleMax, isNull);
+        expect(jugador.semanasObservado, 0);
+        expect(jugador.oculto, isFalse);
+        expect(
+          textoPotencial(jugador),
+          '${jugador.potencial}',
+          reason:
+              'Una partida vieja conserva el potencial exacto que ya sabía.',
+        );
+      }
+    },
+  );
 
   test('guarda en un archivo con respaldo .bak y sin temporales', () async {
     final motor = await _partidaNueva();

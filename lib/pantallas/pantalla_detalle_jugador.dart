@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../logica/formulas.dart';
 import '../logica/motor_juego.dart';
+import '../logica/ojeadores.dart';
 import '../logica/satisfaccion.dart';
 import '../modelos/historial.dart';
 import '../modelos/jugador.dart';
@@ -185,7 +186,27 @@ class PantallaDetalleJugador extends StatelessWidget {
               // Barras.
               BarraHabilidad(valor: jugador.habilidad, etiqueta: 'Habilidad'),
               const SizedBox(height: 10),
-              BarraHabilidad(valor: jugador.potencial, etiqueta: 'Potencial'),
+              // El potencial real nunca se imprime: siempre pasa por el texto
+              // del rango visible (Parte 3C).
+              Card(
+                child: ListTile(
+                  leading: const Icon(Icons.search, color: AppColores.acento2),
+                  title: Text(
+                    'Potencial ${textoPotencial(jugador)}',
+                    style: const TextStyle(
+                      color: AppColores.textoPrincipal,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  subtitle: Text(
+                    motor.notaPrecisionPotencial(jugador),
+                    style: const TextStyle(
+                      color: AppColores.textoSecundario,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+              ),
               const SizedBox(height: 10),
               BarraHabilidad(valor: jugador.moral, etiqueta: 'Moral'),
               const SizedBox(height: 20),
@@ -439,10 +460,7 @@ class PantallaDetalleJugador extends StatelessWidget {
               Text(
                 'Promesa pendiente: ${jugador.semanasPromesaPendiente} '
                 'semanas para cumplirla.',
-                style: const TextStyle(
-                  color: AppColores.dorado,
-                  fontSize: 12,
-                ),
+                style: const TextStyle(color: AppColores.dorado, fontSize: 12),
               ),
             ],
           ],
@@ -674,9 +692,8 @@ class PantallaDetalleJugador extends StatelessWidget {
         resultado = await motor.ignorarJugador(jugador);
     }
     if (!context.mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(resultado.mensaje)));
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(resultado.mensaje)));
   }
 
   Future<void> _reclutar(

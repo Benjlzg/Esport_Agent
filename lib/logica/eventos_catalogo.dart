@@ -391,8 +391,8 @@ List<DefinicionEvento> _crearCatalogo() {
             final j = jugador!;
             final subida = ctx.aleatorio(3, 8);
             ctx.cambiarPotencial(j, subida);
-            return '${j.nick} despertó su talento: su potencial sube '
-                '$subida puntos.';
+            return '${j.nick} despertó su talento: su techo de progresión '
+                'mejora.';
           },
         ),
       ],
@@ -439,8 +439,8 @@ List<DefinicionEvento> _crearCatalogo() {
             final j = jugador!;
             ctx.cambiarHabilidad(j, 3);
             ctx.cambiarPotencial(j, 2);
-            return '${j.nick} entrenó con un veterano: +3 de habilidad y '
-                '+2 de potencial.';
+            return '${j.nick} entrenó con un veterano: +3 de habilidad y su '
+                'margen de crecimiento mejora.';
           },
         ),
         OpcionEvento(
@@ -660,8 +660,8 @@ List<DefinicionEvento> _crearCatalogo() {
             final j = jugador!;
             j.potencial = min(99, j.habilidad + 2);
             ctx.recalcularValor(j);
-            return '${j.nick} llegó a su techo: su potencial se ajusta a '
-                '${j.potencial}.';
+            return '${j.nick} llegó a su techo: su margen de progresión se '
+                'reduce.';
           },
         ),
       ],
@@ -763,7 +763,7 @@ List<DefinicionEvento> _crearCatalogo() {
             j.potencial = min(99, max(j.habilidad, j.potencial + 5));
             ctx.recalcularValor(j);
             return '${j.nick} cambió a ${nuevoJuego.nombre} como $nuevoRol: '
-                'su habilidad baja un 25 % y su potencial sube 5.';
+                'su habilidad baja un 25 % y su margen de crecimiento mejora.';
           },
         ),
         OpcionEvento(

@@ -21,6 +21,7 @@ import 'package:flutter/services.dart' show rootBundle;
 import '../logica/formulas.dart';
 import '../logica/generador_equipos.dart';
 import '../logica/generador_jugadores.dart';
+import '../logica/ojeadores.dart';
 import '../modelos/equipo.dart';
 import '../modelos/juego.dart';
 import '../modelos/jugador.dart';
@@ -323,6 +324,7 @@ class CargadorMundo {
     );
     jugador.valorMercado = valorMercadoDe(jugador);
     jugador.salarioAnual = calcularSalarioAnual(jugador.valorMercado);
+    inicializarPotencialJugador(jugador, _rnd);
     return jugador;
   }
 

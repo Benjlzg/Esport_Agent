@@ -18,6 +18,7 @@ import '../modelos/juego.dart';
 import '../modelos/jugador.dart';
 import '../modelos/noticia.dart';
 import '../modelos/oferta.dart';
+import '../modelos/ojeador.dart';
 import '../modelos/torneo.dart';
 import '../servicios/guardado.dart';
 import 'agentes_rivales.dart' as rivales;
@@ -34,6 +35,7 @@ import 'liga.dart';
 import 'mercado.dart';
 import 'metricas.dart';
 import 'negociacion.dart';
+import 'ojeadores.dart' as ojeadores_logica;
 import 'satisfaccion.dart' as sat;
 
 /// Resultado simple de una acción (reclutar, dejar de representar...).
@@ -241,6 +243,45 @@ class MotorJuego extends ChangeNotifier {
   /// Agentes rivales de la partida (Parte 3A).
   List<AgenteRival> get agentesRivales => estado?.agentesRivales ?? const [];
 
+  /// Ojeadores contratados por la agencia (Parte 3C).
+  List<Ojeador> get ojeadores => estado?.ojeadores ?? const [];
+
+  /// Cupos de ojeadores que quedan libres.
+  int get cuposOjeadores => ojeadores_logica.maxOjeadores - ojeadores.length;
+
+  /// Gasto semanal de todos los ojeadores.
+  int get gastoOjeadoresSemanal =>
+      ojeadores_logica.gastoSemanalOjeadores(ojeadores);
+
+  /// Talentos ocultos que el jugador puede ver con sus ojeadores actuales.
+  List<Jugador> get talentosDescubiertos => estado == null
+      ? const []
+      : ojeadores_logica.talentosOcultosVisibles(estado!);
+
+  /// true si algún ojeador cubre el videojuego y la región del jugador.
+  bool cubiertoPorOjeador(Jugador jugador) {
+    if (estado == null) return false;
+    _asegurarIndices();
+    return ojeadores_logica.nivelOjeadorQueCubre(
+          ojeadores: ojeadores,
+          jugador: jugador,
+          equipos: _indices.equipos,
+        ) >
+        0;
+  }
+
+  /// Nota de precisión del rango de potencial ("Ojeador nivel 3 · 6 semanas"
+  /// o "Sin ojeador").
+  String notaPrecisionPotencial(Jugador jugador) {
+    if (estado == null) return 'Sin ojeador';
+    _asegurarIndices();
+    return ojeadores_logica.notaPrecisionPotencial(
+      jugador: jugador,
+      ojeadores: ojeadores,
+      equipos: _indices.equipos,
+    );
+  }
+
   /// Ranking de agentes conmigo incluido.
   List<rivales.FilaRankingAgente> get rankingAgentes =>
       rivales.rankingAgentes(estado!);
@@ -344,8 +385,9 @@ class MotorJuego extends ChangeNotifier {
   int get avisosSatisfaccion => representadosQueQuierenHablar.length;
 
   /// Número de representados en riesgo de marcharse.
-  int get representadosEnRiesgo =>
-      misJugadores.where((j) => j.satisfaccion < sat.satisfaccionCritica).length;
+  int get representadosEnRiesgo => misJugadores
+      .where((j) => j.satisfaccion < sat.satisfaccionCritica)
+      .length;
 
   /// Los representados con menor satisfacción.
   List<Jugador> representadosMasDescontentos([int cantidad = 3]) {
@@ -377,8 +419,7 @@ class MotorJuego extends ChangeNotifier {
       );
 
   /// Costo del bono para apaciguar a un jugador.
-  int costoBonoApaciguar(Jugador jugador) =>
-      sat.costoBonoApaciguar(jugador);
+  int costoBonoApaciguar(Jugador jugador) => sat.costoBonoApaciguar(jugador);
 
   /// Promete al jugador que mejorarás su situación (+10 ahora).
   Future<ResultadoAccion> prometerMejora(Jugador jugador) async {
@@ -684,6 +725,11 @@ class MotorJuego extends ChangeNotifier {
     _reconstruirIndices();
     // La competencia empieza desde el primer día (Parte 3A).
     rivales.asegurarAgentesRivales(estado!, _rnd);
+    // Todos los jugadores del mundo ya nacieron con su potencial oculto en
+    // los generadores; esta llamada idempotente cubre datos cargados a mano.
+    ojeadores_logica.inicializarPotencialPartidaNueva(estado!, _rnd);
+    // La primera temporada también tiene talentos ocultos que descubrir.
+    ojeadores_logica.generarTalentosOcultos(estado!, _rnd);
     _reconstruirIndices();
     _agregarNoticia(
       '¡Bienvenido, $nombre! Tu carrera como agente comienza hoy.',
@@ -720,6 +766,14 @@ class MotorJuego extends ChangeNotifier {
     // Partidas v3–v10 no traen expectativas ni contrato de representación:
     // se generan aquí sin gastar RNG. En una v11 solo repara datos corruptos.
     sat.asegurarRepresentados(estado!);
+    // Partidas anteriores a v12: error de potencial determinista por id, sin
+    // gastar RNG, y rango visible nulo para conservar el potencial exacto que
+    // el jugador ya conocía. Las v12 solo se normalizan.
+    if (versionCargada < 12) {
+      ojeadores_logica.migrarPotencialOculto(estado!);
+    } else {
+      ojeadores_logica.normalizarPotenciales(estado!);
+    }
     _reconstruirIndices();
     // Al cargar se guarda de nuevo: así una partida vieja se actualiza al
     // formato actual con el contador de ids reconstruido y el estado
@@ -799,6 +853,66 @@ class MotorJuego extends ChangeNotifier {
   /// Deja de representar a un jugador.
   Future<ResultadoAccion> dejarDeRepresentar(Jugador jugador) =>
       _mercado.dejarDeRepresentar(jugador);
+
+  // ------------------- OJEADORES (PARTE 3C) -------------------
+
+  /// Contrata un ojeador para un videojuego, una región y un nivel.
+  ///
+  /// No hay cuota de contratación: solo se pide confirmación en la pantalla.
+  /// El salario semanal se cobra en `avanzarSemana`, igual que la oficina.
+  Future<ResultadoAccion> contratarOjeador({
+    required Juego juego,
+    required String region,
+    required int nivel,
+  }) async {
+    final est = estado!;
+    if (est.ojeadores.length >= ojeadores_logica.maxOjeadores) {
+      return ResultadoAccion(
+        false,
+        'Ya tienes el máximo de ${ojeadores_logica.maxOjeadores} ojeadores.',
+      );
+    }
+    if (!regionesDeJuego(juego).contains(region)) {
+      return ResultadoAccion(
+        false,
+        'La región «$region» no existe en ${juego.nombre}.',
+      );
+    }
+    final ojeador = ojeadores_logica.crearOjeador(
+      estado: est,
+      rnd: _rnd,
+      juego: juego,
+      region: region,
+      nivel: nivel,
+    );
+    est.ojeadores.add(ojeador);
+    _agregarNoticia(
+      'Contrataste a ${ojeador.nombre} como ojeador de '
+      '${juego.corto} en $region (nivel ${ojeador.nivel}).',
+      TipoNoticia.fichaje,
+    );
+    await _guardarYNotificar();
+    return ResultadoAccion(
+      true,
+      '${ojeador.nombre} se une a la agencia como ojeador.',
+    );
+  }
+
+  /// Despide a un ojeador. Deja de cobrar su salario desde la próxima semana.
+  Future<ResultadoAccion> despedirOjeador(Ojeador ojeador) async {
+    final est = estado!;
+    if (!est.ojeadores.contains(ojeador)) {
+      return ResultadoAccion(false, 'Ese ojeador ya no trabaja en la agencia.');
+    }
+    est.ojeadores.remove(ojeador);
+    _agregarNoticia(
+      'Despediste a ${ojeador.nombre}, ojeador de '
+      '${ojeador.juego.corto} en ${ojeador.region}.',
+      TipoNoticia.evento,
+    );
+    await _guardarYNotificar();
+    return ResultadoAccion(true, '${ojeador.nombre} ya no trabaja contigo.');
+  }
 
   // ------------------- NEGOCIACIÓN -------------------
 

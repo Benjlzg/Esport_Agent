@@ -191,6 +191,62 @@ void main() {
     }
   });
 
+  test('3C: ninguna pantalla imprime el potencial real directamente', () {
+    final regexPotencialDirecto = RegExp(r'\.potencial\b');
+    for (final carpeta in ['lib/pantallas', 'lib/widgets']) {
+      final archivos = Directory(carpeta)
+          .listSync(recursive: true)
+          .whereType<File>()
+          .where((archivo) => archivo.path.endsWith('.dart'));
+      for (final archivo in archivos) {
+        final lineas = archivo.readAsLinesSync();
+        for (var i = 0; i < lineas.length; i++) {
+          final linea = lineas[i];
+          // El desplegable de orden usa el enum OrdenMercado.potencial, que
+          // no imprime ningún valor de jugador.
+          if (linea.contains('OrdenMercado.potencial')) continue;
+          expect(
+            regexPotencialDirecto.hasMatch(linea),
+            isFalse,
+            reason:
+                '${archivo.path}:${i + 1} usa .potencial directamente; '
+                'debe usar textoPotencial(jugador).',
+          );
+        }
+      }
+    }
+
+    // Los textos de eventos y de noticias/ofertas de la IA tampoco pueden
+    // revelar el potencial real (ni puntos ni el número exacto).
+    final catalogo = File('lib/logica/eventos_catalogo.dart')
+        .readAsStringSync();
+    for (final prohibido in [
+      'potencial sube',
+      'potencial se ajusta',
+      'de potencial',
+    ]) {
+      expect(
+        catalogo.contains(prohibido),
+        isFalse,
+        reason: 'El catálogo de eventos revela el potencial: "$prohibido".',
+      );
+    }
+    for (final ruta in [
+      'lib/logica/eventos_catalogo.dart',
+      'lib/logica/agentes_rivales.dart',
+      'lib/logica/mercado.dart',
+      'lib/logica/servicios/mercado_service.dart',
+    ]) {
+      final texto = File(ruta).readAsStringSync();
+      expect(
+        // Solo cadenas de una línea: evita cruzar comentarios con apóstrofes.
+        RegExp(r"'[^'\n]*potencial[^'\n]*'").hasMatch(texto),
+        isFalse,
+        reason: '$ruta contiene un texto visible que nombra el potencial real.',
+      );
+    }
+  });
+
   testWidgets('C5: Ligas abre con videojuego, región y 1ª División', (
     tester,
   ) async {

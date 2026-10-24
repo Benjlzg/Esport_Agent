@@ -321,6 +321,9 @@ void main() {
       find.text('Temp. ${original.temporada} · Sem ${original.semana}'),
       findsOneWidget,
     );
-    expect(find.text('Reputación 42'), findsOneWidget);
+    expect(
+      find.text('Reputación ${original.agente.reputacion}'),
+      findsOneWidget,
+    );
   });
 }

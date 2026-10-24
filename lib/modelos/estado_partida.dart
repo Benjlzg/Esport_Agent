@@ -8,16 +8,18 @@ import 'historial.dart';
 import 'jugador.dart';
 import 'noticia.dart';
 import 'oferta.dart';
+import 'ojeador.dart';
 import 'torneo.dart';
 
 /// Versión del formato de guardado. Si algún día cambia el formato,
 /// se sube este número para poder actualizar partidas antiguas.
-const int versionFormato = 11;
+const int versionFormato = 12;
 
 /// Versión más antigua que todavía se puede cargar. Las partidas de las
-/// versiones 3 a 10 se actualizan a la 11: los campos nuevos quedan vacíos o
+/// versiones 3 a 11 se actualizan a la 12: los campos nuevos quedan vacíos o
 /// con su valor por defecto, el contador de ids se reconstruye al cargar,
-/// se generan los agentes rivales, las expectativas de mis representados y las
+/// se generan los agentes rivales, las expectativas de mis representados, se
+/// asigna el error de potencial a las partidas antiguas y las
 /// competiciones/plantillas que falten se reparan. Las de la versión 1 o 2
 /// siguen siendo incompatibles.
 const int versionMinimaCompatible = 3;
@@ -36,6 +38,7 @@ class EstadoPartida {
     List<PremioIndividual>? premios,
     List<Oferta>? ofertas,
     List<AgenteRival>? agentesRivales,
+    List<Ojeador>? ojeadores,
     Map<String, int>? fichajesVentana,
     List<EventoPendiente>? eventosPendientes,
     Map<String, int>? ultimaSemanaEvento,
@@ -60,6 +63,7 @@ class EstadoPartida {
        premios = premios ?? [],
        ofertas = ofertas ?? [],
        agentesRivales = agentesRivales ?? [],
+       ojeadores = ojeadores ?? [],
        fichajesVentana = fichajesVentana ?? {},
        eventosPendientes = eventosPendientes ?? [],
        ultimaSemanaEvento = ultimaSemanaEvento ?? {},
@@ -98,6 +102,9 @@ class EstadoPartida {
 
   /// Agentes rivales que compiten conmigo (Parte 3A).
   List<AgenteRival> agentesRivales;
+
+  /// Ojeadores contratados por la agencia (Parte 3C).
+  List<Ojeador> ojeadores;
 
   /// Fichajes de la IA hechos por cada equipo en la ventana en curso.
   /// La clave es el id del equipo. Se reinicia al empezar cada ventana.
@@ -176,6 +183,7 @@ class EstadoPartida {
       'premios': premios.map((p) => p.toJson()).toList(),
       'ofertas': ofertas.map((o) => o.toJson()).toList(),
       'agentesRivales': agentesRivales.map((a) => a.toJson()).toList(),
+      'ojeadores': ojeadores.map((o) => o.toJson()).toList(),
       'fichajesVentana': fichajesVentana,
       'eventosPendientes': eventosPendientes.map((e) => e.toJson()).toList(),
       'ultimaSemanaEvento': ultimaSemanaEvento,
@@ -229,6 +237,9 @@ class EstadoPartida {
           .toList(),
       agentesRivales: ((json['agentesRivales'] as List?) ?? const [])
           .map((a) => AgenteRival.fromJson(a as Map<String, dynamic>))
+          .toList(),
+      ojeadores: ((json['ojeadores'] as List?) ?? const [])
+          .map((o) => Ojeador.fromJson(o as Map<String, dynamic>))
           .toList(),
       fichajesVentana:
           (json['fichajesVentana'] as Map?)?.map(

@@ -106,6 +106,8 @@ class MercadoService {
     motor.registrarGasto(costo);
     jugador.representadoPorMi = true;
     jugador.agenteId = 'yo';
+    // Si era un talento oculto, al reclutarlo pasa a ser visible para todos.
+    jugador.oculto = false;
     // El periodo mínimo de representación empieza de cero (corrección I1).
     jugador.semanasRepresentado = 0;
     jugador.semanasEnfriamientoAgente = 0;
@@ -200,6 +202,7 @@ class MercadoService {
     if (motor.rnd.nextDouble() < probabilidad) {
       jugador.representadoPorMi = true;
       jugador.agenteId = 'yo';
+      jugador.oculto = false;
       jugador.semanasRepresentado = 0;
       jugador.semanasEnfriamientoAgente = semanasEnfriamientoCambioAgente;
       jugador.semanasEsperaConvencer = 0;
@@ -208,8 +211,7 @@ class MercadoService {
         jugador: jugador,
         equipo: sat.equipoDe(est, jugador),
       );
-      jugador.semanasContratoRepresentacion =
-          sat.contratoRepresentacionInicial;
+      jugador.semanasContratoRepresentacion = sat.contratoRepresentacionInicial;
       jugador.comisionSalarioContrato = sat.comisionSalarioContratoInicial;
       jugador.quiereHablar = false;
       jugador.semanasPromesaPendiente = 0;

@@ -15,6 +15,7 @@ import '../generador_jugadores.dart';
 import '../mantenimiento.dart';
 import '../mercado.dart' as mercado;
 import '../motor_juego.dart';
+import '../ojeadores.dart' as ojeadores;
 import '../progresion.dart';
 import '../satisfaccion.dart' as sat;
 
@@ -63,8 +64,17 @@ class TemporadaService {
     }
 
     // 4) Una sola pasada por todos los jugadores (A3): comisión de salario,
-    //    contrato, progreso e inactividad.
+    //    contrato, progreso, observación de ojeadores e inactividad.
     gastos += gastoOficinaSemanal;
+    // El salario de los ojeadores se cobra junto a la oficina, sin reglas
+    // nuevas de quiebra.
+    gastos += ojeadores.gastoSemanalOjeadores(est.ojeadores);
+    for (final ojeador in est.ojeadores) {
+      ojeador.semanasContratado++;
+    }
+    // La cobertura se calcula una sola vez por semana (juego+región → nivel).
+    final coberturaOjeadores = ojeadores.nivelesDeCobertura(est.ojeadores);
+    final equiposPorId = {for (final equipo in est.equipos) equipo.id: equipo};
     final huecosPorContrato = <({String equipoId, String rol})>[];
     for (final j in est.jugadores) {
       // 4.0) Suma una semana de representación (corrección I1).
@@ -133,6 +143,15 @@ class TemporadaService {
 
       // 4.3) Progreso semanal (mejora o empeora la habilidad).
       _progresarJugador(j);
+
+      // 4.3b) Observación de ojeadores dentro del mismo recorrido (R1). Si
+      // el jugador no está cubierto, conserva el rango que ya descubrió.
+      final nivelOjeador = ojeadores.nivelDeCoberturaDeJugador(
+        jugador: j,
+        cobertura: coberturaOjeadores,
+        equipos: equiposPorId,
+      );
+      ojeadores.observarJugadorSemanal(j, nivelMejor: nivelOjeador);
 
       // 4.4) Baja la semana de inactividad (lesión o descanso).
       if (j.semanasInactivo > 0) j.semanasInactivo--;
@@ -339,6 +358,15 @@ class TemporadaService {
 
     est.semana = 1;
     est.temporada++;
+    // Primero se destapan los talentos ocultos de la temporada anterior.
+    final talentosDestapados = ojeadores.destaparTalentosOcultos(est);
+    if (talentosDestapados > 0) {
+      motor.agregarNoticia(
+        'Los talentos que nadie reclutó salen al mercado: '
+        '$talentosDestapados jugadores nuevos disponibles.',
+        TipoNoticia.evento,
+      );
+    }
     motor.agregarNoticia(
       '¡Comienza la temporada ${est.temporada}!',
       TipoNoticia.evento,
@@ -381,18 +409,24 @@ class TemporadaService {
     for (final juego in Juego.values) {
       for (final region in motor.regionesDeJuego(juego)) {
         for (var i = 0; i < 3; i++) {
-          est.jugadores.add(
-            generarJovenDeRegion(
-              motor.rnd,
-              id: motor.nuevoId(),
-              juego: juego,
-              region: region,
-              nicksUsados: nicksUsados,
-            ),
+          final joven = generarJovenDeRegion(
+            motor.rnd,
+            id: motor.nuevoId(),
+            juego: juego,
+            region: region,
+            nicksUsados: nicksUsados,
           );
+          // El generador ya lo inicializa; la llamada es idempotente y deja
+          // explícito que todo joven nace con su potencial oculto.
+          ojeadores.inicializarPotencialJugador(joven, motor.rnd);
+          est.jugadores.add(joven);
         }
       }
     }
+
+    // Después de destapar los viejos, se generan los talentos ocultos de la
+    // nueva temporada (uno por región y videojuego).
+    ojeadores.generarTalentosOcultos(est, motor.rnd);
 
     // Se recargan los presupuestos de los equipos.
     for (final equipo in est.equipos) {

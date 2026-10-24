@@ -16,6 +16,7 @@ import '../modelos/noticia.dart';
 import 'calendario.dart';
 import 'formulas.dart';
 import 'mercado.dart';
+import 'ojeadores.dart';
 
 // ------------------- CONSTANTES DE BALANCE -------------------
 
@@ -148,10 +149,7 @@ AgenteRival? rivalDeJugador(EstadoPartida estado, Jugador jugador) {
 }
 
 /// Puntos de ranking: reputación + un punto por cada millón de cartera.
-int puntosRankingAgente({
-  required int reputacion,
-  required int valorCartera,
-}) {
+int puntosRankingAgente({required int reputacion, required int valorCartera}) {
   return reputacion + (valorCartera / 1000000).round();
 }
 
@@ -240,7 +238,8 @@ int costoFichajeRival(Jugador jugador) =>
 
 /// Genera el nombre de un agente rival sin repetir los ya usados.
 String _nombreRivalUnico(Random rnd, Set<String> usados) {
-  final base = '${nombres[rnd.nextInt(nombres.length)]} '
+  final base =
+      '${nombres[rnd.nextInt(nombres.length)]} '
       '${apellidos[rnd.nextInt(apellidos.length)]}';
   var candidato = base;
   var numero = 2;
@@ -289,6 +288,7 @@ List<Jugador> _candidatosCarteraInicial(
 
   for (final j in estado.jugadores) {
     if (!j.sinAgente) continue;
+    if (j.oculto) continue;
     if (!aceptaRepresentacion(
       reputacion: rival.reputacion,
       habilidad: j.habilidad,
@@ -412,10 +412,7 @@ double atractivoAgente({
 
 /// Atractivo de mi agencia. En 3A todavía no hay contratos negociados: la
 /// comisión es el 5 % fijo de siempre.
-double atractivoMio({
-  required EstadoPartida estado,
-  required int azar,
-}) {
+double atractivoMio({required EstadoPartida estado, required int azar}) {
   return atractivoAgente(
     reputacion: estado.agente.reputacion,
     comisionCobrada: comisionInicialRival,
@@ -459,8 +456,7 @@ double probabilidadRobo({
     azar: rnd.nextInt(azarAtractivoMax + 1),
   );
   return (probabilidadRoboBase +
-          (atractivoDelRival - atractivoMioActual) /
-              divisorDiferenciaAtractivo)
+          (atractivoDelRival - atractivoMioActual) / divisorDiferenciaAtractivo)
       .clamp(probabilidadRoboMinima, probabilidadRoboMaxima);
 }
 
@@ -483,8 +479,7 @@ double probabilidadConvencerJugador({
     azar: azarAtractivoMax ~/ 2,
   );
   return (probabilidadConvencerBase +
-          (atractivoMioActual - atractivoDelRival) /
-              divisorDiferenciaAtractivo)
+          (atractivoMioActual - atractivoDelRival) / divisorDiferenciaAtractivo)
       .clamp(probabilidadConvencerMinima, probabilidadConvencerMaxima);
 }
 
@@ -643,6 +638,8 @@ List<Jugador> _candidatos(
   if (!puedeFicharRival(estado, rival)) return const [];
   final lista = estado.jugadores.where((j) {
     if (!j.sinAgente) return false;
+    // Los rivales no ven ni fichan talentos ocultos.
+    if (j.oculto) return false;
     if (rival.dinero < costoFichajeRival(j)) return false;
     return condicion(j);
   }).toList()..sort(ordenar);
@@ -666,7 +663,8 @@ void _ficharMejorHabilidad(
   _ficharRival(estado, rival, candidatos.first, resultado);
 }
 
-/// Ficha al joven con mayor margen de potencial (edad ≤ 20 y margen ≥ 12).
+/// Ficha al joven con mayor margen de potencial estimado (edad ≤ 20 y
+/// margen ≥ 12). El rival no ve el potencial real (Parte 3C).
 void _ficharMejorJoven(
   EstadoPartida estado,
   AgenteRival rival,
@@ -675,20 +673,22 @@ void _ficharMejorJoven(
   final candidatos = _candidatos(
     estado,
     rival,
-    condicion: (j) => j.edad <= 20 && j.potencial - j.habilidad >= 12,
+    condicion: (j) =>
+        j.edad <= 20 && potencialEstimadoDe(j) - j.habilidad >= 12,
     ordenar: (a, b) {
-      final margenA = a.potencial - a.habilidad;
-      final margenB = b.potencial - b.habilidad;
+      final margenA = potencialEstimadoDe(a) - a.habilidad;
+      final margenB = potencialEstimadoDe(b) - b.habilidad;
       final porMargen = margenB.compareTo(margenA);
       if (porMargen != 0) return porMargen;
-      return b.potencial.compareTo(a.potencial);
+      return potencialEstimadoDe(b).compareTo(potencialEstimadoDe(a));
     },
   );
   if (candidatos.isEmpty) return;
   _ficharRival(estado, rival, candidatos.first, resultado);
 }
 
-/// Ficha un jugador barato (valor < $100.000) con el mayor potencial.
+/// Ficha un jugador barato (valor < $100.000) con el mayor potencial
+/// estimado.
 void _ficharBarato(
   EstadoPartida estado,
   AgenteRival rival,
@@ -699,7 +699,8 @@ void _ficharBarato(
     rival,
     condicion: (j) => _valorDe(j) < 100000,
     ordenar: (a, b) {
-      final porPotencial = b.potencial.compareTo(a.potencial);
+      final porPotencial = potencialEstimadoDe(b)
+          .compareTo(potencialEstimadoDe(a));
       if (porPotencial != 0) return porPotencial;
       return b.habilidad.compareTo(a.habilidad);
     },
@@ -739,7 +740,7 @@ void _ficharEspecialista(
     ordenar: (a, b) {
       final porHabilidad = b.habilidad.compareTo(a.habilidad);
       if (porHabilidad != 0) return porHabilidad;
-      return b.potencial.compareTo(a.potencial);
+      return potencialEstimadoDe(b).compareTo(potencialEstimadoDe(a));
     },
   );
   if (candidatos.isEmpty) return;
@@ -914,8 +915,7 @@ bool _intentarRobo(
   jugador.semanasEsperaConvencer = 0;
 
   resultado.robos++;
-  final texto =
-      '${jugador.nick} deja tu agencia y firma con ${rival.nombre}.';
+  final texto = '${jugador.nick} deja tu agencia y firma con ${rival.nombre}.';
   resultado.noticias.add(
     Noticia(
       semana: estado.semana,
@@ -1015,8 +1015,7 @@ List<PuntuacionAgente> puntuacionesAgenteDelAnio(
     puntos[agenteId] = (puntos[agenteId] ?? 0) + cantidad;
   }
 
-  String? agenteDe(Jugador j) =>
-      j.representadoPorMi ? claveYo : j.agenteId;
+  String? agenteDe(Jugador j) => j.representadoPorMi ? claveYo : j.agenteId;
 
   // Títulos de la temporada.
   for (final titulo in estado.palmares.where(
@@ -1024,8 +1023,7 @@ List<PuntuacionAgente> puntuacionesAgenteDelAnio(
   )) {
     double valor;
     if (titulo.tipo == TipoCampeon.torneo) {
-      valor =
-          (titulo.descripcion == 'Mundial' || titulo.descripcion == 'Major')
+      valor = (titulo.descripcion == 'Mundial' || titulo.descripcion == 'Major')
           ? puntosTituloMundial
           : puntosTituloMitad;
     } else {
